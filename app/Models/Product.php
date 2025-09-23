@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'name', 'description', 'price', 'cost_price', 'stock_quantity',
         'min_stock_alert', 'category_id', 'product_type_id', 'sku',
@@ -39,6 +42,11 @@ class Product extends Model
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class);
+    }
+
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
     }
 
     // Méthode pour récupérer un attribut spécifique

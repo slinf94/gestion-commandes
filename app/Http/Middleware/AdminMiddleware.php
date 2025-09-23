@@ -15,21 +15,20 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!auth()->check()) {
-            return redirect()->route('admin.login');
-        }
-
         $user = auth()->user();
-        
-        if ($user->role !== 'admin' && $user->role !== 'super_admin') {
-            abort(403, 'Accès non autorisé. Seuls les administrateurs peuvent accéder à cette page.');
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Non authentifié'
+            ], 401);
         }
 
-        if ($user->status !== 'active') {
-            auth()->logout();
-            return redirect()->route('admin.login')->withErrors([
-                'email' => 'Votre compte a été désactivé. Contactez l\'administrateur.',
-            ]);
+        if (!$user->isAdmin() && !$user->isGestionnaire()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Accès non autorisé. Droits d\'administration requis.'
+            ], 403);
         }
 
         return $next($request);
