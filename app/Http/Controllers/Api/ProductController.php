@@ -16,7 +16,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'attributeValues.productTypeAttribute'])
+        $query = Product::with(['category', 'attributeValues.productTypeAttribute', 'productImages'])
             ->where('status', 'active');
 
         // Filtrage par catégorie

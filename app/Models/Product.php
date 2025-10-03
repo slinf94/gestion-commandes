@@ -12,10 +12,10 @@ class Product extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'name', 'description', 'price', 'cost_price', 'stock_quantity',
-        'min_stock_alert', 'category_id', 'product_type_id', 'sku',
-        'barcode', 'images', 'status', 'is_featured', 'meta_title',
-        'meta_description', 'tags'
+        'name', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price',
+        'min_wholesale_quantity', 'stock_quantity', 'min_stock_alert', 'category_id', 
+        'product_type_id', 'sku', 'barcode', 'images', 'status', 'is_featured', 
+        'meta_title', 'meta_description', 'tags'
     ];
 
     protected $casts = [
@@ -47,6 +47,24 @@ class Product extends Model
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    // Relation avec les images
+    public function productImages(): HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('order');
+    }
+
+    // Récupérer l'image principale
+    public function getMainImageAttribute()
+    {
+        return $this->productImages()->principale()->first()?->url;
+    }
+
+    // Récupérer toutes les images
+    public function getAllImagesAttribute()
+    {
+        return $this->productImages()->get()->pluck('url')->toArray();
     }
 
     // Méthode pour récupérer un attribut spécifique

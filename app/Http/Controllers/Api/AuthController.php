@@ -188,6 +188,7 @@ class AuthController extends Controller
             'quartier' => 'nullable|string|max:100',
             'ville' => 'sometimes|string|max:100',
             'date_naissance' => 'nullable|date',
+            'photo' => 'nullable|string|max:255', // URL de la photo
         ]);
 
         if ($validator->fails()) {
@@ -200,7 +201,7 @@ class AuthController extends Controller
 
         $user->update($request->only([
             'nom', 'prenom', 'numero_whatsapp',
-            'localisation', 'quartier', 'ville', 'date_naissance'
+            'localisation', 'quartier', 'ville', 'date_naissance', 'photo'
         ]));
 
         return response()->json([
@@ -345,6 +346,20 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Toutes les notifications marquées comme lues'
+        ]);
+    }
+
+    /**
+     * Get list of quartiers
+     */
+    public function getQuartiers()
+    {
+        $quartiers = config('quartiers.ouagadougou');
+
+        return response()->json([
+            'success' => true,
+            'data' => $quartiers,
+            'message' => 'Liste des quartiers récupérée avec succès'
         ]);
     }
 }

@@ -17,6 +17,14 @@ class Authenticate
     public function handle(Request $request, Closure $next): Response
     {
         if (!Auth::check()) {
+            // Si c'est une requête API, retourner JSON
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+            
             return redirect()->route('admin.login');
         }
 

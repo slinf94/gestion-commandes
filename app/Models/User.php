@@ -32,6 +32,7 @@ class User extends Authenticatable implements JWTSubject
         'status',
         'date_naissance',
         'avatar',
+        'photo', // Photo de profil
         'two_factor_enabled',
         'two_factor_secret',
         'remember_token',

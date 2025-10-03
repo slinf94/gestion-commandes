@@ -27,6 +27,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+    Route::get('/auth/quartiers', [AuthController::class, 'getQuartiers']); // Liste des quartiers
 
     // Produits et catégories (lecture seule)
     Route::get('/products', [ProductController::class, 'index']);
@@ -38,8 +39,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/categories/{id}/products', [CategoryController::class, 'products']);
 });
 
-// Routes protégées par authentification
-Route::prefix('v1')->middleware('auth:api')->group(function () {
+// Routes protégées par authentification JWT
+Route::prefix('v1')->middleware('jwt.auth')->group(function () {
     // Authentification
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
@@ -75,7 +76,7 @@ Route::prefix('v1')->middleware('auth:api')->group(function () {
 });
 
 // Routes d'administration (admin uniquement)
-Route::prefix('v1/admin')->middleware(['auth:api', 'admin'])->group(function () {
+Route::prefix('v1/admin')->middleware(['jwt.auth', 'admin'])->group(function () {
     // Gestion des utilisateurs
     Route::get('/users', [AdminController::class, 'users']);
     Route::get('/users/{id}', [AdminController::class, 'showUser']);
