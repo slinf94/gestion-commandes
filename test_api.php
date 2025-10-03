@@ -39,3 +39,7 @@ echo "Produits en vedette: " . count($data['data']) . "\n\n";
 
 echo "=== TESTS TERMINÉS ===\n";
 
+
+
+
+

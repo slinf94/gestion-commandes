@@ -18,7 +18,7 @@ class AuthController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login', 'register', 'forgotPassword', 'resetPassword']]);
+        // Le middleware est géré dans les routes (api.php)
     }
 
     /**
@@ -35,7 +35,8 @@ class AuthController extends Controller
             'localisation' => 'nullable|string',
             'quartier' => 'nullable|string|max:100',
             'ville' => 'required|string|max:100',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:6|confirmed',
+            'password_confirmation' => 'required|string|min:6',
             'date_naissance' => 'nullable|date',
         ]);
 
@@ -119,7 +120,7 @@ class AuthController extends Controller
                     'user' => $user->makeHidden(['password', 'two_factor_secret']),
                     'token' => $token,
                     'token_type' => 'bearer',
-                    'expires_in' => auth()->factory()->getTTL() * 60
+                    'expires_in' => config('jwt.ttl') * 60
                 ]
             ]);
 
@@ -167,7 +168,7 @@ class AuthController extends Controller
             'data' => [
                 'token' => auth()->refresh(),
                 'token_type' => 'bearer',
-                'expires_in' => auth()->factory()->getTTL() * 60
+                'expires_in' => config('jwt.ttl') * 60
             ]
         ]);
     }

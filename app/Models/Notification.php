@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+
 use Illuminate\Database\Eloquent\SoftDeletes;
+
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Notification extends Model
@@ -11,6 +13,7 @@ class Notification extends Model
     use SoftDeletes;
 
     protected $fillable = [
+
         'user_id',
         'title',
         'message',
@@ -24,9 +27,12 @@ class Notification extends Model
         'data' => 'array',
     ];
 
+
     // Relations
     public function user(): BelongsTo
+
     {
+
         return $this->belongsTo(User::class);
     }
 
@@ -48,13 +54,19 @@ class Notification extends Model
 
     // Helper methods
     public function markAsRead()
+
     {
+
         $this->update(['is_read' => true]);
+
     }
 
     public function markAsUnread()
+
     {
+
         $this->update(['is_read' => false]);
+
     }
 }
 
