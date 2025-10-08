@@ -28,6 +28,18 @@
             color: #fff;
             background-color: rgba(255, 255, 255, 0.2);
         }
+        .nav-sidebar .nav-treeview .nav-link.active {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        .nav-sidebar .nav-item.menu-open > .nav-link {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+        .nav-sidebar .nav-item.menu-open > .nav-link.active {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.25);
+        }
         .brand-link {
             background: rgba(255, 255, 255, 0.1);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -354,6 +366,8 @@
     @stack('scripts')
 </body>
 </html>
+
+
 
 
 

@@ -38,6 +38,10 @@
                             <i class="fas fa-users me-2"></i>
                             Utilisateurs
                         </a>
+                        <a class="nav-link" href="{{ route('admin.users.by-quartier') }}">
+                            <i class="fas fa-map-marker-alt me-2"></i>
+                            Par Quartier
+                        </a>
                         <a class="nav-link" href="{{ route('admin.products.index') }}">
                             <i class="fas fa-box me-2"></i>
                             Produits
@@ -55,6 +59,26 @@
                 <div class="d-flex justify-content-between align-items-center p-3">
                     <h2>Gestion des Utilisateurs</h2>
                     <div>
+                        <div class="btn-group me-2" role="group">
+                            <button type="button" class="btn btn-warning dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fas fa-download"></i> Exporter
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('admin.users.export.csv', request()->query()) }}">
+                                        <i class="fas fa-file-csv me-2"></i>Liste des clients (CSV)
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('admin.users.export.by-quartier.csv') }}">
+                                        <i class="fas fa-chart-bar me-2"></i>Statistiques par quartier (CSV)
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        <a href="{{ route('admin.users.by-quartier') }}" class="btn btn-info me-2">
+                            <i class="fas fa-map-marker-alt"></i> Par Quartier
+                        </a>
                         <a href="{{ route('admin.users.create') }}" class="btn btn-success me-2">
                             <i class="fas fa-plus"></i> Nouvel Utilisateur
                         </a>
@@ -77,6 +101,61 @@
                         </div>
                     @endif
 
+                    <!-- Filtres par quartier -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Filtres par Quartier</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form method="GET" action="{{ route('admin.users.index') }}">
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <select class="form-select" name="quartier" onchange="this.form.submit()">
+                                                    <option value="">Tous les quartiers</option>
+                                                    @foreach(\App\Models\Quartier::getQuartiers() as $quartier)
+                                                        <option value="{{ $quartier }}" {{ request('quartier') == $quartier ? 'selected' : '' }}>
+                                                            {{ $quartier }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <button type="submit" class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-search"></i> Filtrer
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Statistiques</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <h5 class="text-primary">{{ $users->total() }}</h5>
+                                            <small>Total</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <h5 class="text-success">{{ $users->where('status', 'active')->count() }}</h5>
+                                            <small>Actifs</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <h5 class="text-warning">{{ $users->where('status', 'pending')->count() }}</h5>
+                                            <small>En attente</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
@@ -85,6 +164,7 @@
                                     <th>Nom</th>
                                     <th>Email</th>
                                     <th>Téléphone</th>
+                                    <th>Quartier</th>
                                     <th>Rôle</th>
                                     <th>Statut</th>
                                     <th>Inscrit le</th>
@@ -98,6 +178,13 @@
                                     <td>{{ $user->full_name }}</td>
                                     <td>{{ $user->email }}</td>
                                     <td>{{ $user->numero_telephone }}</td>
+                                    <td>
+                                        @if($user->quartier)
+                                            <span class="badge bg-info">{{ $user->quartier }}</span>
+                                        @else
+                                            <span class="text-muted">Non défini</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         <span class="badge bg-{{ $user->role == 'admin' ? 'danger' : ($user->role == 'gestionnaire' ? 'warning' : 'info') }}">
                                             {{ ucfirst($user->role) }}
@@ -139,7 +226,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="8" class="text-center">Aucun utilisateur trouvé</td>
+                                    <td colspan="9" class="text-center">Aucun utilisateur trouvé</td>
                                 </tr>
                                 @endforelse
                             </tbody>

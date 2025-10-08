@@ -197,7 +197,7 @@
                                                     {{ ucfirst($order->status) }}
                                                 </span>
                                             </td>
-                                            <td>{{ number_format($order->total, 0, ',', ' ') }} FCFA</td>
+                                            <td>{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</td>
                                             <td>{{ $order->created_at ? $order->created_at->format('d/m/Y H:i') : 'N/A' }}</td>
                                         </tr>
                                         @empty

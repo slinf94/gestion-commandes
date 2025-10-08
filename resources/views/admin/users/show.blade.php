@@ -102,7 +102,7 @@
                                 </div>
                             </div>
 
-                            @if($user->localisation || $user->quartier || $user->ville)
+                            @if($user->localisation || $user->quartier)
                             <div class="row mt-3">
                                 <div class="col-12">
                                     <h5>Adresse</h5>
@@ -113,9 +113,6 @@
                                             @endif
                                             @if($user->quartier)
                                                 <strong>Quartier:</strong> {{ $user->quartier }}<br>
-                                            @endif
-                                            @if($user->ville)
-                                                <strong>Ville:</strong> {{ $user->ville }}
                                             @endif
                                         </p>
                                     </div>

@@ -16,7 +16,7 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        
+
         $query = $user->orders()->with(['items.product', 'statusHistory.changedBy']);
 
         if ($request->has('status') && $request->status) {
@@ -66,13 +66,25 @@ class OrderController extends Controller
         $user = auth()->user();
         $sessionId = $request->header('X-Session-ID') ?? $request->get('session_id');
 
+        // Debug: Log des informations
+        \Log::info('Order creation attempt', [
+            'user_id' => $user->id,
+            'session_id' => $sessionId,
+            'headers' => $request->headers->all(),
+            'request_data' => $request->all()
+        ]);
+
         $cartItems = TemporaryCart::with('product')
-            ->where(function($query) use ($sessionId, $user) {
-                $query->where('session_id', $sessionId);
-                $query->orWhere('user_id', $user->id);
-            })
+            ->where('session_id', $sessionId)
             ->where('expires_at', '>', now())
             ->get();
+
+        // Debug: Log des articles du panier
+        \Log::info('Cart items found', [
+            'session_id' => $sessionId,
+            'cart_items_count' => $cartItems->count(),
+            'cart_items' => $cartItems->toArray()
+        ]);
 
         if ($cartItems->isEmpty()) {
             return response()->json([
@@ -111,11 +123,14 @@ class OrderController extends Controller
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $cartItem->product_id,
-                    'product_name' => $cartItem->product->name,
                     'quantity' => $cartItem->quantity,
-                    'unit_price' => $cartItem->product->price,
-                    'total_price' => $cartItem->quantity * $cartItem->product->price,
-                    'product_sku' => $cartItem->product->sku,
+                    'unit_price' => $cartItem->unit_price ?? $cartItem->product->price,
+                    'total_price' => $cartItem->quantity * ($cartItem->unit_price ?? $cartItem->product->price),
+                    'product_details' => [
+                        'name' => $cartItem->product->name,
+                        'sku' => $cartItem->product->sku,
+                        'description' => $cartItem->product->description,
+                    ],
                 ]);
 
                 $cartItem->product->decrement('stock_quantity', $cartItem->quantity);
@@ -128,10 +143,7 @@ class OrderController extends Controller
                 'changed_by' => $user->id,
             ]);
 
-            TemporaryCart::where(function($query) use ($sessionId, $user) {
-                $query->where('session_id', $sessionId);
-                $query->orWhere('user_id', $user->id);
-            })->delete();
+            TemporaryCart::where('session_id', $sessionId)->delete();
 
             DB::commit();
 
@@ -143,7 +155,7 @@ class OrderController extends Controller
 
         } catch (\Exception $e) {
             DB::rollback();
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la création de la commande: ' . $e->getMessage()
@@ -206,7 +218,7 @@ class OrderController extends Controller
     public function history(Request $request)
     {
         $user = auth()->user();
-        
+
         $query = $user->orders()
             ->with(['items.product'])
             ->orderBy('created_at', 'desc');
@@ -258,6 +270,54 @@ class OrderController extends Controller
             'success' => true,
             'data' => $orders->items(),
             'message' => 'Commandes récupérées avec succès'
+        ]);
+    }
+
+    public function cancelOrder(Request $request, $id)
+    {
+        $order = auth()->user()->orders()->findOrFail($id);
+
+        if (!in_array($order->status, ['pending', 'confirmed'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible d\'annuler cette commande'
+            ], 400);
+        }
+
+        $order->update(['status' => 'cancelled']);
+
+        // Enregistrer l'historique
+        $order->statusHistory()->create([
+            'previous_status' => $order->getOriginal('status'),
+            'new_status' => 'cancelled',
+            'comment' => 'Commande annulée par l\'utilisateur',
+            'changed_by' => auth()->id(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $order,
+            'message' => 'Commande annulée avec succès'
+        ]);
+    }
+
+    public function deleteOrder(Request $request, $id)
+    {
+        $order = auth()->user()->orders()->findOrFail($id);
+
+        // Seules les commandes annulées ou en attente peuvent être supprimées
+        if (!in_array($order->status, ['pending', 'cancelled'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible de supprimer cette commande'
+            ], 400);
+        }
+
+        $order->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Commande supprimée avec succès'
         ]);
     }
 }

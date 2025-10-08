@@ -66,10 +66,12 @@
                                         <div class="form-group">
                                             <label for="stock_quantity">Quantité en Stock *</label>
                                             <input type="number" class="form-control @error('stock_quantity') is-invalid @enderror"
-                                                   id="stock_quantity" name="stock_quantity" value="{{ old('stock_quantity', 0) }}" required>
+                                                   id="stock_quantity" name="stock_quantity" value="{{ old('stock_quantity', 1) }}"
+                                                   min="1" pattern="[1-9][0-9]*" required>
                                             @error('stock_quantity')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
+                                            <small class="form-text text-muted">Entrez un nombre entier positif (ex: 1, 10, 100)</small>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -159,13 +161,18 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="images">Images</label>
+                                    <label for="images">Images *</label>
                                     <input type="file" class="form-control @error('images') is-invalid @enderror"
-                                           id="images" name="images[]" multiple accept="image/*">
+                                           id="images" name="images[]" multiple accept="image/jpeg,image/png,image/jpg,image/gif" required>
                                     @error('images')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
-                                    <small class="form-text text-muted">Vous pouvez sélectionner plusieurs images</small>
+                                    @error('images.*')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                    <small class="form-text text-muted">
+                                        Formats acceptés: JPEG, PNG, JPG, GIF (max 2MB par image, max 5 images)
+                                    </small>
                                 </div>
 
                                 <div class="form-group">
@@ -215,8 +222,49 @@
             .substring(0, 20);
         document.getElementById('sku').value = sku;
     });
+
+    // Validation côté client pour le stock quantity
+    document.getElementById('stock_quantity').addEventListener('input', function() {
+        const value = this.value;
+        const regex = /^[1-9][0-9]*$/;
+
+        if (value && !regex.test(value)) {
+            this.setCustomValidity('La quantité doit être un nombre entier positif (ne peut pas commencer par 0)');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+
+    // Validation des images
+    document.getElementById('images').addEventListener('change', function() {
+        const files = this.files;
+        const maxSize = 2 * 1024 * 1024; // 2MB
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+
+        if (files.length > 5) {
+            alert('Vous ne pouvez sélectionner que 5 images maximum.');
+            this.value = '';
+            return;
+        }
+
+        for (let i = 0; i < files.length; i++) {
+            if (!allowedTypes.includes(files[i].type)) {
+                alert(`Le fichier "${files[i].name}" n'est pas un format d'image valide. Formats acceptés: JPEG, PNG, JPG, GIF`);
+                this.value = '';
+                return;
+            }
+
+            if (files[i].size > maxSize) {
+                alert(`Le fichier "${files[i].name}" est trop volumineux. Taille maximale: 2MB`);
+                this.value = '';
+                return;
+            }
+        }
+    });
 </script>
 @endpush
+
+
 
 
 

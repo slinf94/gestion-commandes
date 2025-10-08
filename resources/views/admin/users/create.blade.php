@@ -112,14 +112,34 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="ville" class="form-label">Ville *</label>
-                                    <input type="text" class="form-control" id="ville" name="ville" value="{{ old('ville') }}" required>
+                                    <label for="quartier" class="form-label">Quartier</label>
+                                    <select class="form-control" id="quartier" name="quartier">
+                                        <option value="">Sélectionner un quartier</option>
+                                        @foreach(\App\Models\Quartier::getQuartiers() as $quartier)
+                                            <option value="{{ $quartier }}" {{ old('quartier') == $quartier ? 'selected' : '' }}>{{ $quartier }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
+                                    <label for="localisation" class="form-label">Localisation</label>
+                                    <input type="text" class="form-control" id="localisation" name="localisation" value="{{ old('localisation') }}" placeholder="Adresse détaillée">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
                                     <label for="password" class="form-label">Mot de passe *</label>
                                     <input type="password" class="form-control" id="password" name="password" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="numero_whatsapp" class="form-label">WhatsApp</label>
+                                    <input type="text" class="form-control" id="numero_whatsapp" name="numero_whatsapp" value="{{ old('numero_whatsapp') }}">
                                 </div>
                             </div>
                         </div>
@@ -161,8 +181,10 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
+
 
 
 

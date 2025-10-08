@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Notifications\NewUserRegistrationNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -33,8 +34,7 @@ class AuthController extends Controller
             'numero_telephone' => 'required|string|max:20|unique:users',
             'numero_whatsapp' => 'nullable|string|max:20',
             'localisation' => 'nullable|string',
-            'quartier' => 'nullable|string|max:100',
-            'ville' => 'required|string|max:100',
+            'quartier' => 'required|string|max:100',
             'password' => 'required|string|min:6|confirmed',
             'password_confirmation' => 'required|string|min:6',
             'date_naissance' => 'nullable|date',
@@ -56,15 +56,17 @@ class AuthController extends Controller
             'numero_whatsapp' => $request->numero_whatsapp,
             'localisation' => $request->localisation,
             'quartier' => $request->quartier,
-            'ville' => $request->ville,
             'password' => Hash::make($request->password),
             'date_naissance' => $request->date_naissance,
             'role' => 'client',
-            'status' => 'pending',
+            'status' => 'pending', // En attente d'activation par l'admin
         ]);
 
-        // TODO: Envoyer un code de vérification par SMS/email
-        // TODO: Notifier les administrateurs
+        // Notifier les administrateurs par email
+        $admins = User::whereIn('role', ['admin', 'gestionnaire'])->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new NewUserRegistrationNotification($user));
+        }
 
         return response()->json([
             'success' => true,
@@ -74,6 +76,7 @@ class AuthController extends Controller
             ]
         ], 201);
     }
+
 
     /**
      * Get a JWT via given credentials.
@@ -354,12 +357,99 @@ class AuthController extends Controller
      */
     public function getQuartiers()
     {
-        $quartiers = config('quartiers.ouagadougou');
+        $quartiers = \App\Models\Quartier::getQuartiers();
 
         return response()->json([
             'success' => true,
             'data' => $quartiers,
             'message' => 'Liste des quartiers récupérée avec succès'
         ]);
+    }
+
+    /**
+     * Upload profile photo
+     */
+    public function uploadProfilePhoto(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $user = auth()->user();
+
+            // Supprimer l'ancienne photo si elle existe
+            if ($user->photo) {
+                $oldPhotoPath = public_path('storage/' . $user->photo);
+                if (file_exists($oldPhotoPath)) {
+                    unlink($oldPhotoPath);
+                }
+            }
+
+            // Sauvegarder la nouvelle photo
+            $photo = $request->file('photo');
+            $filename = 'profile_' . $user->id . '_' . time() . '.' . $photo->getClientOriginalExtension();
+            $path = $photo->storeAs('profiles', $filename, 'public');
+
+            // Mettre à jour l'utilisateur
+            $user->update(['photo' => $path]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Photo de profil mise à jour avec succès',
+                'data' => [
+                    'photo_url' => url('storage/' . $path)
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la mise à jour de la photo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete user account
+     */
+    public function deleteAccount(Request $request)
+    {
+        try {
+            $user = auth()->user();
+
+            // Supprimer la photo de profil si elle existe
+            if ($user->photo) {
+                $photoPath = public_path('storage/' . $user->photo);
+                if (file_exists($photoPath)) {
+                    unlink($photoPath);
+                }
+            }
+
+            // Supprimer l'utilisateur (soft delete)
+            $user->delete();
+
+            // Déconnexion
+            auth()->logout();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Votre compte a été supprimé avec succès'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la suppression du compte: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

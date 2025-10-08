@@ -152,7 +152,7 @@
                                     @foreach($product->images as $image)
                                         @if(is_string($image) && !empty($image))
                                         <div class="col-12 mb-3">
-                                            <img src="{{ $image }}" class="img-thumbnail" style="width: 100%; height: 200px; object-fit: cover;">
+                                            <img src="{{ asset('storage/' . $image) }}" class="img-thumbnail" style="width: 100%; height: 200px; object-fit: cover;" alt="Image du produit">
                                         </div>
                                         @endif
                                     @endforeach

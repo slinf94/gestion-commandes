@@ -8,21 +8,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderItem extends Model
 {
-    use SoftDeletes;
+    // use SoftDeletes; // Pas de soft delete pour les order_items
 
     protected $fillable = [
         'order_id',
         'product_id',
-        'product_name',
         'quantity',
         'unit_price',
         'total_price',
-        'product_sku',
+        'product_details',
     ];
 
     protected $casts = [
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
+        'product_details' => 'array',
     ];
 
     // Relations

@@ -11,24 +11,18 @@ class TemporaryCart extends Model
 
     protected $fillable = [
         'session_id',
-        'user_id',
         'product_id',
         'quantity',
-        'selected_attributes',
+        'unit_price',
         'expires_at',
     ];
 
     protected $casts = [
-        'selected_attributes' => 'array',
         'expires_at' => 'datetime',
+        'unit_price' => 'decimal:2',
     ];
 
     // Relations
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);

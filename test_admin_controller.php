@@ -384,3 +384,8 @@ if (!function_exists('curl_init')) {
 // Exécution des tests
 runTests();
 
+
+
+
+
+

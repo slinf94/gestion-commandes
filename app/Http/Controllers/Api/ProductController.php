@@ -66,9 +66,30 @@ class ProductController extends Controller
         $perPage = $request->get('per_page', 20);
         $products = $query->paginate($perPage);
 
+        // Formater les données avec les URLs d'images complètes
+        $formattedProducts = collect($products->items())->map(function ($product) {
+            $productData = $product->toArray();
+
+            // Formater les images avec URLs complètes
+            if (isset($productData['images']) && is_array($productData['images'])) {
+                $productData['images'] = array_map(function ($image) {
+                    if (empty($image)) return null;
+                    if (str_starts_with($image, 'http')) return $image;
+                    return url('storage/' . ltrim($image, '/'));
+                }, $productData['images']);
+                $productData['images'] = array_filter($productData['images']); // Supprimer les valeurs null
+            }
+
+            // Ajouter l'image principale
+            $productData['main_image'] = $product->main_image;
+            $productData['all_images'] = $product->all_images;
+
+            return $productData;
+        });
+
         return response()->json([
             'success' => true,
-            'data' => $products->items(),
+            'data' => $formattedProducts,
             'pagination' => [
                 'current_page' => $products->currentPage(),
                 'last_page' => $products->lastPage(),
@@ -131,9 +152,25 @@ class ProductController extends Controller
         $product = Product::with(['category', 'attributeValues.productTypeAttribute', 'variants'])
             ->findOrFail($id);
 
+        $productData = $product->toArray();
+
+        // Formater les images avec URLs complètes
+        if (isset($productData['images']) && is_array($productData['images'])) {
+            $productData['images'] = array_map(function ($image) {
+                if (empty($image)) return null;
+                if (str_starts_with($image, 'http')) return $image;
+                return url('storage/' . ltrim($image, '/'));
+            }, $productData['images']);
+            $productData['images'] = array_filter($productData['images']);
+        }
+
+        // Ajouter l'image principale
+        $productData['main_image'] = $product->main_image;
+        $productData['all_images'] = $product->all_images;
+
         return response()->json([
             'success' => true,
-            'data' => $product,
+            'data' => $productData,
             'message' => 'Produit récupéré avec succès'
         ]);
     }
@@ -211,7 +248,7 @@ class ProductController extends Controller
     public function search(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'q' => 'required|string|min:2',
+            'q' => 'required|string|min:1',
         ]);
 
         if ($validator->fails()) {
@@ -234,9 +271,30 @@ class ProductController extends Controller
             ->limit(20)
             ->get();
 
+        // Formater les données avec les URLs d'images complètes
+        $formattedProducts = $products->map(function ($product) {
+            $productData = $product->toArray();
+
+            // Formater les images avec URLs complètes
+            if (isset($productData['images']) && is_array($productData['images'])) {
+                $productData['images'] = array_map(function ($image) {
+                    if (empty($image)) return null;
+                    if (str_starts_with($image, 'http')) return $image;
+                    return url('storage/' . ltrim($image, '/'));
+                }, $productData['images']);
+                $productData['images'] = array_filter($productData['images']);
+            }
+
+            // Ajouter l'image principale
+            $productData['main_image'] = $product->main_image;
+            $productData['all_images'] = $product->all_images;
+
+            return $productData;
+        });
+
         return response()->json([
             'success' => true,
-            'data' => $products,
+            'data' => $formattedProducts,
             'message' => 'Recherche effectuée avec succès'
         ]);
     }
@@ -266,11 +324,36 @@ class ProductController extends Controller
     public function favorites()
     {
         $user = auth()->user();
-        $favorites = $user->favorites()->with(['product.category'])->get();
+        $favorites = $user->favorites()->with(['product.category', 'product.productImages'])->get();
+
+        // Extraire les produits des favoris
+        $products = $favorites->map(function ($favorite) {
+            $product = $favorite->product;
+            if ($product) {
+                $productData = $product->toArray();
+
+                // Formater les images
+                if (isset($productData['images']) && is_array($productData['images'])) {
+                    $productData['images'] = array_map(function ($image) {
+                        if (empty($image)) return null;
+                        if (str_starts_with($image, 'http')) return $image;
+                        return url('storage/' . ltrim($image, '/'));
+                    }, $productData['images']);
+                    $productData['images'] = array_filter($productData['images']);
+                }
+
+                // Ajouter l'image principale
+                $productData['main_image'] = $product->main_image;
+                $productData['all_images'] = $product->all_images;
+
+                return $productData;
+            }
+            return null;
+        })->filter()->values();
 
         return response()->json([
             'success' => true,
-            'data' => $favorites,
+            'data' => $products,
             'message' => 'Favoris récupérés avec succès'
         ]);
     }

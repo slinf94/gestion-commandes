@@ -17,15 +17,10 @@ class CartController extends Controller
     public function index(Request $request)
     {
         $sessionId = $this->getSessionId($request);
-        $userId = auth()->id();
+        $userId = auth()->id(); // Peut être null si pas connecté // Peut être null si pas connecté
 
         $cartItems = TemporaryCart::with(['product.category'])
-            ->where(function($query) use ($sessionId, $userId) {
-                $query->where('session_id', $sessionId);
-                if ($userId) {
-                    $query->orWhere('user_id', $userId);
-                }
-            })
+            ->where('session_id', $sessionId)
             ->where('expires_at', '>', now())
             ->orderBy('created_at', 'desc')
             ->get();
@@ -59,7 +54,6 @@ class CartController extends Controller
         $validator = Validator::make($request->all(), [
             'product_id' => 'required|exists:products,id',
             'quantity' => 'required|integer|min:1|max:99',
-            'selected_attributes' => 'nullable|array',
         ]);
 
         if ($validator->fails()) {
@@ -71,7 +65,7 @@ class CartController extends Controller
         }
 
         $product = Product::findOrFail($request->product_id);
-        
+
         // Vérifier la disponibilité en stock
         if ($product->stock_quantity < $request->quantity) {
             return response()->json([
@@ -81,7 +75,7 @@ class CartController extends Controller
         }
 
         $sessionId = $this->getSessionId($request);
-        $userId = auth()->id();
+        $userId = auth()->id(); // Peut être null si pas connecté
 
         // Vérifier si l'article existe déjà dans le panier
         $existingItem = TemporaryCart::where('session_id', $sessionId)
@@ -92,7 +86,7 @@ class CartController extends Controller
         if ($existingItem) {
             // Mettre à jour la quantité
             $newQuantity = $existingItem->quantity + $request->quantity;
-            
+
             if ($product->stock_quantity < $newQuantity) {
                 return response()->json([
                     'success' => false,
@@ -102,8 +96,7 @@ class CartController extends Controller
 
             $existingItem->update([
                 'quantity' => $newQuantity,
-                'selected_attributes' => $request->selected_attributes,
-                'user_id' => $userId,
+                'unit_price' => $product->price,
                 'expires_at' => now()->addDays(7) // Expire dans 7 jours
             ]);
 
@@ -112,10 +105,9 @@ class CartController extends Controller
             // Créer un nouvel article
             $cartItem = TemporaryCart::create([
                 'session_id' => $sessionId,
-                'user_id' => $userId,
                 'product_id' => $request->product_id,
                 'quantity' => $request->quantity,
-                'selected_attributes' => $request->selected_attributes,
+                'unit_price' => $product->price,
                 'expires_at' => now()->addDays(7) // Expire dans 7 jours
             ]);
         }
@@ -145,7 +137,7 @@ class CartController extends Controller
         }
 
         $cartItem = TemporaryCart::with('product')->findOrFail($id);
-        
+
         // Vérifier la disponibilité en stock
         if ($cartItem->product && $cartItem->product->stock_quantity < $request->quantity) {
             return response()->json([
@@ -156,6 +148,7 @@ class CartController extends Controller
 
         $cartItem->update([
             'quantity' => $request->quantity,
+            'unit_price' => $cartItem->product->price,
             'expires_at' => now()->addDays(7) // Renouveler l'expiration
         ]);
 
@@ -186,14 +179,9 @@ class CartController extends Controller
     public function clear(Request $request)
     {
         $sessionId = $this->getSessionId($request);
-        $userId = auth()->id();
+        $userId = auth()->id(); // Peut être null si pas connecté
 
-        TemporaryCart::where(function($query) use ($sessionId, $userId) {
-            $query->where('session_id', $sessionId);
-            if ($userId) {
-                $query->orWhere('user_id', $userId);
-            }
-        })->delete();
+        TemporaryCart::where('session_id', $sessionId)->delete();
 
         return response()->json([
             'success' => true,
@@ -207,14 +195,9 @@ class CartController extends Controller
     public function count(Request $request)
     {
         $sessionId = $this->getSessionId($request);
-        $userId = auth()->id();
+        $userId = auth()->id(); // Peut être null si pas connecté
 
-        $count = TemporaryCart::where(function($query) use ($sessionId, $userId) {
-            $query->where('session_id', $sessionId);
-            if ($userId) {
-                $query->orWhere('user_id', $userId);
-            }
-        })
+        $count = TemporaryCart::where('session_id', $sessionId)
         ->where('expires_at', '>', now())
         ->sum('quantity');
 
@@ -230,8 +213,8 @@ class CartController extends Controller
      */
     private function getSessionId(Request $request)
     {
-        $sessionId = $request->header('X-Session-ID') 
-            ?? $request->get('session_id') 
+        $sessionId = $request->header('X-Session-ID')
+            ?? $request->get('session_id')
             ?? session()->getId();
 
         // Si pas de session ID, en créer un nouveau

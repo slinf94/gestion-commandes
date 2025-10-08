@@ -79,16 +79,6 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label for="ville">Ville *</label>
-                                            <input type="text" class="form-control @error('ville') is-invalid @enderror"
-                                                   id="ville" name="ville" value="{{ old('ville', $user->ville) }}" required>
-                                            @error('ville')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
                                             <label for="date_naissance">Date de naissance</label>
                                             <input type="date" class="form-control @error('date_naissance') is-invalid @enderror"
                                                    id="date_naissance" name="date_naissance" value="{{ old('date_naissance', $user->date_naissance ? $user->date_naissance->format('Y-m-d') : '') }}">
@@ -196,6 +186,8 @@
     </div>
 </div>
 @endsection
+
+
 
 
 

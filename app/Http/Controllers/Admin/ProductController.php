@@ -39,7 +39,7 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'cost_price' => 'nullable|numeric|min:0',
-            'stock_quantity' => 'required|integer|min:0',
+            'stock_quantity' => 'required|integer|min:0|regex:/^[1-9][0-9]*$/',
             'min_stock_alert' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'sku' => 'required|string|unique:products,sku',
@@ -49,9 +49,34 @@ class ProductController extends Controller
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:500',
             'tags' => 'nullable|string',
+            'images' => 'nullable|array|max:5',
+            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ], [
+            'stock_quantity.regex' => 'La quantité en stock doit être un nombre entier positif (ne peut pas commencer par 0).',
+            'images.*.required' => 'Chaque image est requise.',
+            'images.*.image' => 'Le fichier doit être une image.',
+            'images.*.mimes' => 'L\'image doit être de type: jpeg, png, jpg, gif.',
+            'images.*.max' => 'L\'image ne doit pas dépasser 2MB.',
         ]);
 
-        $product = Product::create($request->all());
+        $data = $request->all();
+
+        // Traitement des images
+        if ($request->hasFile('images')) {
+            $imagePaths = [];
+            foreach ($request->file('images') as $image) {
+                $path = $image->store('products', 'public');
+                $imagePaths[] = $path;
+            }
+            $data['images'] = $imagePaths;
+        }
+
+        // Traitement des tags
+        if ($request->has('tags') && !empty($request->tags)) {
+            $data['tags'] = array_map('trim', explode(',', $request->tags));
+        }
+
+        $product = Product::create($data);
 
         return redirect()->route('admin.products.show', $product)
             ->with('success', 'Produit créé avec succès');

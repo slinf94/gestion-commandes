@@ -27,7 +27,6 @@ class User extends Authenticatable implements JWTSubject
         'numero_whatsapp',
         'localisation',
         'quartier',
-        'ville',
         'role',
         'status',
         'date_naissance',
@@ -86,15 +85,7 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Order::class);
     }
 
-    public function cartItems()
-    {
-        return $this->hasMany(TemporaryCart::class);
-    }
 
-    public function notifications()
-    {
-        return $this->hasMany(Notification::class);
-    }
 
     public function productNotes()
     {

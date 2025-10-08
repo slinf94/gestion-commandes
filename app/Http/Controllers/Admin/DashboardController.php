@@ -22,7 +22,7 @@ class DashboardController extends Controller
             'total_categories' => Category::count(),
             'pending_orders' => Order::where('status', 'pending')->count(),
             'active_products' => Product::where('status', 'active')->count(),
-            'total_revenue' => Order::where('status', 'delivered')->sum('total_amount'),
+            'total_revenue' => Order::whereIn('status', ['confirmed', 'processing', 'shipped', 'delivered'])->sum('total_amount'),
         ];
 
         // Commandes récentes
