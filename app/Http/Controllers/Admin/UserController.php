@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Response;
+use App\Notifications\AccountActivatedNotification;
 
 class UserController extends Controller
 {
@@ -106,6 +107,9 @@ class UserController extends Controller
             'status' => 'required|in:pending,active,suspended,inactive',
         ]);
 
+        // Vérifier si le statut passe de 'pending' à 'active'
+        $wasActivated = ($user->status === 'pending' && $request->status === 'active');
+
         $user->update($request->only([
             'nom', 'prenom', 'email', 'numero_telephone', 'numero_whatsapp', 'quartier', 'localisation', 'role', 'status'
         ]));
@@ -114,8 +118,24 @@ class UserController extends Controller
             $user->update(['password' => Hash::make($request->password)]);
         }
 
+        // Envoyer l'email de notification si le compte vient d'être activé
+        if ($wasActivated) {
+            try {
+                $user->notify(new AccountActivatedNotification($user));
+                \Log::info('Email d\'activation envoyé à l\'utilisateur: ' . $user->email);
+            } catch (\Exception $e) {
+                \Log::error('Erreur lors de l\'envoi de l\'email d\'activation: ' . $e->getMessage());
+                // On continue quand même, l'activation est réussie même si l'email n'est pas envoyé
+            }
+        }
+
+        $message = 'Utilisateur mis à jour avec succès';
+        if ($wasActivated) {
+            $message .= '. Un email de confirmation a été envoyé au client.';
+        }
+
         return redirect()->route('admin.users.show', $user)
-            ->with('success', 'Utilisateur mis à jour avec succès');
+            ->with('success', $message);
     }
 
     public function destroy(User $user)
