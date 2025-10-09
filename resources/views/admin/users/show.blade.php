@@ -8,7 +8,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Détails de l'Utilisateur: {{ $user->fullName }}</h3>
+                    <h3 class="card-title">Détails de l'Utilisateur: {{ $user->full_name }}</h3>
                     <div class="card-tools">
                         <a href="{{ route('admin.users.edit', $user->id) }}" class="btn btn-primary">
                             <i class="fas fa-edit"></i> Modifier
@@ -66,7 +66,7 @@
                                             <td><strong>Statut:</strong></td>
                                             <td>
                                                 <span class="badge badge-{{ $user->status == 'active' ? 'success' : ($user->status == 'pending' ? 'warning' : 'danger') }}">
-                                                    {{ ucfirst($user->status) }}
+                                                    {{ $user->status == 'active' ? 'Actif' : ($user->status == 'pending' ? 'En attente' : ucfirst($user->status)) }}
                                                 </span>
                                             </td>
                                         </tr>
@@ -172,7 +172,7 @@
                                             <td>{{ $order->created_at ? $order->created_at->format('d/m/Y H:i') : 'N/A' }}</td>
                                             <td>
                                                 <span class="badge badge-{{ $order->status == 'completed' ? 'success' : ($order->status == 'pending' ? 'warning' : 'info') }}">
-                                                    {{ ucfirst($order->status) }}
+                                                    {{ $order->status == 'completed' ? 'Terminé' : ($order->status == 'pending' ? 'En attente' : ($order->status == 'delivered' ? 'Livré' : ucfirst($order->status))) }}
                                                 </span>
                                             </td>
                                             <td>{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</td>

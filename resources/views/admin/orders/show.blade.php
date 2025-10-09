@@ -36,8 +36,20 @@
                                         <tr>
                                             <td><strong>Statut:</strong></td>
                                             <td>
-                                                <span class="badge badge-{{ $order->status == 'completed' ? 'success' : ($order->status == 'pending' ? 'warning' : 'info') }}">
-                                                    {{ ucfirst($order->status) }}
+                                                @php
+                                                    $statusMap = [
+                                                        'pending' => ['text' => 'En attente', 'class' => 'warning'],
+                                                        'confirmed' => ['text' => 'Confirmé', 'class' => 'info'],
+                                                        'processing' => ['text' => 'En cours', 'class' => 'info'],
+                                                        'shipped' => ['text' => 'Expédié', 'class' => 'info'],
+                                                        'delivered' => ['text' => 'Livré', 'class' => 'success'],
+                                                        'cancelled' => ['text' => 'Annulé', 'class' => 'danger'],
+                                                        'completed' => ['text' => 'Terminé', 'class' => 'success']
+                                                    ];
+                                                    $status = $statusMap[$order->status] ?? ['text' => ucfirst($order->status), 'class' => 'secondary'];
+                                                @endphp
+                                                <span class="badge badge-{{ $status['class'] }}">
+                                                    {{ $status['text'] }}
                                                 </span>
                                             </td>
                                         </tr>
@@ -52,7 +64,7 @@
                                     <table class="table table-borderless">
                                         <tr>
                                             <td><strong>Nom:</strong></td>
-                                            <td>{{ $order->user->fullName }}</td>
+                                            <td>{{ $order->user->full_name }}</td>
                                         </tr>
                                         <tr>
                                             <td><strong>Email:</strong></td>
@@ -64,7 +76,7 @@
                                         </tr>
                                         <tr>
                                             <td><strong>Ville:</strong></td>
-                                            <td>{{ $order->user->ville }}</td>
+                                            <td>{{ $order->user->localisation }}</td>
                                         </tr>
                                     </table>
                                 </div>
@@ -82,7 +94,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach($order->orderItems as $item)
+                                        @foreach($order->items as $item)
                                         <tr>
                                             <td>
                                                 <div class="d-flex align-items-center">
@@ -97,9 +109,9 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>{{ number_format($item->price, 0, ',', ' ') }} FCFA</td>
+                                            <td>{{ number_format($item->unit_price, 0, ',', ' ') }} FCFA</td>
                                             <td>{{ $item->quantity }}</td>
-                                            <td><strong>{{ number_format($item->price * $item->quantity, 0, ',', ' ') }} FCFA</strong></td>
+                                            <td><strong>{{ number_format($item->total_price, 0, ',', ' ') }} FCFA</strong></td>
                                         </tr>
                                         @endforeach
                                     </tbody>

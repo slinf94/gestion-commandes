@@ -62,3 +62,4 @@ class PasswordResetNotification extends Notification
         ];
     }
 }
+

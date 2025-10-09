@@ -192,7 +192,7 @@
                                     </td>
                                     <td>
                                         <span class="badge bg-{{ $user->status == 'active' ? 'success' : ($user->status == 'pending' ? 'warning' : 'secondary') }}">
-                                            {{ ucfirst($user->status) }}
+                                            {{ $user->status == 'active' ? 'Actif' : ($user->status == 'pending' ? 'En attente' : ucfirst($user->status)) }}
                                         </span>
                                     </td>
                                     <td>{{ $user->created_at ? $user->created_at->format('d/m/Y') : 'N/A' }}</td>

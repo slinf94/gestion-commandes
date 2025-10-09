@@ -60,7 +60,7 @@
                                 <table class="table table-borderless">
                                     <tr>
                                         <td><strong>Nom:</strong></td>
-                                        <td>{{ $order->user->fullName }}</td>
+                                        <td>{{ $order->user->full_name }}</td>
                                     </tr>
                                     <tr>
                                         <td><strong>Email:</strong></td>
@@ -72,7 +72,7 @@
                                     </tr>
                                     <tr>
                                         <td><strong>Ville:</strong></td>
-                                        <td>{{ $order->user->ville }}</td>
+                                        <td>{{ $order->user->localisation }}</td>
                                     </tr>
                                 </table>
 
@@ -87,11 +87,11 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach($order->orderItems as $item)
+                                            @foreach($order->items as $item)
                                             <tr>
                                                 <td>{{ $item->product->name }}</td>
                                                 <td>{{ $item->quantity }}</td>
-                                                <td>{{ number_format($item->price, 0, ',', ' ') }} FCFA</td>
+                                                <td>{{ number_format($item->unit_price, 0, ',', ' ') }} FCFA</td>
                                             </tr>
                                             @endforeach
                                         </tbody>

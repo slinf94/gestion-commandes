@@ -193,8 +193,20 @@
                                             <td>#{{ $order->id }}</td>
                                             <td>{{ $order->user->full_name }}</td>
                                             <td>
-                                                <span class="badge bg-{{ $order->status == 'pending' ? 'warning' : ($order->status == 'delivered' ? 'success' : 'info') }}">
-                                                    {{ ucfirst($order->status) }}
+                                                @php
+                                                    $statusMap = [
+                                                        'pending' => ['text' => 'En attente', 'class' => 'warning'],
+                                                        'confirmed' => ['text' => 'Confirmé', 'class' => 'info'],
+                                                        'processing' => ['text' => 'En cours', 'class' => 'info'],
+                                                        'shipped' => ['text' => 'Expédié', 'class' => 'info'],
+                                                        'delivered' => ['text' => 'Livré', 'class' => 'success'],
+                                                        'cancelled' => ['text' => 'Annulé', 'class' => 'danger'],
+                                                        'completed' => ['text' => 'Terminé', 'class' => 'success']
+                                                    ];
+                                                    $status = $statusMap[$order->status] ?? ['text' => ucfirst($order->status), 'class' => 'secondary'];
+                                                @endphp
+                                                <span class="badge bg-{{ $status['class'] }}">
+                                                    {{ $status['text'] }}
                                                 </span>
                                             </td>
                                             <td>{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</td>

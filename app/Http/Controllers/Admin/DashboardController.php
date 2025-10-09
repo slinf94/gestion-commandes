@@ -22,7 +22,9 @@ class DashboardController extends Controller
             'total_categories' => Category::count(),
             'pending_orders' => Order::where('status', 'pending')->count(),
             'active_products' => Product::where('status', 'active')->count(),
-            'total_revenue' => Order::whereIn('status', ['confirmed', 'processing', 'shipped', 'delivered'])->sum('total_amount'),
+            // Chiffre d'affaires : inclut les commandes pending, confirmed, processing, shipped, delivered
+            // Exclut seulement les commandes cancelled
+            'total_revenue' => Order::whereNotIn('status', ['cancelled'])->sum('total_amount'),
         ];
 
         // Commandes récentes

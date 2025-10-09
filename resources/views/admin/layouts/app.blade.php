@@ -15,7 +15,7 @@
 
     <style>
         .main-sidebar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
         }
         .nav-sidebar .nav-link {
             color: rgba(255, 255, 255, 0.8);
@@ -136,11 +136,11 @@
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-user-circle"></i>
-                        {{ Auth::user()->fullName ?? 'Admin' }}
+                        {{ Auth::user()->full_name ?? 'Admin' }}
                     </a>
                     <ul class="dropdown-menu dropdown-menu-right">
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-user mr-2"></i> Mon Profil</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog mr-2"></i> Paramètres</a></li>
+                        <li><a class="dropdown-item" href="{{ route('admin.profile.show') }}"><i class="fas fa-user mr-2"></i> Mon Profil</a></li>
+                        <li><a class="dropdown-item" href="{{ route('admin.settings.index') }}"><i class="fas fa-cog mr-2"></i> Paramètres</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
                             <a class="dropdown-item" href="{{ route('admin.logout') }}"
@@ -172,7 +172,7 @@
                         <i class="fas fa-user-circle fa-2x text-white"></i>
                     </div>
                     <div class="info">
-                        <a href="#" class="d-block text-white">{{ Auth::user()->fullName ?? 'Administrateur' }}</a>
+                        <a href="#" class="d-block text-white">{{ Auth::user()->full_name ?? 'Administrateur' }}</a>
                     </div>
                 </div>
 

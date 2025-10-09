@@ -6,6 +6,8 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\QuartierController;
+use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\SettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,12 +20,9 @@ use App\Http\Controllers\Admin\QuartierController;
 |
 */
 
+// Redirection automatique vers l'interface admin (sécurité)
 Route::get('/', function () {
-    return view('api-test');
-});
-
-Route::get('/admin-test', function () {
-    return view('admin-test');
+    return redirect()->route('admin.login');
 });
 
 // Routes Admin
@@ -81,5 +80,22 @@ Route::prefix('admin')->group(function () {
         Route::post('/users/{user}/reassign-quartier', [QuartierController::class, 'reassignClient'])->name('admin.users.reassign-quartier');
         Route::get('/quartiers/statistics', [QuartierController::class, 'statistics'])->name('admin.quartiers.statistics');
         Route::get('/quartiers/{quartier}/export-clients', [QuartierController::class, 'exportClients'])->name('admin.quartiers.export-clients');
+
+        // Gestion du profil admin
+        Route::get('/profile', [ProfileController::class, 'show'])->name('admin.profile.show');
+        Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('admin.profile.edit');
+        Route::put('/profile', [ProfileController::class, 'update'])->name('admin.profile.update');
+        Route::get('/profile/password', [ProfileController::class, 'editPassword'])->name('admin.profile.password');
+        Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('admin.profile.password.update');
+
+        // Paramètres admin
+        Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings.index');
+        Route::get('/settings/general', [SettingsController::class, 'general'])->name('admin.settings.general');
+        Route::put('/settings/general', [SettingsController::class, 'updateGeneral'])->name('admin.settings.general.update');
+        Route::get('/settings/security', [SettingsController::class, 'security'])->name('admin.settings.security');
+        Route::get('/settings/notifications', [SettingsController::class, 'notifications'])->name('admin.settings.notifications');
+        Route::put('/settings/notifications', [SettingsController::class, 'updateNotifications'])->name('admin.settings.notifications.update');
+        Route::get('/settings/system', [SettingsController::class, 'system'])->name('admin.settings.system');
+        Route::post('/settings/clear-cache', [SettingsController::class, 'clearCache'])->name('admin.settings.clear-cache');
     });
 });
