@@ -7,8 +7,10 @@ use App\Models\User;
 use App\Notifications\NewUserRegistrationNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 
@@ -149,6 +151,21 @@ class AuthController extends Controller
     }
 
     /**
+     * Get the authenticated user.
+     */
+    public function me()
+    {
+        $user = auth()->user();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => $user->makeHidden(['password', 'two_factor_secret'])
+            ]
+        ]);
+    }
+
+    /**
      * Log the user out (Invalidate the token).
      */
     public function logout()
@@ -270,12 +287,46 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // TODO: Envoyer un code de réinitialisation par email/SMS
+        try {
+            // Trouver l'utilisateur
+            $user = User::where('email', $request->email)->first();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Code de réinitialisation envoyé à votre email'
-        ]);
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Aucun utilisateur trouvé avec cette adresse email'
+                ], 404);
+            }
+
+            // Générer un token de réinitialisation
+            $token = Str::random(64);
+
+            // Supprimer les anciens tokens pour cet email
+            DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+            // Insérer le nouveau token
+            DB::table('password_reset_tokens')->insert([
+                'email' => $request->email,
+                'token' => $token,
+                'created_at' => now()
+            ]);
+
+            // Envoyer l'email de réinitialisation
+            $user->notify(new \App\Notifications\PasswordResetNotification($token));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Un lien de réinitialisation a été envoyé à votre adresse email'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de l\'envoi de l\'email de réinitialisation: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'envoi de l\'email. Veuillez réessayer.'
+            ], 500);
+        }
     }
 
     /**
@@ -285,7 +336,7 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|exists:users,email',
-            'code' => 'required|string',
+            'token' => 'required|string',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
@@ -297,17 +348,53 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // TODO: Vérifier le code de réinitialisation
+        try {
+            // Vérifier le token de réinitialisation
+            $passwordReset = DB::table('password_reset_tokens')
+                ->where('email', $request->email)
+                ->where('token', $request->token)
+                ->first();
 
-        $user = User::where('email', $request->email)->first();
-        $user->update([
-            'password' => Hash::make($request->password)
-        ]);
+            if (!$passwordReset) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token de réinitialisation invalide ou expiré'
+                ], 400);
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Mot de passe réinitialisé avec succès'
-        ]);
+            // Vérifier si le token n'est pas expiré (60 minutes)
+            if (now()->diffInMinutes($passwordReset->created_at) > 60) {
+                // Supprimer le token expiré
+                DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le token de réinitialisation a expiré. Veuillez demander un nouveau lien.'
+                ], 400);
+            }
+
+            // Mettre à jour le mot de passe
+            $user = User::where('email', $request->email)->first();
+            $user->update([
+                'password' => Hash::make($request->password)
+            ]);
+
+            // Supprimer le token utilisé
+            DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Mot de passe réinitialisé avec succès'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la réinitialisation du mot de passe: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la réinitialisation du mot de passe. Veuillez réessayer.'
+            ], 500);
+        }
     }
 
     /**
