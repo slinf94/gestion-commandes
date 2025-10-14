@@ -90,7 +90,16 @@
                                 @forelse($orders as $order)
                                 <tr>
                                     <td><strong>#{{ $order->id }}</strong></td>
-                                    <td>{{ $order->user->full_name }}</td>
+                                    <td>
+                                        @if($order->user)
+                                            {{ $order->user->full_name }}
+                                        @else
+                                            <span class="text-muted">
+                                                <i class="fas fa-user-slash me-1"></i>
+                                                Utilisateur supprimé
+                                            </span>
+                                        @endif
+                                    </td>
                                     <td>
                                         @php
                                             $statusMap = [

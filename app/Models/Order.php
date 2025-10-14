@@ -43,7 +43,12 @@ class Order extends Model
     // Relations
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withTrashed()->withDefault([
+            'full_name' => 'Utilisateur supprimé',
+            'email' => 'N/A',
+            'numero_telephone' => 'N/A',
+            'localisation' => 'N/A',
+        ]);
     }
 
     public function items(): HasMany

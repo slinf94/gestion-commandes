@@ -17,6 +17,18 @@
         .btn-logout { background: #dc3545; border: none; border-radius: 8px; color: white; padding: 8px 15px; }
         .btn-logout:hover { background: #c82333; color: white; }
         .badge { font-size: 0.8em; }
+
+        /* Styles pour éviter l'overflow des boutons d'action */
+        .actions-column { min-width: 120px; max-width: 150px; }
+        .actions-container { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; }
+        .actions-container .btn { flex-shrink: 0; min-width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; }
+        .actions-container .btn i { font-size: 0.8em; }
+
+        /* Responsive pour les petits écrans */
+        @media (max-width: 768px) {
+            .actions-container { flex-direction: column; gap: 1px; }
+            .actions-container .btn { width: 100%; min-width: 28px; height: 28px; }
+        }
     </style>
 </head>
 <body>
@@ -196,18 +208,18 @@
                                         </span>
                                     </td>
                                     <td>{{ $user->created_at ? $user->created_at->format('d/m/Y') : 'N/A' }}</td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-outline-primary">
+                                    <td class="actions-column">
+                                        <div class="actions-container">
+                                            <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-outline-primary" title="Voir">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-warning">
+                                            <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-outline-warning" title="Modifier">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             @if($user->trashed())
                                                 <form method="POST" action="{{ route('admin.users.restore', $user->id) }}" class="d-inline">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-outline-success">
+                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Restaurer">
                                                         <i class="fas fa-undo"></i>
                                                     </button>
                                                 </form>
@@ -215,7 +227,7 @@
                                                 <form method="POST" action="{{ route('admin.users.destroy', $user) }}" class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer"
                                                             onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')">
                                                         <i class="fas fa-trash"></i>
                                                     </button>

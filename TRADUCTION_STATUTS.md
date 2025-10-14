@@ -135,3 +135,9 @@ Tous les statuts "Pending", "Active", "Delivered", etc. sont maintenant traduits
 **Date de traduction :** Octobre 2025  
 **Développeur :** Assistant IA  
 **Projet :** Gestion Commandes Slimat
+
+
+
+
+
+

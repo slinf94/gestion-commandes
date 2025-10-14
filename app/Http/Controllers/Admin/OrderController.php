@@ -10,7 +10,9 @@ class OrderController extends Controller
 {
     public function index()
     {
-        $orders = Order::with(['user', 'items'])
+        $orders = Order::with(['user' => function($query) {
+                $query->withTrashed(); // Inclure les utilisateurs supprimés
+            }, 'items'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
@@ -19,7 +21,9 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        $order->load(['user', 'items.product', 'statusHistory']);
+        $order->load(['user' => function($query) {
+                $query->withTrashed(); // Inclure les utilisateurs supprimés
+            }, 'items.product', 'statusHistory']);
         return view('admin.orders.show', compact('order'));
     }
 

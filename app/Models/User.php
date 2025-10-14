@@ -100,7 +100,7 @@ class User extends Authenticatable implements JWTSubject
     // Accessors
     public function getFullNameAttribute()
     {
-        return $this->prenom . ' ' . $this->nom;
+        return trim($this->prenom . ' ' . $this->nom);
     }
 
     public function getInitialsAttribute()

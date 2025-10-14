@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Notification;
+use App\Notifications\AccountActivatedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -126,19 +127,15 @@ class AdminController extends Controller
             'status' => $request->status,
         ]);
 
-        // Créer une notification pour l'utilisateur
-        $user->notifications()->create([
-            'id' => \Illuminate\Support\Str::uuid(),
-            'title' => 'Changement de statut de compte',
-            'message' => 'Votre compte a été ' . $request->status . '. ' . ($request->reason ?? ''),
-            'type' => 'account_status_change',
-            'data' => [
-                'old_status' => $oldStatus,
-                'new_status' => $request->status,
-                'reason' => $request->reason,
-                'changed_by' => auth()->user()->full_name,
-            ]
-        ]);
+        // Envoyer un email si le compte est activé
+        if ($request->status === 'active' && $oldStatus !== 'active') {
+            try {
+                $user->notify(new AccountActivatedNotification($user));
+            } catch (\Exception $e) {
+                // Log l'erreur mais ne pas faire échouer la requête
+                \Log::error('Erreur envoi email activation: ' . $e->getMessage());
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -527,6 +524,8 @@ class AdminController extends Controller
         }
     }
 }
+
+
 
 
 

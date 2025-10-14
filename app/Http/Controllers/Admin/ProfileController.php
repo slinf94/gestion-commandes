@@ -96,3 +96,9 @@ class ProfileController extends Controller
             ->with('success', 'Mot de passe modifié avec succès !');
     }
 }
+
+
+
+
+
+

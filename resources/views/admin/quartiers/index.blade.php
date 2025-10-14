@@ -125,7 +125,7 @@
                                                 @endif
                                             </td>
                                             <td>
-                                                <div class="btn-group" role="group">
+                                                <div class="d-flex flex-wrap gap-1" style="min-width: 150px;">
                                                     <a href="{{ route('admin.quartiers.show', $quartier) }}"
                                                        class="btn btn-sm btn-info" title="Voir détails">
                                                         <i class="fas fa-eye"></i>
@@ -176,6 +176,8 @@
     </div>
 </div>
 @endsection
+
+
 
 
 

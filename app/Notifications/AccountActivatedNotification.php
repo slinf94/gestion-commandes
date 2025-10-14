@@ -39,21 +39,7 @@ class AccountActivatedNotification extends Notification
     {
         return (new MailMessage)
             ->subject('🎉 Votre compte Allo Mobile a été activé !')
-            ->greeting('Bonjour ' . $this->user->prenom . ' ' . $this->user->nom . ' !')
-            ->line('Excellente nouvelle ! Votre compte Allo Mobile a été activé avec succès par notre équipe.')
-            ->line('Vous pouvez maintenant vous connecter à l\'application mobile et profiter de tous nos services :')
-            ->line('✅ Parcourir notre catalogue de produits')
-            ->line('✅ Ajouter des produits à vos favoris')
-            ->line('✅ Passer des commandes en toute simplicité')
-            ->line('✅ Suivre l\'état de vos commandes')
-            ->line('')
-            ->line('📱 **Informations de connexion :**')
-            ->line('Email : ' . $this->user->email)
-            ->line('Téléphone : ' . $this->user->telephone)
-            ->line('')
-            ->action('🚀 Se connecter maintenant', url('/'))
-            ->line('Merci de nous faire confiance et bienvenue dans la famille Allo Mobile !')
-            ->salutation('Cordialement, L\'équipe Allo Mobile');
+            ->view('emails.account-activated', ['user' => $this->user]);
     }
 
     /**
@@ -70,5 +56,7 @@ class AccountActivatedNotification extends Notification
         ];
     }
 }
+
+
 
 

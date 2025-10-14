@@ -62,22 +62,31 @@
                                 <div class="col-md-6">
                                     <h5>Client</h5>
                                     <table class="table table-borderless">
-                                        <tr>
-                                            <td><strong>Nom:</strong></td>
-                                            <td>{{ $order->user->full_name }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Email:</strong></td>
-                                            <td>{{ $order->user->email }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Téléphone:</strong></td>
-                                            <td>{{ $order->user->numero_telephone }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Ville:</strong></td>
-                                            <td>{{ $order->user->localisation }}</td>
-                                        </tr>
+                                        @if($order->user)
+                                            <tr>
+                                                <td><strong>Nom:</strong></td>
+                                                <td>{{ $order->user->full_name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Email:</strong></td>
+                                                <td>{{ $order->user->email }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Téléphone:</strong></td>
+                                                <td>{{ $order->user->numero_telephone }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Ville:</strong></td>
+                                                <td>{{ $order->user->localisation }}</td>
+                                            </tr>
+                                        @else
+                                            <tr>
+                                                <td colspan="2" class="text-center text-muted">
+                                                    <i class="fas fa-user-slash me-2"></i>
+                                                    Utilisateur supprimé
+                                                </td>
+                                            </tr>
+                                        @endif
                                     </table>
                                 </div>
                             </div>
