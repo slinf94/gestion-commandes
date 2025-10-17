@@ -25,11 +25,11 @@
                                     <label for="status">Statut de la Commande</label>
                                     <select class="form-control @error('status') is-invalid @enderror"
                                             id="status" name="status">
-                                        <option value="pending" {{ old('status', $order->status) == 'pending' ? 'selected' : '' }}>En attente</option>
-                                        <option value="processing" {{ old('status', $order->status) == 'processing' ? 'selected' : '' }}>En cours de traitement</option>
-                                        <option value="shipped" {{ old('status', $order->status) == 'shipped' ? 'selected' : '' }}>Expédié</option>
-                                        <option value="completed" {{ old('status', $order->status) == 'completed' ? 'selected' : '' }}>Livré</option>
-                                        <option value="cancelled" {{ old('status', $order->status) == 'cancelled' ? 'selected' : '' }}>Annulé</option>
+                                        <option value="pending" {{ old('status', $order->status->value) == 'pending' ? 'selected' : '' }}>En attente</option>
+                                        <option value="processing" {{ old('status', $order->status->value) == 'processing' ? 'selected' : '' }}>En cours de traitement</option>
+                                        <option value="shipped" {{ old('status', $order->status->value) == 'shipped' ? 'selected' : '' }}>Expédié</option>
+                                        <option value="completed" {{ old('status', $order->status->value) == 'completed' ? 'selected' : '' }}>Livré</option>
+                                        <option value="cancelled" {{ old('status', $order->status->value) == 'cancelled' ? 'selected' : '' }}>Annulé</option>
                                     </select>
                                     @error('status')
                                         <div class="invalid-feedback">{{ $message }}</div>

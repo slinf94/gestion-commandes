@@ -42,7 +42,7 @@
                                         <div class="d-flex align-items-center">
                                             @if($order->items->count() > 0)
                                                 @foreach($order->items->take(3) as $item)
-                                                    @if($item->product->mainImage)
+                                                    @if($item->product && $item->product->mainImage)
                                                         <img src="{{ $item->product->mainImage }}"
                                                              class="img-thumbnail me-1"
                                                              style="width: 30px; height: 30px; object-fit: cover;"
@@ -52,7 +52,7 @@
                                                     @else
                                                         <div class="img-thumbnail d-flex align-items-center justify-content-center bg-light me-1"
                                                              style="width: 30px; height: 30px;"
-                                                             title="{{ $item->product->name }}">
+                                                             title="{{ $item->product ? $item->product->name : 'Produit supprimé' }}">
                                                             <i class="fas fa-image text-muted" style="font-size: 10px;"></i>
                                                         </div>
                                                     @endif

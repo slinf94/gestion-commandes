@@ -171,8 +171,8 @@
                                             <td>#{{ $order->id }}</td>
                                             <td>{{ $order->created_at ? $order->created_at->format('d/m/Y H:i') : 'N/A' }}</td>
                                             <td>
-                                                <span class="badge badge-{{ $order->status == 'completed' ? 'success' : ($order->status == 'pending' ? 'warning' : 'info') }}">
-                                                    {{ $order->status == 'completed' ? 'Terminé' : ($order->status == 'pending' ? 'En attente' : ($order->status == 'delivered' ? 'Livré' : ucfirst($order->status))) }}
+                                                <span class="badge badge-{{ $order->getStatusClass() }}">
+                                                    {{ $order->getStatusLabel() }}
                                                 </span>
                                             </td>
                                             <td>{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</td>

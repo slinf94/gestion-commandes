@@ -9,9 +9,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-green: #4CAF50;
-            --primary-green-dark: #2E7D32;
-            --primary-green-light: #81C784;
+            --primary-green: #38B04A;
+            --primary-green-dark: #2d8f3a;
+            --primary-green-light: #4CAF50;
             --secondary-green: #66BB6A;
             --accent-green: #A5D6A7;
             --text-dark: #2E2E2E;
@@ -30,60 +30,67 @@
 
         /* Sidebar uniforme */
         .sidebar {
-            background: linear-gradient(135deg, var(--primary-green), var(--primary-green-dark));
+            background: var(--primary-green);
             min-height: 100vh;
             color: var(--white);
             box-shadow: var(--shadow);
         }
 
         .sidebar .nav-link {
-            color: rgba(255,255,255,0.8);
-            padding: 12px 20px;
-            border-radius: 8px;
-            margin: 5px 10px;
+            color: var(--white);
+            padding: 15px 20px;
+            margin: 2px 0;
             transition: all 0.3s ease;
             border: none;
             background: transparent;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
         }
 
         .sidebar .nav-link:hover {
-            background: rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.1);
             color: var(--white);
-            transform: translateX(5px);
         }
 
         .sidebar .nav-link.active {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.15);
             color: var(--white);
-            font-weight: 600;
+            font-weight: 500;
         }
 
         .sidebar .nav-link i {
             width: 20px;
             text-align: center;
+            margin-right: 10px;
+        }
+
+        .sidebar .nav-link span {
+            font-size: 14px;
         }
 
         /* Header uniforme */
         .main-header {
             background: var(--white);
             box-shadow: var(--shadow);
-            padding: 15px 30px;
+            padding: 20px 30px;
             margin-bottom: 20px;
-            border-radius: 10px;
+            border-radius: 0;
         }
 
         .main-header h2 {
             color: var(--primary-green-dark);
             margin: 0;
             font-weight: 600;
+            font-size: 24px;
         }
 
         /* Contenu principal */
         .main-content {
             background: var(--white);
-            border-radius: 15px;
-            box-shadow: var(--shadow);
-            margin: 20px;
+            border-radius: 0;
+            box-shadow: none;
+            margin: 0;
             padding: 30px;
             min-height: calc(100vh - 200px);
         }
@@ -274,35 +281,35 @@
         <div class="row">
             <!-- Sidebar uniforme -->
             <div class="col-md-3 col-lg-2 sidebar">
-                <div class="p-3">
-                    <h4 class="text-center mb-4">
+                <div class="p-4">
+                    <div class="text-center mb-4">
                         <i class="fas fa-shopping-cart me-2"></i>
-                        Allo Mobile
-                    </h4>
+                        <span style="font-size: 18px; font-weight: 500;">Allo Mobile</span>
+                    </div>
                     <nav class="nav flex-column">
                         <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
                             <i class="fas fa-tachometer-alt"></i>
-                            <span class="ms-2">Tableau de Bord</span>
+                            <span>Tableau de Bord</span>
                         </a>
                         <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
                             <i class="fas fa-users"></i>
-                            <span class="ms-2">Utilisateurs</span>
+                            <span>Utilisateurs</span>
                         </a>
                         <a class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}" href="{{ route('admin.products.index') }}">
                             <i class="fas fa-box"></i>
-                            <span class="ms-2">Produits</span>
+                            <span>Produits</span>
                         </a>
                         <a class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}" href="{{ route('admin.orders.index') }}">
                             <i class="fas fa-shopping-bag"></i>
-                            <span class="ms-2">Commandes</span>
+                            <span>Commandes</span>
                         </a>
                         <a class="nav-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}" href="{{ route('admin.clients.index') }}">
                             <i class="fas fa-user-friends"></i>
-                            <span class="ms-2">Clients</span>
+                            <span>Clients</span>
                         </a>
                         <a class="nav-link {{ Request::routeIs('admin.activity-logs.*') ? 'active' : '' }}" href="{{ route('admin.activity-logs.index') }}">
-                            <i class="fas fa-history me-2"></i>
-                            <span class="ms-2">Journal des Activités</span>
+                            <i class="fas fa-history"></i>
+                            <span>Journal des Activités</span>
                         </a>
                     </nav>
                 </div>
@@ -316,8 +323,8 @@
                         <h2>@yield('page-title', 'Administration')</h2>
                         <div class="d-flex align-items-center">
                             <span class="me-3 text-muted">
-                                <i class="fas fa-user-circle me-1"></i>
-                                Bienvenue, {{ auth()->user()->full_name }}
+                                <i class="fas fa-user me-1"></i>
+                                Bienvenue, {{ auth()->user()->nom }} {{ auth()->user()->prenom }}
                             </span>
                             <form method="POST" action="{{ route('admin.logout') }}" class="d-inline">
                                 @csrf

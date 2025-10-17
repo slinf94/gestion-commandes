@@ -161,35 +161,6 @@
             border: 1px solid #c3e6cb;
         }
 
-        .test-credentials {
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 20px;
-        }
-
-        .test-credentials h6 {
-            color: #495057;
-            margin-bottom: 10px;
-            font-size: 0.85rem;
-        }
-
-        .test-credentials .credentials {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
-        }
-
-        .test-credentials .credentials .label {
-            color: #6c757d;
-            font-weight: 500;
-        }
-
-        .test-credentials .credentials .value {
-            color: #495057;
-            font-family: monospace;
-        }
     </style>
 </head>
 <body>
@@ -201,21 +172,21 @@
             </div>
             <h1>Allo Mobile</h1>
             <p>Interface d'Administration</p>
-        </div>
+                </div>
 
         <!-- Form Section -->
         <div class="form-section">
-            @if ($errors->any())
+                @if ($errors->any())
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     <strong>Erreur de connexion !</strong>
                     <ul class="mb-0 mt-2">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
             @if (session('success'))
                 <div class="alert alert-success">
@@ -235,7 +206,8 @@
                                class="form-control @error('email') is-invalid @enderror"
                                id="email"
                                name="email"
-                               value="{{ old('email', 'admin@admin.com') }}"
+                               value="{{ old('email') }}"
+                               placeholder="admin@admin.com"
                                required
                                autofocus>
                     </div>
@@ -268,21 +240,6 @@
             <div class="footer-text">
                 <i class="fas fa-shield-alt"></i>
                 Accès réservé aux administrateurs
-            </div>
-
-            <!-- Test Credentials -->
-            <div class="test-credentials">
-                <h6><i class="fas fa-key me-2"></i>Identifiants de test :</h6>
-                <div class="credentials">
-                    <div>
-                        <span class="label">Email:</span><br>
-                        <span class="value">admin@admin.com</span>
-                    </div>
-                    <div>
-                        <span class="label">Mot de passe:</span><br>
-                        <span class="value">admin123</span>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
