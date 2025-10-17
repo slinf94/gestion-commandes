@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\QuartierController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\AdminActivityController;
+use App\Http\Controllers\MobileRedirectController;
 
 /*
 |--------------------------------------------------------------------------
@@ -120,3 +121,6 @@ Route::prefix('admin')->group(function () {
                 Route::post('/settings/clear-cache', [SettingsController::class, 'clearCache'])->name('admin.settings.clear-cache');
     });
 });
+
+// Route pour la redirection mobile après activation du compte
+Route::get('/mobile-app', [MobileRedirectController::class, 'index'])->name('mobile.app');

@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\User;
+use App\Models\OrderStatusHistory;
 use App\Notifications\OrderStatusChangedNotification;
 use App\Notifications\NewOrderNotification;
 use App\Helpers\OrderStatusHelper;
+use App\Enums\OrderStatus;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
@@ -34,34 +36,82 @@ class OrderController extends Controller
     public function updateStatus(Request $request, Order $order)
     {
         $request->validate([
-            'status' => 'required|' . OrderStatusHelper::getValidationRule(),
+            'status' => 'required|string|in:' . implode(',', array_column(OrderStatus::cases(), 'value')),
             'comment' => 'nullable|string|max:500',
         ]);
 
-        $oldStatus = $order->status;
-        $order->update(['status' => $request->status]);
+        try {
+            $newStatus = OrderStatus::from($request->status);
+            $oldStatus = $order->status;
 
-        // Enregistrer l'historique du changement de statut
-        $order->statusHistory()->create([
-            'previous_status' => $oldStatus,
-            'new_status' => $request->status,
-            'comment' => $request->comment,
-            'changed_by' => auth()->id(),
-        ]);
+            // Vérifier si le changement de statut est autorisé
+            if (!$order->canChangeStatusTo($newStatus)) {
+                $message = "Impossible de changer le statut de \"{$oldStatus->getLabel()}\" vers \"{$newStatus->getLabel()}\"";
 
-        // Envoyer une notification au client si le statut a changé
-        if ($oldStatus !== $request->status) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $message
+                    ], 422);
+                }
+
+                return redirect()->back()->withErrors(['status' => $message]);
+            }
+
+            // Changer le statut en utilisant la méthode du modèle
+            $success = $order->changeStatus($newStatus, $request->comment, auth()->id());
+
+            if (!$success) {
+                throw new \Exception('Erreur lors du changement de statut');
+            }
+
+            // Envoyer une notification au client
             try {
-                // Notifier le client du changement de statut
-                $order->user->notify(new OrderStatusChangedNotification($order, $oldStatus, $request->status));
+                $order->user->notify(new OrderStatusChangedNotification($order, $oldStatus, $newStatus));
             } catch (\Exception $e) {
-                // Log l'erreur mais ne pas bloquer le processus
                 \Log::error('Erreur lors de l\'envoi de la notification au client: ' . $e->getMessage());
             }
-        }
 
-        return redirect()->route('admin.orders.show', $order)
-            ->with('success', 'Statut de la commande mis à jour avec succès');
+            // Message de succès
+            $message = "Statut de la commande changé de \"{$oldStatus->getLabel()}\" vers \"{$newStatus->getLabel()}\" avec succès";
+
+            // Vérifier si c'est une requête AJAX
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'order' => $order->fresh(['user', 'items.product.productImages', 'statusHistory.changedBy']),
+                    'new_status' => [
+                        'value' => $newStatus->value,
+                        'label' => $newStatus->getLabel(),
+                        'class' => $newStatus->getBootstrapClass(),
+                        'color' => $newStatus->getColor(),
+                        'icon' => $newStatus->getIcon(),
+                    ]
+                ]);
+            }
+
+            return redirect()->route('admin.orders.show', $order)
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la mise à jour du statut de la commande: ' . $e->getMessage(), [
+                'order_id' => $order->id,
+                'new_status' => $request->status,
+                'user_id' => auth()->id()
+            ]);
+
+            $errorMessage = 'Erreur lors de la mise à jour du statut: ' . $e->getMessage();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $errorMessage
+                ], 500);
+            }
+
+            return redirect()->back()->withErrors(['status' => $errorMessage]);
+        }
     }
 
     public function destroy(Order $order)

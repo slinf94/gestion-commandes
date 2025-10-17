@@ -40,17 +40,18 @@ class ActivityLog extends Activity
     {
         $sensitiveFields = ['password', 'password_confirmation', 'remember_token', 'api_token'];
 
-        return collect($attributes)->map(function ($value, $key) use ($sensitiveFields) {
+        $formatted = [];
+        foreach ($attributes as $key => $value) {
             if (in_array($key, $sensitiveFields)) {
-                return '***';
+                $formatted[$key] = '***';
+            } elseif (is_array($value)) {
+                $formatted[$key] = json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            } else {
+                $formatted[$key] = $value;
             }
+        }
 
-            if (is_array($value)) {
-                return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-            }
-
-            return $value;
-        })->toArray();
+        return $formatted;
     }
 
     /**

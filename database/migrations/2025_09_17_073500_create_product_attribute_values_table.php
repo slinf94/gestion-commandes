@@ -19,7 +19,7 @@ return new class extends Migration
             $table->decimal('numeric_value', 15, 4)->nullable();
             $table->timestamps();
 
-            $table->unique(['product_id', 'product_type_attribute_id']);
+            $table->unique(['product_id', 'product_type_attribute_id'], 'pav_prod_attr_unique');
             $table->index('numeric_value');
         });
     }

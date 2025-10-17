@@ -3,88 +3,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion Admin - allo mobile</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#1E3A8A',
-                        'primary-light': '#3B82F6',
-                        secondary: '#60A5FA',
-                    }
-                }
-            }
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Connexion Admin - Allo Mobile</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-    </script>
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #38B04A;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .header {
+            background-color: #38B04A;
+            padding: 40px 30px 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .header .icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .form-section {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .input-container {
+            position: relative;
+        }
+
+        .input-container i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 12px 12px 40px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            background-color: white;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #38B04A;
+            box-shadow: 0 0 0 3px rgba(56, 176, 74, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            background-color: #38B04A;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-login:hover {
+            background-color: #2d8f3a;
+            transform: translateY(-1px);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .footer-text {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .footer-text i {
+            font-size: 0.7rem;
+        }
+
+        .alert {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .test-credentials {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .test-credentials h6 {
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+        }
+
+        .test-credentials .credentials {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+        }
+
+        .test-credentials .credentials .label {
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .test-credentials .credentials .value {
+            color: #495057;
+            font-family: monospace;
+        }
+    </style>
 </head>
-<body class="bg-gray-50">
-    <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-md w-full space-y-8">
-            <div>
-                <div class="mx-auto h-20 w-20 bg-primary rounded-2xl flex items-center justify-center shadow-lg">
-                    <span class="text-3xl font-bold text-white">A</span>
-                </div>
-                <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    allo mobile
-                </h2>
-                <p class="mt-2 text-center text-sm text-gray-600">
-                    Administration
-                </p>
+<body>
+    <div class="login-container">
+        <!-- Header Section -->
+        <div class="header">
+            <div class="icon">
+                <i class="fas fa-shopping-cart"></i>
             </div>
-            <form class="mt-8 space-y-6" method="POST" action="{{ route('admin.login.post') }}">
+            <h1>Allo Mobile</h1>
+            <p>Interface d'Administration</p>
+        </div>
+
+        <!-- Form Section -->
+        <div class="form-section">
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Erreur de connexion !</strong>
+                    <ul class="mb-0 mt-2">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            @if (session('success'))
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('admin.authenticate') }}">
                 @csrf
-                <div class="rounded-md shadow-sm -space-y-px">
-                    <div>
-                        <label for="email" class="sr-only">Email</label>
-                        <input id="email" name="email" type="email" autocomplete="email" required 
-                               class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm" 
-                               placeholder="Adresse email"
-                               value="{{ old('email') }}">
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <div class="input-container">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email"
+                               class="form-control @error('email') is-invalid @enderror"
+                               id="email"
+                               name="email"
+                               value="{{ old('email', 'admin@admin.com') }}"
+                               required
+                               autofocus>
                     </div>
-                    <div>
-                        <label for="password" class="sr-only">Mot de passe</label>
-                        <input id="password" name="password" type="password" autocomplete="current-password" required 
-                               class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm" 
-                               placeholder="Mot de passe">
-                    </div>
+                    @error('email')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
 
-                @if ($errors->any())
-                    <div class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
-                        <ul class="list-disc list-inside">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
+                <div class="form-group">
+                    <label for="password">Mot de passe</label>
+                    <div class="input-container">
+                        <i class="fas fa-lock"></i>
+                        <input type="password"
+                               class="form-control @error('password') is-invalid @enderror"
+                               id="password"
+                               name="password"
+                               required>
                     </div>
-                @endif
-
-                <div>
-                    <button type="submit" 
-                            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition duration-150 ease-in-out">
-                        <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                            <svg class="h-5 w-5 text-primary-light group-hover:text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                            </svg>
-                        </span>
-                        Se connecter
-                    </button>
+                    @error('password')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
 
-                <div class="text-center">
-                    <p class="text-sm text-gray-600">
-                        Comptes de test disponibles :
-                    </p>
-                    <div class="mt-2 text-xs text-gray-500 space-y-1">
-                        <p><strong>Super Admin:</strong> superadmin@allomobile.com / password123</p>
-                        <p><strong>Admin:</strong> admin@allomobile.com / password123</p>
-                        <p><strong>Client:</strong> client@allomobile.com / password123</p>
-                    </div>
-                </div>
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-arrow-right"></i>
+                    SE CONNECTER
+                </button>
             </form>
+
+            <div class="footer-text">
+                <i class="fas fa-shield-alt"></i>
+                Accès réservé aux administrateurs
+            </div>
+
+            <!-- Test Credentials -->
+            <div class="test-credentials">
+                <h6><i class="fas fa-key me-2"></i>Identifiants de test :</h6>
+                <div class="credentials">
+                    <div>
+                        <span class="label">Email:</span><br>
+                        <span class="value">admin@admin.com</span>
+                    </div>
+                    <div>
+                        <span class="label">Mot de passe:</span><br>
+                        <span class="value">admin123</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <script>
+        // Auto-focus sur le champ mot de passe si email est rempli
+        document.addEventListener('DOMContentLoaded', function() {
+            const emailField = document.getElementById('email');
+            const passwordField = document.getElementById('password');
+
+            if (emailField.value) {
+                passwordField.focus();
+            }
+        });
+    </script>
 </body>
 </html>

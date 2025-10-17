@@ -66,20 +66,8 @@
                                         </div>
                                     </td>
                                     <td>
-                                        @php
-                                            $statusMap = [
-                                                'pending' => ['text' => 'En attente', 'class' => 'warning'],
-                                                'confirmed' => ['text' => 'Confirmé', 'class' => 'info'],
-                                                'processing' => ['text' => 'En cours', 'class' => 'info'],
-                                                'shipped' => ['text' => 'Expédié', 'class' => 'info'],
-                                                'delivered' => ['text' => 'Livré', 'class' => 'success'],
-                                                'cancelled' => ['text' => 'Annulé', 'class' => 'danger'],
-                                                'completed' => ['text' => 'Terminé', 'class' => 'success']
-                                            ];
-                                            $status = $statusMap[$order->status] ?? ['text' => ucfirst($order->status), 'class' => 'secondary'];
-                                        @endphp
-                                        <span class="badge bg-{{ $status['class'] }}">
-                                            {{ $status['text'] }}
+                                        <span class="badge bg-{{ $order->getStatusClass() }}">
+                                            {{ $order->getStatusIcon() }} {{ $order->getStatusLabel() }}
                                         </span>
                                     </td>
                                     <td>{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</td>

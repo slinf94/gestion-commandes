@@ -209,3 +209,4 @@ echo "\nTest terminé.\n";
     echo "Stack trace: " . $e->getTraceAsString() . "\n";
 }
 
+

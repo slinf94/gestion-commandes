@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use App\Models\Order;
-use App\Helpers\OrderStatusHelper;
+use App\Enums\OrderStatus;
 
 class OrderStatusChangedNotification extends Notification
 {
@@ -20,7 +20,7 @@ class OrderStatusChangedNotification extends Notification
     /**
      * Create a new notification instance.
      */
-    public function __construct(Order $order, string $oldStatus, string $newStatus)
+    public function __construct(Order $order, OrderStatus $oldStatus, OrderStatus $newStatus)
     {
         $this->order = $order;
         $this->oldStatus = $oldStatus;
@@ -42,12 +42,9 @@ class OrderStatusChangedNotification extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $newStatusInfo = OrderStatusHelper::getStatusInfo($this->newStatus);
-        $oldStatusInfo = OrderStatusHelper::getStatusInfo($this->oldStatus);
-
         $mailMessage = (new MailMessage)
             ->subject('📦 Mise à jour de votre commande #' . $this->order->order_number)
-            ->greeting('Bonjour ' . $this->order->user->full_name . ',')
+            ->greeting('Bonjour ' . $this->order->user->nom . ' ' . $this->order->user->prenom . ',')
             ->line('Nous vous informons que le statut de votre commande a été mis à jour.')
             ->line('')
             ->line('**Détails de la commande :**')
@@ -56,26 +53,26 @@ class OrderStatusChangedNotification extends Notification
             ->line('• Montant total : ' . number_format($this->order->total_amount, 0, ',', ' ') . ' FCFA')
             ->line('')
             ->line('**Changement de statut :**')
-            ->line('• Ancien statut : ' . $oldStatusInfo['text'])
-            ->line('• Nouveau statut : **' . $newStatusInfo['text'] . '**')
+            ->line('• Ancien statut : ' . $this->oldStatus->getLabel())
+            ->line('• Nouveau statut : **' . $this->newStatus->getLabel() . '**')
             ->line('');
 
         // Ajouter des informations spécifiques selon le statut
         switch ($this->newStatus) {
-            case 'confirmed':
+            case OrderStatus::CONFIRMED:
                 $mailMessage->line('✅ Votre commande a été confirmée et sera traitée sous peu.');
                 break;
-            case 'processing':
+            case OrderStatus::PROCESSING:
                 $mailMessage->line('⚙️ Votre commande est en cours de préparation.');
                 break;
-            case 'shipped':
+            case OrderStatus::SHIPPED:
                 $mailMessage->line('🚚 Votre commande a été expédiée et sera livrée prochainement.');
                 break;
-            case 'delivered':
+            case OrderStatus::DELIVERED:
                 $mailMessage->line('🎉 Votre commande a été livrée avec succès !');
                 $mailMessage->line('Merci pour votre confiance et à bientôt !');
                 break;
-            case 'cancelled':
+            case OrderStatus::CANCELLED:
                 $mailMessage->line('❌ Votre commande a été annulée.');
                 $mailMessage->line('Si vous avez des questions, n\'hésitez pas à nous contacter.');
                 break;
@@ -86,7 +83,8 @@ class OrderStatusChangedNotification extends Notification
             ->line('**Articles commandés :**');
 
         foreach ($this->order->items as $item) {
-            $mailMessage->line('• ' . $item->product->name . ' (x' . $item->quantity . ') - ' . number_format($item->total_price, 0, ',', ' ') . ' FCFA');
+            $productName = $item->product_name ?? ($item->product->name ?? 'Produit supprimé');
+            $mailMessage->line('• ' . $productName . ' (x' . $item->quantity . ') - ' . number_format($item->total_price, 0, ',', ' ') . ' FCFA');
         }
 
         $mailMessage
@@ -115,9 +113,9 @@ class OrderStatusChangedNotification extends Notification
         return [
             'order_id' => $this->order->id,
             'order_number' => $this->order->order_number,
-            'old_status' => $this->oldStatus,
-            'new_status' => $this->newStatus,
-            'customer_name' => $this->order->user->full_name,
+            'old_status' => $this->oldStatus->value,
+            'new_status' => $this->newStatus->value,
+            'customer_name' => $this->order->user->nom . ' ' . $this->order->user->prenom,
             'total_amount' => $this->order->total_amount,
         ];
     }

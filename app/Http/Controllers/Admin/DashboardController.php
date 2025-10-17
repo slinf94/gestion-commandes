@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Product;
 use App\Models\Order;
 use App\Models\Category;
+use App\Enums\OrderStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -20,11 +21,11 @@ class DashboardController extends Controller
             'total_products' => Product::count(),
             'total_orders' => Order::count(),
             'total_categories' => Category::count(),
-            'pending_orders' => Order::where('status', 'pending')->count(),
+            'pending_orders' => Order::where('status', OrderStatus::PENDING)->count(),
             'active_products' => Product::where('status', 'active')->count(),
             // Chiffre d'affaires : inclut les commandes pending, confirmed, processing, shipped, delivered
             // Exclut seulement les commandes cancelled
-            'total_revenue' => Order::whereNotIn('status', ['cancelled'])->sum('total_amount'),
+            'total_revenue' => Order::whereNotIn('status', [OrderStatus::CANCELLED])->sum('total_amount'),
         ];
 
         // Commandes récentes
@@ -57,7 +58,7 @@ class DashboardController extends Controller
 
     public function login()
     {
-        return view('admin.login');
+        return view('admin.auth.login');
     }
 
     public function authenticate(Request $request)

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Traits\LogsActivity;
+use App\Enums\OrderStatus;
 
 class Order extends Model
 {
@@ -39,6 +40,7 @@ class Order extends Model
         'discount_amount' => 'decimal:2',
         'shipping_cost' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'status' => OrderStatus::class,
     ];
 
     /**
@@ -153,7 +155,112 @@ class Order extends Model
 
     public function isCancelled()
     {
-        return $this->status === 'cancelled';
+        return $this->status === OrderStatus::CANCELLED;
+    }
+
+    /**
+     * Obtenir le statut sous forme d'enum
+     */
+    public function getStatusEnum(): OrderStatus
+    {
+        return $this->status;
+    }
+
+    /**
+     * Obtenir le label du statut
+     */
+    public function getStatusLabel(): string
+    {
+        return $this->status->getLabel();
+    }
+
+    /**
+     * Obtenir la classe CSS du statut
+     */
+    public function getStatusClass(): string
+    {
+        return $this->status->getBootstrapClass();
+    }
+
+    /**
+     * Obtenir la couleur du statut
+     */
+    public function getStatusColor(): string
+    {
+        return $this->status->getColor();
+    }
+
+    /**
+     * Obtenir l'icône du statut
+     */
+    public function getStatusIcon(): string
+    {
+        return $this->status->getIcon();
+    }
+
+    /**
+     * Obtenir la description du statut
+     */
+    public function getStatusDescription(): string
+    {
+        return $this->status->getDescription();
+    }
+
+    /**
+     * Vérifier si le statut peut être changé vers un autre
+     */
+    public function canChangeStatusTo(OrderStatus $newStatus): bool
+    {
+        return $this->status->canTransitionTo($newStatus);
+    }
+
+    /**
+     * Obtenir les statuts suivants possibles
+     */
+    public function getNextPossibleStatuses(): array
+    {
+        return $this->status->getNextStatuses();
+    }
+
+    /**
+     * Changer le statut de la commande
+     */
+    public function changeStatus(OrderStatus $newStatus, ?string $comment = null, ?int $changedBy = null): bool
+    {
+        if (!$this->canChangeStatusTo($newStatus)) {
+            return false;
+        }
+
+        $oldStatus = $this->status;
+
+        // Mettre à jour le statut
+        $this->update(['status' => $newStatus]);
+
+        // Enregistrer l'historique
+        $this->statusHistory()->create([
+            'previous_status' => $oldStatus->value,
+            'new_status' => $newStatus->value,
+            'comment' => $comment,
+            'changed_by' => $changedBy ?? auth()->id(),
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Vérifier si la commande est active
+     */
+    public function isActive(): bool
+    {
+        return $this->status->isActive();
+    }
+
+    /**
+     * Vérifier si la commande est terminée
+     */
+    public function isCompleted(): bool
+    {
+        return $this->status->isCompleted();
     }
 
     public function getItemCountAttribute()

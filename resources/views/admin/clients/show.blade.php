@@ -201,19 +201,8 @@
                                             </td>
                                             <td>{{ $order->created_at->format('d/m/Y H:i') }}</td>
                                             <td>
-                                                @php
-                                                    $statusMap = [
-                                                        'pending' => ['text' => 'En attente', 'class' => 'warning'],
-                                                        'confirmed' => ['text' => 'Confirmé', 'class' => 'info'],
-                                                        'processing' => ['text' => 'En cours', 'class' => 'info'],
-                                                        'shipped' => ['text' => 'Expédié', 'class' => 'primary'],
-                                                        'delivered' => ['text' => 'Livré', 'class' => 'success'],
-                                                        'cancelled' => ['text' => 'Annulé', 'class' => 'danger'],
-                                                    ];
-                                                    $status = $statusMap[$order->status] ?? ['text' => ucfirst($order->status), 'class' => 'secondary'];
-                                                @endphp
-                                                <span class="badge bg-{{ $status['class'] }}">
-                                                    {{ $status['text'] }}
+                                                <span class="badge bg-{{ $order->getStatusClass() }}">
+                                                    {{ $order->getStatusIcon() }} {{ $order->getStatusLabel() }}
                                                 </span>
                                             </td>
                                             <td>

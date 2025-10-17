@@ -1,7 +1,7 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Gestion des Clients CRM - Allo Mobile Admin')
-@section('page-title', 'Gestion des Clients CRM')
+@section('title', 'Gestion des Clients - Allo Mobile Admin')
+@section('page-title', 'Gestion des Clients')
 
 @section('styles')
 <style>

@@ -20,7 +20,11 @@ class OrderController extends Controller
     {
         $user = auth()->user();
 
-        $query = $user->orders()->with(['items.product', 'statusHistory.changedBy']);
+        $query = $user->orders()->with([
+            'items.product.productImages',
+            'items.product.category',
+            'statusHistory.changedBy'
+        ]);
 
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
@@ -33,9 +37,45 @@ class OrderController extends Controller
         $perPage = $request->get('per_page', 20);
         $orders = $query->paginate($perPage);
 
+        // Formater les données pour inclure toutes les informations nécessaires
+        $formattedOrders = collect($orders->items())->map(function ($order) {
+            $orderData = $order->toArray();
+
+            // Formater les items avec les détails complets du produit
+            $orderData['items'] = $order->items->map(function ($item) {
+                $itemData = $item->toArray();
+
+                if ($item->product) {
+                    $itemData['product_name'] = $item->product->name;
+                    $itemData['product_image'] = $item->product->main_image;
+                    $itemData['product_sku'] = $item->product->sku;
+                    $itemData['product_stock'] = $item->product->stock_quantity;
+
+                    // Ajouter les détails du produit complet
+                    $itemData['product'] = [
+                        'id' => $item->product->id,
+                        'name' => $item->product->name,
+                        'sku' => $item->product->sku,
+                        'price' => $item->product->price,
+                        'stock_quantity' => $item->product->stock_quantity,
+                        'main_image' => $item->product->main_image,
+                        'all_images' => $item->product->all_images,
+                        'category' => $item->product->category ? [
+                            'id' => $item->product->category->id,
+                            'name' => $item->product->category->name,
+                        ] : null,
+                    ];
+                }
+
+                return $itemData;
+            })->toArray();
+
+            return $orderData;
+        });
+
         return response()->json([
             'success' => true,
-            'data' => $orders->items(),
+            'data' => $formattedOrders,
             'pagination' => [
                 'current_page' => $orders->currentPage(),
                 'last_page' => $orders->lastPage(),
@@ -126,16 +166,25 @@ class OrderController extends Controller
             ]);
 
             foreach ($cartItems as $cartItem) {
+                $unitPrice = $cartItem->unit_price ?? $cartItem->product->price;
+                $totalPrice = $cartItem->quantity * $unitPrice;
+
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $cartItem->product_id,
                     'quantity' => $cartItem->quantity,
-                    'unit_price' => $cartItem->unit_price ?? $cartItem->product->price,
-                    'total_price' => $cartItem->quantity * ($cartItem->unit_price ?? $cartItem->product->price),
+                    'unit_price' => $unitPrice,
+                    'total_price' => $totalPrice,
+                    'product_name' => $cartItem->product->name,
+                    'product_image' => $cartItem->product->main_image,
+                    'product_sku' => $cartItem->product->sku,
+                    'product_stock' => $cartItem->product->stock_quantity,
                     'product_details' => [
                         'name' => $cartItem->product->name,
                         'sku' => $cartItem->product->sku,
                         'description' => $cartItem->product->description,
+                        'category_id' => $cartItem->product->category_id,
+                        'category_name' => $cartItem->product->category->name ?? null,
                     ],
                 ]);
 
@@ -151,27 +200,36 @@ class OrderController extends Controller
 
             TemporaryCart::where('session_id', $sessionId)->delete();
 
-            // Notifier les administrateurs de la nouvelle commande
-            try {
-                AdminOrderController::notifyAdminsNewOrder($order);
-            } catch (\Exception $e) {
-                \Log::error('Erreur lors de la notification des administrateurs: ' . $e->getMessage());
-                // Ne pas faire échouer la commande si la notification échoue
-            }
-
-            // Notifier le client de la création de sa commande
-            try {
-                $user->notify(new \App\Notifications\OrderCreatedNotification($order));
-            } catch (\Exception $e) {
-                \Log::error('Erreur lors de la notification du client: ' . $e->getMessage());
-                // Ne pas faire échouer la commande si la notification échoue
-            }
+            // Les notifications seront envoyées en arrière-plan pour éviter les timeouts
+            // Ne pas bloquer la réponse pour les notifications
 
             DB::commit();
 
+            // Retourner les données de base sans charger toutes les relations
+            $orderData = $order->toArray();
+
+            // Charger seulement les items avec les données déjà sauvegardées
+            $orderData['items'] = $order->items->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'order_id' => $item->order_id,
+                    'product_id' => $item->product_id,
+                    'product_name' => $item->product_name,
+                    'product_image' => $item->product_image,
+                    'product_sku' => $item->product_sku,
+                    'product_stock' => $item->product_stock,
+                    'quantity' => $item->quantity,
+                    'unit_price' => $item->unit_price,
+                    'total_price' => $item->total_price,
+                    'product_details' => $item->product_details,
+                    'created_at' => $item->created_at,
+                    'updated_at' => $item->updated_at,
+                ];
+            })->toArray();
+
             return response()->json([
                 'success' => true,
-                'data' => $order->load(['items.product', 'statusHistory']),
+                'data' => $orderData,
                 'message' => 'Commande créée avec succès'
             ], 201);
 
@@ -188,12 +246,48 @@ class OrderController extends Controller
     public function show($id)
     {
         $order = auth()->user()->orders()
-            ->with(['items.product', 'statusHistory.changedBy'])
+            ->with([
+                'items.product.productImages',
+                'items.product.category',
+                'statusHistory.changedBy'
+            ])
             ->findOrFail($id);
+
+        // Formater les données pour inclure toutes les informations nécessaires
+        $orderData = $order->toArray();
+
+        // Formater les items avec les détails complets du produit
+        $orderData['items'] = $order->items->map(function ($item) {
+            $itemData = $item->toArray();
+
+            if ($item->product) {
+                $itemData['product_name'] = $item->product->name;
+                $itemData['product_image'] = $item->product->main_image;
+                $itemData['product_sku'] = $item->product->sku;
+                $itemData['product_stock'] = $item->product->stock_quantity;
+
+                // Ajouter les détails du produit complet
+                $itemData['product'] = [
+                    'id' => $item->product->id,
+                    'name' => $item->product->name,
+                    'sku' => $item->product->sku,
+                    'price' => $item->product->price,
+                    'stock_quantity' => $item->product->stock_quantity,
+                    'main_image' => $item->product->main_image,
+                    'all_images' => $item->product->all_images,
+                    'category' => $item->product->category ? [
+                        'id' => $item->product->category->id,
+                        'name' => $item->product->category->name,
+                    ] : null,
+                ];
+            }
+
+            return $itemData;
+        })->toArray();
 
         return response()->json([
             'success' => true,
-            'data' => $order,
+            'data' => $orderData,
             'message' => 'Commande récupérée avec succès'
         ]);
     }

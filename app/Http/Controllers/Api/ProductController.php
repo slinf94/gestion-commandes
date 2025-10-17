@@ -33,8 +33,13 @@ class ProductController extends Controller
             $query->where('price', '<=', $request->max_price);
         }
 
-        // Filtrage par statut de stock
-        if ($request->has('in_stock') && $request->in_stock) {
+        // Filtrage par statut de stock - par défaut, masquer les produits épuisés
+        if ($request->has('in_stock')) {
+            if ($request->in_stock) {
+                $query->where('stock_quantity', '>', 0);
+            }
+        } else {
+            // Par défaut, ne pas afficher les produits épuisés
             $query->where('stock_quantity', '>', 0);
         }
 
@@ -66,28 +71,27 @@ class ProductController extends Controller
         $perPage = $request->get('per_page', 20);
         $products = $query->paginate($perPage);
 
-        // Formater les données avec les URLs d'images complètes
+        // Formater les données de manière optimisée
         $formattedProducts = collect($products->items())->map(function ($product) {
             $productData = $product->toArray();
 
-            // Formater les images avec URLs complètes
+            // Optimisation: construire l'URL de base une seule fois
+            $baseUrl = url('storage/');
+
+            // Formater les images avec URLs complètes (optimisé)
             if (isset($productData['images']) && is_array($productData['images'])) {
-                $productData['images'] = array_map(function ($image) {
+                $productData['images'] = array_values(array_filter(array_map(function ($image) use ($baseUrl) {
                     if (empty($image)) return null;
                     if (str_starts_with($image, 'http')) return $image;
-                    return url('storage/' . ltrim($image, '/'));
-                }, $productData['images']);
-                $productData['images'] = array_filter($productData['images']); // Supprimer les valeurs null
+                    return $baseUrl . ltrim($image, '/');
+                }, $productData['images'])));
             }
 
-            // Ajouter l'image principale et toutes les images
-            $productData['main_image'] = $product->main_image;
-            $productData['all_images'] = $product->all_images;
-            
-            // S'assurer qu'il y a toujours une image principale
-            if (empty($productData['main_image'])) {
-                $productData['main_image'] = url('storage/products/placeholder.jpg');
-            }
+            // Ajouter l'image principale (optimisé)
+            $productData['main_image'] = $product->main_image ?: $baseUrl . 'products/placeholder.jpg';
+
+            // Optimisation: ne pas charger all_images pour la liste
+            unset($productData['all_images']);
 
             return $productData;
         });
@@ -267,6 +271,7 @@ class ProductController extends Controller
         $search = $request->q;
         $products = Product::with(['category'])
             ->where('status', 'active')
+            ->where('stock_quantity', '>', 0) // Masquer les produits épuisés
             ->where(function($query) use ($search) {
                 $query->where('name', 'LIKE', "%{$search}%")
                       ->orWhere('description', 'LIKE', "%{$search}%")
@@ -312,6 +317,7 @@ class ProductController extends Controller
         $products = Product::with(['category'])
             ->where('status', 'active')
             ->where('is_featured', true)
+            ->where('stock_quantity', '>', 0) // Masquer les produits épuisés
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();

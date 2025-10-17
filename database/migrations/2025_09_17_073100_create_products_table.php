@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('name', 200);
             $table->text('description')->nullable();
-            $table->decimal('price', 10, 2);
-            $table->decimal('cost_price', 10, 2)->nullable();
+            $table->decimal('price', 15, 2);
+            $table->decimal('cost_price', 15, 2)->nullable();
             $table->integer('stock_quantity')->default(0);
             $table->integer('min_stock_alert')->default(5);
             $table->foreignId('category_id')->nullable()->constrained()->onDelete('set null');

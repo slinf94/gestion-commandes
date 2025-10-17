@@ -118,7 +118,7 @@
         <div class="content">
             <p>Excellente nouvelle ! Votre compte Allo Mobile a été activé avec succès par notre équipe.</p>
 
-            <p>Vous pouvez maintenant vous connecter à l'application mobile et profiter de tous nos services :</p>
+            <p>Vous pouvez maintenant télécharger et utiliser l'application mobile Allo Mobile pour profiter de tous nos services :</p>
 
             <div class="features">
                 <ul>
@@ -138,7 +138,7 @@
 
         <!-- Bouton d'action -->
         <div class="cta-button">
-            <a href="{{ url('/') }}">🚀 Se connecter maintenant</a>
+            <a href="{{ route('mobile.app') }}">📱 Télécharger l'application mobile</a>
         </div>
 
         <!-- Message de remerciement -->
@@ -159,6 +159,7 @@
     </div>
 </body>
 </html>
+
 
 
 
