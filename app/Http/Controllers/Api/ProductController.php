@@ -80,9 +80,14 @@ class ProductController extends Controller
                 $productData['images'] = array_filter($productData['images']); // Supprimer les valeurs null
             }
 
-            // Ajouter l'image principale
+            // Ajouter l'image principale et toutes les images
             $productData['main_image'] = $product->main_image;
             $productData['all_images'] = $product->all_images;
+            
+            // S'assurer qu'il y a toujours une image principale
+            if (empty($productData['main_image'])) {
+                $productData['main_image'] = url('storage/products/placeholder.jpg');
+            }
 
             return $productData;
         });

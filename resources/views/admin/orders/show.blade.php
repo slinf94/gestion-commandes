@@ -1,23 +1,18 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Détails de la Commande')
+@section('page-title', 'Détails de la Commande')
 
 @section('content')
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Commande #{{ $order->id }}</h3>
-                    <div class="card-tools">
-                        <a href="{{ route('admin.orders.edit', $order->id) }}" class="btn btn-primary">
-                            <i class="fas fa-edit"></i> Modifier
-                        </a>
-                        <a href="{{ route('admin.orders.index') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Retour à la liste
-                        </a>
-                    </div>
-                </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0">Commande #{{ $order->id }}</h4>
+        <small class="text-muted">Informations détaillées et gestion du statut</small>
+    </div>
+    <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-primary">
+        <i class="fas fa-arrow-left me-2"></i>Retour à la liste
+    </a>
+</div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-8">
@@ -96,6 +91,7 @@
                                 <table class="table table-striped">
                                     <thead>
                                         <tr>
+                                            <th style="width: 60px;">Image</th>
                                             <th>Produit</th>
                                             <th>Prix unitaire</th>
                                             <th>Quantité</th>
@@ -106,27 +102,41 @@
                                         @foreach($order->items as $item)
                                         <tr>
                                             <td>
-                                                <div class="d-flex align-items-center">
-                                                    @if($item->product->mainImage)
-                                                        <img src="{{ $item->product->mainImage }}" class="img-thumbnail mr-2" style="width: 50px; height: 50px; object-fit: cover;">
-                                                    @endif
-                                                    <div>
-                                                        <strong>{{ $item->product->name }}</strong>
-                                                        @if($item->product->sku)
-                                                            <br><small class="text-muted">SKU: {{ $item->product->sku }}</small>
-                                                        @endif
+                                                @if($item->product->mainImage)
+                                                    <img src="{{ $item->product->mainImage }}"
+                                                         class="img-thumbnail"
+                                                         style="width: 50px; height: 50px; object-fit: cover;"
+                                                         alt="{{ $item->product->name }}"
+                                                         onerror="this.src='{{ asset('images/placeholder.svg') }}'">
+                                                @else
+                                                    <div class="img-thumbnail d-flex align-items-center justify-content-center bg-light"
+                                                         style="width: 50px; height: 50px;">
+                                                        <i class="fas fa-image text-muted"></i>
                                                     </div>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <strong>{{ $item->product->name }}</strong>
+                                                    @if($item->product->sku)
+                                                        <br><small class="text-muted">SKU: {{ $item->product->sku }}</small>
+                                                    @endif
+                                                    @if($item->product->description)
+                                                        <br><small class="text-muted">{{ Str::limit($item->product->description, 50) }}</small>
+                                                    @endif
                                                 </div>
                                             </td>
                                             <td>{{ number_format($item->unit_price, 0, ',', ' ') }} FCFA</td>
-                                            <td>{{ $item->quantity }}</td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ $item->quantity }}</span>
+                                            </td>
                                             <td><strong>{{ number_format($item->total_price, 0, ',', ' ') }} FCFA</strong></td>
                                         </tr>
                                         @endforeach
                                     </tbody>
                                     <tfoot>
                                         <tr>
-                                            <th colspan="3">Total de la commande</th>
+                                            <th colspan="4">Total de la commande</th>
                                             <th>{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</th>
                                         </tr>
                                     </tfoot>
@@ -184,7 +194,6 @@
         </div>
     </div>
 </div>
-@endsection
 
 @push('styles')
 <style>
@@ -259,3 +268,4 @@ function updateOrderStatus(orderId, status) {
 }
 </script>
 @endpush
+@endsection

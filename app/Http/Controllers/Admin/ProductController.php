@@ -12,7 +12,7 @@ class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::with(['category'])
+        $products = Product::with(['category', 'productImages'])
             ->withTrashed()
             ->orderBy('created_at', 'desc')
             ->paginate(20);
@@ -22,7 +22,7 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
-        $product->load(['category', 'orderItems']);
+        $product->load(['category', 'orderItems', 'productImages']);
         return view('admin.products.show', compact('product'));
     }
 
@@ -64,7 +64,7 @@ class ProductController extends Controller
         // Traitement des images
         if ($request->hasFile('images')) {
             $imagePaths = [];
-            foreach ($request->file('images') as $image) {
+            foreach ($request->file('images') as $index => $image) {
                 $path = $image->store('products', 'public');
                 $imagePaths[] = $path;
             }
@@ -78,12 +78,26 @@ class ProductController extends Controller
 
         $product = Product::create($data);
 
+        // Créer les entrées dans product_images si des images ont été uploadées
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $index => $image) {
+                $path = $image->store('products', 'public');
+                $product->productImages()->create([
+                    'url' => $path,
+                    'type' => $index === 0 ? 'principale' : 'galerie',
+                    'order' => $index + 1,
+                    'alt_text' => "Image du produit {$product->name}"
+                ]);
+            }
+        }
+
         return redirect()->route('admin.products.show', $product)
             ->with('success', 'Produit créé avec succès');
     }
 
     public function edit(Product $product)
     {
+        $product->load(['category', 'productImages']);
         $categories = Category::where('is_active', true)->get();
         return view('admin.products.edit', compact('product', 'categories'));
     }
@@ -126,5 +140,57 @@ class ProductController extends Controller
         $product->restore();
         return redirect()->route('admin.products.index')
             ->with('success', 'Produit restauré avec succès');
+    }
+
+    public function uploadImages(Request $request, Product $product)
+    {
+        $request->validate([
+            'images' => 'required|array|max:10',
+            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]);
+
+        $uploadedImages = [];
+        foreach ($request->file('images') as $index => $image) {
+            $path = $image->store('products', 'public');
+            $order = $product->productImages()->max('order') + $index + 1;
+
+            $productImage = $product->productImages()->create([
+                'url' => $path,
+                'type' => 'galerie',
+                'order' => $order,
+                'alt_text' => "Image du produit {$product->name}"
+            ]);
+
+            $uploadedImages[] = $productImage;
+        }
+
+        return redirect()->route('admin.products.show', $product)
+            ->with('success', count($uploadedImages) . ' image(s) ajoutée(s) avec succès');
+    }
+
+    public function setMainImage(Request $request, Product $product, ProductImage $image)
+    {
+        // Retirer le statut "principale" de toutes les autres images
+        $product->productImages()->update(['type' => 'galerie']);
+
+        // Définir cette image comme principale
+        $image->update(['type' => 'principale']);
+
+        return redirect()->route('admin.products.show', $product)
+            ->with('success', 'Image principale mise à jour avec succès');
+    }
+
+    public function deleteImage(Product $product, ProductImage $image)
+    {
+        // Supprimer le fichier physique
+        if (Storage::disk('public')->exists($image->url)) {
+            Storage::disk('public')->delete($image->url);
+        }
+
+        // Supprimer l'entrée de la base de données
+        $image->delete();
+
+        return redirect()->route('admin.products.show', $product)
+            ->with('success', 'Image supprimée avec succès');
     }
 }

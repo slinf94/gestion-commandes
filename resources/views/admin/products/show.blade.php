@@ -1,24 +1,23 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Détails du Produit')
+@section('title', 'Détails du Produit - {{ $product->name }} | Allo Mobile Admin')
+@section('page-title', 'Détails du Produit')
 
 @section('content')
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Détails du Produit: {{ $product->name }}</h3>
-                    <div class="card-tools">
-                        <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-primary">
-                            <i class="fas fa-edit"></i> Modifier
-                        </a>
-                        <a href="{{ route('admin.products.index') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Retour à la liste
-                        </a>
-                    </div>
-                </div>
-                <div class="card-body">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0">{{ $product->name }}</h4>
+        <small class="text-muted">Informations complètes et gestion des images</small>
+    </div>
+    <div>
+        <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-primary me-2">
+            <i class="fas fa-edit me-2"></i>Modifier
+        </a>
+        <a href="{{ route('admin.products.index') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Retour à la liste
+        </a>
+    </div>
+</div>
                     <div class="row">
                         <div class="col-md-8">
                             <div class="row">
@@ -147,7 +146,76 @@
 
                         <div class="col-md-4">
                             <h5>Images</h5>
-                            @if($product->images && count($product->images) > 0 && !empty(array_filter($product->images)))
+
+                            <!-- Formulaire d'upload d'images supplémentaires -->
+                            <div class="mb-3">
+                                <form method="POST" action="{{ route('admin.products.upload-images', $product) }}" enctype="multipart/form-data">
+                                    @csrf
+                                    <div class="mb-2">
+                                        <label for="images" class="form-label">Ajouter des images</label>
+                                        <input type="file" class="form-control" id="images" name="images[]" multiple accept="image/*">
+                                        <small class="form-text text-muted">Vous pouvez sélectionner plusieurs images (max 10)</small>
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="fas fa-upload"></i> Ajouter
+                                    </button>
+                                </form>
+                            </div>
+
+                            @if($product->productImages && $product->productImages->count() > 0)
+                                <div class="row">
+                                    @foreach($product->productImages as $image)
+                                        <div class="col-12 mb-3">
+                                            @php
+                                                $imageUrl = $image->url;
+                                                // Si l'URL ne commence pas par http, ajouter le chemin storage
+                                                if (!str_starts_with($imageUrl, 'http')) {
+                                                    $imageUrl = asset('storage/' . ltrim($imageUrl, '/'));
+                                                }
+                                            @endphp
+                                            <div class="position-relative">
+                                                <img src="{{ $imageUrl }}"
+                                                     class="img-thumbnail"
+                                                     style="width: 100%; height: 200px; object-fit: cover;"
+                                                     alt="{{ $image->alt_text ?: 'Image du produit' }}"
+                                                     onerror="this.src='{{ asset('images/placeholder.svg') }}'">
+
+                                                <!-- Actions sur l'image -->
+                                                <div class="position-absolute top-0 end-0 p-2">
+                                                    @if($image->type !== 'principale')
+                                                        <form method="POST" action="{{ route('admin.products.set-main-image', [$product, $image]) }}" class="d-inline">
+                                                            @csrf
+                                                            <button type="submit" class="btn btn-sm btn-warning" title="Définir comme image principale">
+                                                                <i class="fas fa-star"></i>
+                                                            </button>
+                                                        </form>
+                                                    @else
+                                                        <span class="badge bg-warning">
+                                                            <i class="fas fa-star"></i> Principale
+                                                        </span>
+                                                    @endif
+
+                                                    <form method="POST" action="{{ route('admin.products.delete-image', [$product, $image]) }}" class="d-inline">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-danger"
+                                                                onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette image ?')"
+                                                                title="Supprimer l'image">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+
+                                            @if($image->type)
+                                                <small class="text-muted d-block mt-1">
+                                                    <i class="fas fa-tag"></i> {{ ucfirst($image->type) }}
+                                                </small>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @elseif($product->images && count($product->images) > 0 && !empty(array_filter($product->images)))
                                 <div class="row">
                                     @foreach($product->images as $image)
                                         @if(is_string($image) && !empty($image))
@@ -177,9 +245,4 @@
                             </table>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 @endsection

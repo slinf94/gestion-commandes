@@ -1,78 +1,15 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion des Commandes - Allo Mobile Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f8f9fa; }
-        .sidebar { background: linear-gradient(135deg, #4CAF50, #2E7D32); min-height: 100vh; color: white; }
-        .sidebar .nav-link { color: rgba(255,255,255,0.8); padding: 12px 20px; border-radius: 8px; margin: 5px 10px; transition: all 0.3s; }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active { background: rgba(255,255,255,0.1); color: white; }
-        .main-content { background: white; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin: 20px; padding: 30px; }
-        .table-responsive { border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .table thead { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; }
-        .btn-logout { background: #dc3545; border: none; border-radius: 8px; color: white; padding: 8px 15px; }
-        .btn-logout:hover { background: #c82333; color: white; }
-        .badge { font-size: 0.8em; }
-    </style>
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar">
-                <div class="p-3">
-                    <h4 class="text-center mb-4">
-                        <i class="fas fa-shopping-cart me-2"></i>
-                        Allo Mobile
-                    </h4>
-                    <nav class="nav flex-column">
-                        <a class="nav-link" href="{{ route('admin.dashboard') }}">
-                            <i class="fas fa-tachometer-alt me-2"></i>
-                            Tableau de Bord
-                        </a>
-                        <a class="nav-link" href="{{ route('admin.users.index') }}">
-                            <i class="fas fa-users me-2"></i>
-                            Utilisateurs
-                        </a>
-                        <a class="nav-link" href="{{ route('admin.products.index') }}">
-                            <i class="fas fa-box me-2"></i>
-                            Produits
-                        </a>
-                        <a class="nav-link active" href="{{ route('admin.orders.index') }}">
-                            <i class="fas fa-shopping-bag me-2"></i>
-                            Commandes
-                        </a>
-                    </nav>
-                </div>
-            </div>
+@extends('admin.layouts.app')
 
-            <!-- Main Content -->
-            <div class="col-md-9 col-lg-10">
-                <div class="d-flex justify-content-between align-items-center p-3">
-                    <h2>Gestion des Commandes</h2>
-                    <div>
-                        <span class="me-3">Bienvenue, {{ auth()->user()->full_name }}</span>
-                        <form method="POST" action="{{ route('admin.logout') }}" class="d-inline">
-                            @csrf
-                            <button type="submit" class="btn btn-logout">
-                                <i class="fas fa-sign-out-alt me-1"></i>
-                                Déconnexion
-                            </button>
-                        </form>
-                    </div>
-                </div>
+@section('title', 'Gestion des Commandes - Allo Mobile Admin')
+@section('page-title', 'Gestion des Commandes')
 
-                <div class="main-content">
-                    @if(session('success'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            {{ session('success') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    @endif
+@section('content')
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0">Liste des Commandes</h4>
+        <small class="text-muted">Suivez et gérez toutes les commandes</small>
+    </div>
+</div>
 
                     <div class="table-responsive">
                         <table class="table table-hover">
@@ -80,6 +17,7 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Client</th>
+                                    <th>Articles</th>
                                     <th>Statut</th>
                                     <th>Total</th>
                                     <th>Date</th>
@@ -99,6 +37,33 @@
                                                 Utilisateur supprimé
                                             </span>
                                         @endif
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            @if($order->items->count() > 0)
+                                                @foreach($order->items->take(3) as $item)
+                                                    @if($item->product->mainImage)
+                                                        <img src="{{ $item->product->mainImage }}"
+                                                             class="img-thumbnail me-1"
+                                                             style="width: 30px; height: 30px; object-fit: cover;"
+                                                             alt="{{ $item->product->name }}"
+                                                             onerror="this.src='{{ asset('images/placeholder.svg') }}'"
+                                                             title="{{ $item->product->name }}">
+                                                    @else
+                                                        <div class="img-thumbnail d-flex align-items-center justify-content-center bg-light me-1"
+                                                             style="width: 30px; height: 30px;"
+                                                             title="{{ $item->product->name }}">
+                                                            <i class="fas fa-image text-muted" style="font-size: 10px;"></i>
+                                                        </div>
+                                                    @endif
+                                                @endforeach
+                                                @if($order->items->count() > 3)
+                                                    <span class="badge bg-secondary ms-1">+{{ $order->items->count() - 3 }}</span>
+                                                @endif
+                                            @else
+                                                <span class="text-muted">Aucun article</span>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td>
                                         @php
@@ -137,21 +102,14 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="6" class="text-center">Aucune commande trouvée</td>
+                                    <td colspan="7" class="text-center">Aucune commande trouvée</td>
                                 </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
 
-                    <div class="d-flex justify-content-center">
-                        {{ $orders->links() }}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<div class="d-flex justify-content-center mt-4">
+    {{ $orders->links() }}
+</div>
+@endsection

@@ -7,10 +7,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Tymon\JWTAuth\Contracts\JWTSubject;
+use App\Traits\LogsActivity;
 
 class User extends Authenticatable implements JWTSubject
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes, LogsActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -56,12 +57,36 @@ class User extends Authenticatable implements JWTSubject
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'date_naissance' => 'date',
-            'password' => 'hashed',
-            'two_factor_enabled' => 'boolean',
-        ];
+        'email_verified_at' => 'datetime',
+        'date_naissance' => 'date',
+        'password' => 'hashed',
+        'two_factor_enabled' => 'boolean',
+    ];
     }
+
+    /**
+     * Attributes to log when the model changes
+     */
+    protected $logAttributes = [
+        'nom',
+        'prenom', 
+        'email',
+        'numero_telephone',
+        'numero_whatsapp',
+        'localisation',
+        'quartier',
+        'role',
+        'status'
+    ];
+
+    /**
+     * Attributes to ignore when logging
+     */
+    protected $logIgnoredAttributes = [
+        'password',
+        'remember_token',
+        'two_factor_secret'
+    ];
 
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.

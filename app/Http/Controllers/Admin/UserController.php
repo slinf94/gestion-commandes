@@ -69,6 +69,42 @@ class UserController extends Controller
             'role' => 'required|in:client,admin,gestionnaire',
             'status' => 'required|in:pending,active,suspended,inactive',
             'password' => 'required|string|min:6',
+        ], [
+            'nom.required' => 'Le nom est obligatoire.',
+            'nom.string' => 'Le nom doit être une chaîne de caractères.',
+            'nom.max' => 'Le nom ne peut pas dépasser 100 caractères.',
+
+            'prenom.required' => 'Le prénom est obligatoire.',
+            'prenom.string' => 'Le prénom doit être une chaîne de caractères.',
+            'prenom.max' => 'Le prénom ne peut pas dépasser 100 caractères.',
+
+            'email.required' => 'L\'adresse email est obligatoire.',
+            'email.email' => 'L\'adresse email doit être valide.',
+            'email.unique' => 'Cette adresse email est déjà utilisée par un autre utilisateur.',
+
+            'numero_telephone.required' => 'Le numéro de téléphone est obligatoire.',
+            'numero_telephone.string' => 'Le numéro de téléphone doit être une chaîne de caractères.',
+            'numero_telephone.max' => 'Le numéro de téléphone ne peut pas dépasser 20 caractères.',
+            'numero_telephone.unique' => 'Ce numéro de téléphone est déjà utilisé par un autre utilisateur.',
+
+            'numero_whatsapp.string' => 'Le numéro WhatsApp doit être une chaîne de caractères.',
+            'numero_whatsapp.max' => 'Le numéro WhatsApp ne peut pas dépasser 20 caractères.',
+
+            'quartier.string' => 'Le quartier doit être une chaîne de caractères.',
+            'quartier.max' => 'Le quartier ne peut pas dépasser 100 caractères.',
+
+            'localisation.string' => 'La localisation doit être une chaîne de caractères.',
+            'localisation.max' => 'La localisation ne peut pas dépasser 255 caractères.',
+
+            'role.required' => 'Le rôle est obligatoire.',
+            'role.in' => 'Le rôle doit être : client, admin ou gestionnaire.',
+
+            'status.required' => 'Le statut est obligatoire.',
+            'status.in' => 'Le statut doit être : pending, active, suspended ou inactive.',
+
+            'password.required' => 'Le mot de passe est obligatoire.',
+            'password.string' => 'Le mot de passe doit être une chaîne de caractères.',
+            'password.min' => 'Le mot de passe doit contenir au moins 6 caractères.',
         ]);
 
         $user = User::create([
@@ -105,6 +141,38 @@ class UserController extends Controller
             'localisation' => 'nullable|string|max:255',
             'role' => 'required|in:client,admin,gestionnaire',
             'status' => 'required|in:pending,active,suspended,inactive',
+        ], [
+            'nom.required' => 'Le nom est obligatoire.',
+            'nom.string' => 'Le nom doit être une chaîne de caractères.',
+            'nom.max' => 'Le nom ne peut pas dépasser 100 caractères.',
+
+            'prenom.required' => 'Le prénom est obligatoire.',
+            'prenom.string' => 'Le prénom doit être une chaîne de caractères.',
+            'prenom.max' => 'Le prénom ne peut pas dépasser 100 caractères.',
+
+            'email.required' => 'L\'adresse email est obligatoire.',
+            'email.email' => 'L\'adresse email doit être valide.',
+            'email.unique' => 'Cette adresse email est déjà utilisée par un autre utilisateur.',
+
+            'numero_telephone.required' => 'Le numéro de téléphone est obligatoire.',
+            'numero_telephone.string' => 'Le numéro de téléphone doit être une chaîne de caractères.',
+            'numero_telephone.max' => 'Le numéro de téléphone ne peut pas dépasser 20 caractères.',
+            'numero_telephone.unique' => 'Ce numéro de téléphone est déjà utilisé par un autre utilisateur.',
+
+            'numero_whatsapp.string' => 'Le numéro WhatsApp doit être une chaîne de caractères.',
+            'numero_whatsapp.max' => 'Le numéro WhatsApp ne peut pas dépasser 20 caractères.',
+
+            'quartier.string' => 'Le quartier doit être une chaîne de caractères.',
+            'quartier.max' => 'Le quartier ne peut pas dépasser 100 caractères.',
+
+            'localisation.string' => 'La localisation doit être une chaîne de caractères.',
+            'localisation.max' => 'La localisation ne peut pas dépasser 255 caractères.',
+
+            'role.required' => 'Le rôle est obligatoire.',
+            'role.in' => 'Le rôle doit être : client, admin ou gestionnaire.',
+
+            'status.required' => 'Le statut est obligatoire.',
+            'status.in' => 'Le statut doit être : pending, active, suspended ou inactive.',
         ]);
 
         // Vérifier si le statut passe de 'pending' à 'active'

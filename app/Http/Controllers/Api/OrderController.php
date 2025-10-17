@@ -7,6 +7,9 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
 use App\Models\TemporaryCart;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Notifications\OrderStatusChangedNotification;
+use App\Helpers\OrderStatusHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -76,7 +79,10 @@ class OrderController extends Controller
 
         $cartItems = TemporaryCart::with('product')
             ->where('session_id', $sessionId)
-            ->where('expires_at', '>', now())
+            ->where(function($query) {
+                $query->where('expires_at', '>', now())
+                      ->orWhereNull('expires_at');
+            })
             ->get();
 
         // Debug: Log des articles du panier
@@ -145,6 +151,22 @@ class OrderController extends Controller
 
             TemporaryCart::where('session_id', $sessionId)->delete();
 
+            // Notifier les administrateurs de la nouvelle commande
+            try {
+                AdminOrderController::notifyAdminsNewOrder($order);
+            } catch (\Exception $e) {
+                \Log::error('Erreur lors de la notification des administrateurs: ' . $e->getMessage());
+                // Ne pas faire échouer la commande si la notification échoue
+            }
+
+            // Notifier le client de la création de sa commande
+            try {
+                $user->notify(new \App\Notifications\OrderCreatedNotification($order));
+            } catch (\Exception $e) {
+                \Log::error('Erreur lors de la notification du client: ' . $e->getMessage());
+                // Ne pas faire échouer la commande si la notification échoue
+            }
+
             DB::commit();
 
             return response()->json([
@@ -181,7 +203,7 @@ class OrderController extends Controller
         $order = Order::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'status' => 'required|in:pending,confirmed,processing,shipped,delivered,cancelled',
+            'status' => 'required|' . OrderStatusHelper::getValidationRule(),
             'comment' => 'nullable|string|max:500',
         ]);
 
@@ -207,6 +229,15 @@ class OrderController extends Controller
             'comment' => $request->comment,
             'changed_by' => auth()->id(),
         ]);
+
+        // Envoyer une notification au client si le statut a changé
+        if ($oldStatus !== $request->status) {
+            try {
+                $order->user->notify(new OrderStatusChangedNotification($order, $oldStatus, $request->status));
+            } catch (\Exception $e) {
+                \Log::error('Erreur lors de l\'envoi de la notification au client: ' . $e->getMessage());
+            }
+        }
 
         return response()->json([
             'success' => true,

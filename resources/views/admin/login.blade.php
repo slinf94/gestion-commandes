@@ -7,20 +7,50 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             background: linear-gradient(135deg, #4CAF50, #2E7D32);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 0;
+            margin: 0;
+            overflow-x: hidden;
         }
+
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            padding: 20px;
+        }
+
         .login-card {
             background: white;
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
             overflow: hidden;
-            max-width: 400px;
             width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            position: relative;
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+
+        .login-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
         .login-header {
             background: linear-gradient(135deg, #4CAF50, #2E7D32);
@@ -48,6 +78,7 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1px;
+            transition: all 0.3s ease;
         }
         .btn-login:hover {
             transform: translateY(-2px);
@@ -63,13 +94,40 @@
             border-left: none;
             border-radius: 0 10px 10px 0;
         }
+
+        /* Centrage parfait pour tous les écrans */
+        @media (max-width: 768px) {
+            .login-card {
+                max-width: 90%;
+                margin: 20px auto;
+            }
+            .login-header {
+                padding: 1.5rem;
+            }
+            .login-body {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            .login-card {
+                max-width: 95%;
+            }
+            .login-header {
+                padding: 1rem;
+            }
+            .login-body {
+                padding: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="login-card">
+    <div class="login-container">
+        <div class="login-card">
                     <div class="login-header">
                         <i class="fas fa-shopping-cart fa-3x mb-3"></i>
                         <h2 class="mb-0">Allo Mobile</h2>
@@ -122,8 +180,6 @@
                             </small>
                         </div>
                     </div>
-                </div>
-            </div>
         </div>
     </div>
 

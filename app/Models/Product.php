@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\LogsActivity;
 
 class Product extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, LogsActivity;
 
     protected $fillable = [
         'name', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price',
@@ -26,6 +27,35 @@ class Product extends Model
         'cost_price' => 'decimal:2',
         'wholesale_price' => 'decimal:2',
         'retail_price' => 'decimal:2'
+    ];
+
+    /**
+     * Attributes to log when the model changes
+     */
+    protected $logAttributes = [
+        'name',
+        'description',
+        'price',
+        'cost_price',
+        'wholesale_price',
+        'retail_price',
+        'stock_quantity',
+        'min_stock_alert',
+        'category_id',
+        'sku',
+        'barcode',
+        'status',
+        'is_featured'
+    ];
+
+    /**
+     * Attributes to ignore when logging
+     */
+    protected $logIgnoredAttributes = [
+        'images', // Les images sont gérées séparément
+        'meta_title',
+        'meta_description',
+        'tags'
     ];
 
     public function category(): BelongsTo
@@ -62,35 +92,48 @@ class Product extends Model
     // Récupérer l'image principale
     public function getMainImageAttribute()
     {
+        // Essayer d'abord avec la relation productImages
         if ($this->relationLoaded('productImages') && $this->productImages->isNotEmpty()) {
             // Chercher l'image principale
             $principale = $this->productImages->where('type', 'principale')->first();
-            if ($principale) return $this->formatImageUrl($principale->url);
+            if ($principale && $principale->url) {
+                return $this->formatImageUrl($principale->url);
+            }
 
-            // Sinon prendre la première image
-            return $this->formatImageUrl($this->productImages->first()->url);
+            // Sinon prendre la première image disponible
+            $firstImage = $this->productImages->whereNotNull('url')->first();
+            if ($firstImage && $firstImage->url) {
+                return $this->formatImageUrl($firstImage->url);
+            }
         }
 
         // Fallback sur l'ancien système d'images
         if ($this->images && is_array($this->images) && !empty($this->images)) {
-            return $this->formatImageUrl($this->images[0]);
+            $firstImage = array_filter($this->images)[0] ?? null;
+            if ($firstImage) return $this->formatImageUrl($firstImage);
         }
 
-        return null;
+        // Image par défaut si aucune image
+        return $this->formatImageUrl('products/placeholder.jpg');
     }
 
     // Récupérer toutes les images
     public function getAllImagesAttribute()
     {
         if ($this->relationLoaded('productImages') && $this->productImages->isNotEmpty()) {
-            return $this->productImages->map(function($image) {
-                return $this->formatImageUrl($image->url);
-            })->toArray();
+            return $this->productImages
+                ->whereNotNull('url')
+                ->map(function($image) {
+                    return $this->formatImageUrl($image->url);
+                })
+                ->filter()
+                ->values()
+                ->toArray();
         }
 
         // Fallback sur l'ancien système d'images
         if ($this->images && is_array($this->images)) {
-            return array_map([$this, 'formatImageUrl'], $this->images);
+            return array_filter(array_map([$this, 'formatImageUrl'], $this->images));
         }
 
         return [];

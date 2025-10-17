@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            SuperAdminSeeder::class,
+            UserSeeder::class,           // Créer le compte administrateur principal
             ProductTypeSeeder::class,
             ProductTypeAttributeSeeder::class,
             CategorySeeder::class,

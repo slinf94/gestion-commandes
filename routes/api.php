@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -78,9 +79,13 @@ Route::prefix('v1')->middleware('jwt.auth')->group(function () {
     Route::get('/favorites/check/{id}', [ProductController::class, 'checkFavorite']);
 
     // Notifications
-    Route::get('/notifications', [AuthController::class, 'notifications']);
-    Route::post('/notifications/mark-read/{id}', [AuthController::class, 'markNotificationRead']);
-    Route::post('/notifications/mark-all-read', [AuthController::class, 'markAllNotificationsRead']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::get('/notifications/{id}', [NotificationController::class, 'show']);
+    Route::post('/notifications/{id}/mark-read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+    Route::delete('/notifications', [NotificationController::class, 'clear']);
 });
 
 // Routes d'administration (admin uniquement)

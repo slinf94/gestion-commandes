@@ -5,9 +5,11 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\QuartierController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\AdminActivityController;
 
 /*
 |--------------------------------------------------------------------------
@@ -62,11 +64,22 @@ Route::prefix('admin')->group(function () {
         Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('admin.products.destroy');
         Route::post('/products/{id}/restore', [ProductController::class, 'restore'])->name('admin.products.restore');
 
+        // Gestion des images de produits
+        Route::post('/products/{product}/images', [ProductController::class, 'uploadImages'])->name('admin.products.upload-images');
+        Route::post('/products/{product}/images/{image}/set-main', [ProductController::class, 'setMainImage'])->name('admin.products.set-main-image');
+        Route::delete('/products/{product}/images/{image}', [ProductController::class, 'deleteImage'])->name('admin.products.delete-image');
+
         // Gestion des commandes
         Route::get('/orders', [OrderController::class, 'index'])->name('admin.orders.index');
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('admin.orders.show');
         Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('admin.orders.destroy');
         Route::post('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('admin.orders.status');
+
+        // Gestion des clients CRM
+        Route::get('/clients', [ClientController::class, 'index'])->name('admin.clients.index');
+        Route::get('/clients/search', [ClientController::class, 'search'])->name('admin.clients.search');
+        Route::get('/clients/{client}', [ClientController::class, 'show'])->name('admin.clients.show');
+        Route::get('/clients/{client}/orders/filter', [ClientController::class, 'filterOrders'])->name('admin.clients.orders.filter');
 
         // Gestion des quartiers
         Route::get('/quartiers', [QuartierController::class, 'index'])->name('admin.quartiers.index');
@@ -88,14 +101,22 @@ Route::prefix('admin')->group(function () {
         Route::get('/profile/password', [ProfileController::class, 'editPassword'])->name('admin.profile.password');
         Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('admin.profile.password.update');
 
-        // Paramètres admin
-        Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings.index');
-        Route::get('/settings/general', [SettingsController::class, 'general'])->name('admin.settings.general');
-        Route::put('/settings/general', [SettingsController::class, 'updateGeneral'])->name('admin.settings.general.update');
-        Route::get('/settings/security', [SettingsController::class, 'security'])->name('admin.settings.security');
-        Route::get('/settings/notifications', [SettingsController::class, 'notifications'])->name('admin.settings.notifications');
-        Route::put('/settings/notifications', [SettingsController::class, 'updateNotifications'])->name('admin.settings.notifications.update');
-        Route::get('/settings/system', [SettingsController::class, 'system'])->name('admin.settings.system');
-        Route::post('/settings/clear-cache', [SettingsController::class, 'clearCache'])->name('admin.settings.clear-cache');
+                // Journal des activités
+                Route::get('/activity-logs', [AdminActivityController::class, 'index'])->name('admin.activity-logs.index');
+                Route::get('/activity-logs/{activityLog}', [AdminActivityController::class, 'show'])->name('admin.activity-logs.show');
+                Route::get('/activity-logs-ajax', [AdminActivityController::class, 'getLogs'])->name('admin.activity-logs.get-logs');
+                Route::get('/activity-logs-statistics', [AdminActivityController::class, 'statistics'])->name('admin.activity-logs.statistics');
+                Route::post('/activity-logs-cleanup', [AdminActivityController::class, 'cleanup'])->name('admin.activity-logs.cleanup');
+                Route::get('/activity-logs-export', [AdminActivityController::class, 'exportCsv'])->name('admin.activity-logs.export');
+
+                // Paramètres admin
+                Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings.index');
+                Route::get('/settings/general', [SettingsController::class, 'general'])->name('admin.settings.general');
+                Route::put('/settings/general', [SettingsController::class, 'updateGeneral'])->name('admin.settings.general.update');
+                Route::get('/settings/security', [SettingsController::class, 'security'])->name('admin.settings.security');
+                Route::get('/settings/notifications', [SettingsController::class, 'notifications'])->name('admin.settings.notifications');
+                Route::put('/settings/notifications', [SettingsController::class, 'updateNotifications'])->name('admin.settings.notifications.update');
+                Route::get('/settings/system', [SettingsController::class, 'system'])->name('admin.settings.system');
+                Route::post('/settings/clear-cache', [SettingsController::class, 'clearCache'])->name('admin.settings.clear-cache');
     });
 });

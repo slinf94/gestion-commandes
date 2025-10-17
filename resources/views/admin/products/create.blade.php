@@ -161,18 +161,26 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="images">Images *</label>
-                                    <input type="file" class="form-control @error('images') is-invalid @enderror"
-                                           id="images" name="images[]" multiple accept="image/jpeg,image/png,image/jpg,image/gif" required>
-                                    @error('images')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                    @error('images.*')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                    <small class="form-text text-muted">
-                                        Formats acceptés: JPEG, PNG, JPG, GIF (max 2MB par image, max 5 images)
-                                    </small>
+                                    <label for="images">Images du Produit *</label>
+                                    <div class="image-upload-area">
+                                        <input type="file" class="form-control @error('images') is-invalid @enderror"
+                                               id="images" name="images[]" multiple accept="image/jpeg,image/png,image/jpg,image/gif,image/webp" required>
+                                        @error('images')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                        @error('images.*')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                        <small class="form-text text-muted">
+                                            <i class="fas fa-info-circle"></i> Formats acceptés: JPEG, PNG, JPG, GIF, WebP (max 2MB par image, max 10 images)
+                                        </small>
+
+                                        <!-- Zone de prévisualisation des images -->
+                                        <div id="image-preview" class="mt-3" style="display: none;">
+                                            <h6><i class="fas fa-images"></i> Aperçu des images sélectionnées :</h6>
+                                            <div class="row" id="preview-container"></div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="form-group">
@@ -235,30 +243,78 @@
         }
     });
 
-    // Validation des images
+    // Gestion avancée des images avec prévisualisation
     document.getElementById('images').addEventListener('change', function() {
         const files = this.files;
         const maxSize = 2 * 1024 * 1024; // 2MB
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
+        const previewContainer = document.getElementById('preview-container');
+        const imagePreview = document.getElementById('image-preview');
 
-        if (files.length > 5) {
-            alert('Vous ne pouvez sélectionner que 5 images maximum.');
+        // Vider la prévisualisation précédente
+        previewContainer.innerHTML = '';
+        imagePreview.style.display = 'none';
+
+        if (files.length > 10) {
+            alert('Vous ne pouvez sélectionner que 10 images maximum.');
             this.value = '';
             return;
         }
 
+        let validFiles = [];
+        let hasErrors = false;
+
         for (let i = 0; i < files.length; i++) {
-            if (!allowedTypes.includes(files[i].type)) {
-                alert(`Le fichier "${files[i].name}" n'est pas un format d'image valide. Formats acceptés: JPEG, PNG, JPG, GIF`);
-                this.value = '';
-                return;
+            const file = files[i];
+
+            if (!allowedTypes.includes(file.type)) {
+                alert(`Le fichier "${file.name}" n'est pas un format d'image valide. Formats acceptés: JPEG, PNG, JPG, GIF, WebP`);
+                hasErrors = true;
+                continue;
             }
 
-            if (files[i].size > maxSize) {
-                alert(`Le fichier "${files[i].name}" est trop volumineux. Taille maximale: 2MB`);
-                this.value = '';
-                return;
+            if (file.size > maxSize) {
+                alert(`Le fichier "${file.name}" est trop volumineux. Taille maximale: 2MB`);
+                hasErrors = true;
+                continue;
             }
+
+            validFiles.push(file);
+        }
+
+        if (hasErrors) {
+            this.value = '';
+            return;
+        }
+
+        // Afficher la prévisualisation
+        if (validFiles.length > 0) {
+            imagePreview.style.display = 'block';
+
+            validFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-3 col-sm-4 col-6 mb-3';
+
+                    col.innerHTML = `
+                        <div class="image-preview-item position-relative">
+                            <img src="${e.target.result}" class="img-thumbnail" style="width: 100%; height: 120px; object-fit: cover;">
+                            <div class="position-absolute top-0 end-0 p-1">
+                                <span class="badge bg-primary">${index + 1}</span>
+                            </div>
+                            <div class="text-center mt-1">
+                                <small class="text-muted">${file.name}</small>
+                                <br>
+                                <small class="text-success">${(file.size / 1024).toFixed(1)} KB</small>
+                            </div>
+                        </div>
+                    `;
+
+                    previewContainer.appendChild(col);
+                };
+                reader.readAsDataURL(file);
+            });
         }
     });
 </script>

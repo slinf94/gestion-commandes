@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\LogsActivity;
 
 class Order extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, LogsActivity;
 
     protected $fillable = [
         'order_number',
@@ -31,13 +32,40 @@ class Order extends Model
 
     protected $casts = [
         'delivery_address' => 'array',
-        'delivery_date' => 'date',
+        'delivery_date' => 'date:Y-m-d',
         'processed_at' => 'datetime',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'shipping_cost' => 'decimal:2',
         'total_amount' => 'decimal:2',
+    ];
+
+    /**
+     * Attributes to log when the model changes
+     */
+    protected $logAttributes = [
+        'status',
+        'subtotal',
+        'tax_amount',
+        'discount_amount',
+        'shipping_cost',
+        'total_amount',
+        'delivery_address',
+        'delivery_date',
+        'delivery_time_slot',
+        'notes',
+        'admin_notes'
+    ];
+
+    /**
+     * Attributes to ignore when logging
+     */
+    protected $logIgnoredAttributes = [
+        'order_number', // Généré automatiquement
+        'user_id', // Géré séparément
+        'processed_by',
+        'processed_at'
     ];
 
     // Relations

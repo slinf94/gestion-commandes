@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TemporaryCart extends Model
 {
-    protected $table = 'temporary_cart';
+    protected $table = 'temporary_carts';
 
     protected $fillable = [
         'session_id',
