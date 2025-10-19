@@ -184,7 +184,7 @@
                             <span class="info-box-text">Statut</span>
                             <span class="info-box-number">
                                 <span class="badge badge-{{ $user->status === 'active' ? 'success' : 'warning' }}">
-                                    {{ ucfirst($user->status) }}
+                                    {{ ucfirst(is_object($user->status) ? $user->status->value : $user->status) }}
                                 </span>
                             </span>
                         </div>
@@ -195,6 +195,9 @@
     </div>
 </div>
 @endsection
+
+
+
 
 
 

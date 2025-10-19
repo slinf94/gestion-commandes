@@ -110,6 +110,63 @@ Route::prefix('admin')->group(function () {
                 Route::post('/activity-logs-cleanup', [AdminActivityController::class, 'cleanup'])->name('admin.activity-logs.cleanup');
                 Route::get('/activity-logs-export', [AdminActivityController::class, 'exportCsv'])->name('admin.activity-logs.export');
 
+                // Gestion des catégories
+                Route::resource('categories', \App\Http\Controllers\Admin\CategoryController::class)->names([
+                    'index' => 'admin.categories.index',
+                    'create' => 'admin.categories.create',
+                    'store' => 'admin.categories.store',
+                    'show' => 'admin.categories.show',
+                    'edit' => 'admin.categories.edit',
+                    'update' => 'admin.categories.update',
+                    'destroy' => 'admin.categories.destroy',
+                ]);
+                Route::post('/categories/{category}/toggle-status', [\App\Http\Controllers\Admin\CategoryController::class, 'toggleStatus'])->name('admin.categories.toggle-status');
+                Route::post('/categories/reorder', [\App\Http\Controllers\Admin\CategoryController::class, 'reorder'])->name('admin.categories.reorder');
+
+                // Gestion des attributs
+                Route::resource('attributes', \App\Http\Controllers\Admin\AttributeController::class)->names([
+                    'index' => 'admin.attributes.index',
+                    'create' => 'admin.attributes.create',
+                    'store' => 'admin.attributes.store',
+                    'show' => 'admin.attributes.show',
+                    'edit' => 'admin.attributes.edit',
+                    'update' => 'admin.attributes.update',
+                    'destroy' => 'admin.attributes.destroy',
+                ]);
+                Route::post('/attributes/{attribute}/toggle-status', [\App\Http\Controllers\Admin\AttributeController::class, 'toggleStatus'])->name('admin.attributes.toggle-status');
+                Route::get('/attributes/{attribute}/options', [\App\Http\Controllers\Admin\AttributeController::class, 'getOptions'])->name('admin.attributes.options');
+
+                // Gestion des types de produits
+                Route::resource('product-types', \App\Http\Controllers\Admin\ProductTypeController::class)->names([
+                    'index' => 'admin.product-types.index',
+                    'create' => 'admin.product-types.create',
+                    'store' => 'admin.product-types.store',
+                    'show' => 'admin.product-types.show',
+                    'edit' => 'admin.product-types.edit',
+                    'update' => 'admin.product-types.update',
+                    'destroy' => 'admin.product-types.destroy',
+                ]);
+                Route::post('/product-types/{productType}/toggle-status', [\App\Http\Controllers\Admin\ProductTypeController::class, 'toggleStatus'])->name('admin.product-types.toggle-status');
+
+                // Gestion des variantes de produits
+                Route::get('/products/{product}/variants', [\App\Http\Controllers\Admin\ProductVariantController::class, 'index'])->name('admin.products.variants.index');
+                Route::get('/products/{product}/variants/create', [\App\Http\Controllers\Admin\ProductVariantController::class, 'create'])->name('admin.products.variants.create');
+                Route::post('/products/{product}/variants', [\App\Http\Controllers\Admin\ProductVariantController::class, 'store'])->name('admin.products.variants.store');
+                Route::get('/products/{product}/variants/{variant}', [\App\Http\Controllers\Admin\ProductVariantController::class, 'show'])->name('admin.products.variants.show');
+                Route::get('/products/{product}/variants/{variant}/edit', [\App\Http\Controllers\Admin\ProductVariantController::class, 'edit'])->name('admin.products.variants.edit');
+                Route::put('/products/{product}/variants/{variant}', [\App\Http\Controllers\Admin\ProductVariantController::class, 'update'])->name('admin.products.variants.update');
+                Route::delete('/products/{product}/variants/{variant}', [\App\Http\Controllers\Admin\ProductVariantController::class, 'destroy'])->name('admin.products.variants.destroy');
+                Route::post('/products/{product}/variants/{variant}/toggle-status', [\App\Http\Controllers\Admin\ProductVariantController::class, 'toggleStatus'])->name('admin.products.variants.toggle-status');
+                Route::post('/products/{product}/variants/generate', [\App\Http\Controllers\Admin\ProductVariantController::class, 'generateVariants'])->name('admin.products.variants.generate');
+
+                // Import/Export des produits
+                Route::get('/products/import-export', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'index'])->name('admin.products.import-export');
+                Route::get('/products/export/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'exportCsv'])->name('admin.products.export.csv');
+                Route::post('/products/import/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'importCsv'])->name('admin.products.import.csv');
+                Route::get('/products/template/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'downloadTemplate'])->name('admin.products.template.csv');
+                Route::post('/products/bulk-update', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'bulkUpdate'])->name('admin.products.bulk-update');
+                Route::get('/products/statistics/export', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'exportStatistics'])->name('admin.products.statistics.export');
+
                 // Paramètres admin
                 Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings.index');
                 Route::get('/settings/general', [SettingsController::class, 'general'])->name('admin.settings.general');

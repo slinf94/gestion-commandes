@@ -66,7 +66,7 @@
                                             <td><strong>Statut:</strong></td>
                                             <td>
                                                 <span class="badge badge-{{ $user->status == 'active' ? 'success' : ($user->status == 'pending' ? 'warning' : 'danger') }}">
-                                                    {{ $user->status == 'active' ? 'Actif' : ($user->status == 'pending' ? 'En attente' : ucfirst($user->status)) }}
+                                                    {{ $user->status == 'active' ? 'Actif' : ($user->status == 'pending' ? 'En attente' : ucfirst(is_object($user->status) ? $user->status->value : $user->status)) }}
                                                 </span>
                                             </td>
                                         </tr>

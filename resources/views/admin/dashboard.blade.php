@@ -1,241 +1,172 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tableau de Bord - Allo Mobile Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f8f9fa;
-        }
-        .sidebar {
-            background: linear-gradient(135deg, #4CAF50, #2E7D32);
-            min-height: 100vh;
-            color: white;
-        }
-        .sidebar .nav-link {
-            color: rgba(255,255,255,0.8);
-            padding: 12px 20px;
-            border-radius: 8px;
-            margin: 5px 10px;
-            transition: all 0.3s;
-        }
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background: rgba(255,255,255,0.1);
-            color: white;
-        }
-        .main-content {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin: 20px;
-            padding: 30px;
-        }
-        .stat-card {
-            background: linear-gradient(135deg, #4CAF50, #2E7D32);
-            color: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
-        }
-        .stat-card .stat-icon {
-            font-size: 2.5rem;
-            opacity: 0.8;
-        }
-        .stat-card .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        .table-responsive {
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .table thead {
-            background: linear-gradient(135deg, #4CAF50, #2E7D32);
-            color: white;
-        }
-        .btn-logout {
-            background: #dc3545;
-            border: none;
-            border-radius: 8px;
-            color: white;
-            padding: 8px 15px;
-        }
-        .btn-logout:hover {
-            background: #c82333;
-            color: white;
-        }
-    </style>
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar">
-                <div class="p-3">
-                    <h4 class="text-center mb-4">
-                        <i class="fas fa-shopping-cart me-2"></i>
-                        Allo Mobile
-                    </h4>
-                    <nav class="nav flex-column">
-                        <a class="nav-link active" href="#">
-                            <i class="fas fa-tachometer-alt me-2"></i>
-                            Tableau de Bord
-                        </a>
-                        <a class="nav-link" href="{{ route('admin.users.index') }}">
-                            <i class="fas fa-users me-2"></i>
-                            Utilisateurs
-                        </a>
-                        <a class="nav-link" href="{{ route('admin.products.index') }}">
-                            <i class="fas fa-box me-2"></i>
-                            Produits
-                        </a>
-                        <a class="nav-link" href="{{ route('admin.orders.index') }}">
-                            <i class="fas fa-shopping-bag me-2"></i>
-                            Commandes
-                        </a>
-                    </nav>
-                </div>
-            </div>
+@extends('admin.layouts.app')
 
-            <!-- Main Content -->
-            <div class="col-md-9 col-lg-10">
-                <div class="d-flex justify-content-between align-items-center p-3">
-                    <h2>Tableau de Bord</h2>
+@section('title', 'Tableau de Bord - Allo Mobile Admin')
+@section('page-title', 'Tableau de Bord')
+
+@section('content')
+<div class="row">
+    <!-- Statistiques principales -->
+    <div class="col-md-3 mb-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
                     <div>
-                        <span class="me-3">Bienvenue, {{ auth()->user()->full_name }}</span>
-                        <form method="POST" action="{{ route('admin.logout') }}" class="d-inline">
-                            @csrf
-                            <button type="submit" class="btn btn-logout">
-                                <i class="fas fa-sign-out-alt me-1"></i>
-                                Déconnexion
-                            </button>
-                        </form>
+                        <h4 class="card-title">{{ $stats['total_users'] ?? 0 }}</h4>
+                        <p class="card-text">Utilisateurs</p>
                     </div>
-                </div>
-
-                <div class="main-content">
-                    <!-- Statistiques -->
-                    <div class="row mb-4">
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <div class="stat-number">{{ $stats['total_users'] }}</div>
-                                        <div>Utilisateurs</div>
-                                    </div>
-                                    <i class="fas fa-users stat-icon"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <div class="stat-number">{{ $stats['total_products'] }}</div>
-                                        <div>Produits</div>
-                                    </div>
-                                    <i class="fas fa-box stat-icon"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <div class="stat-number">{{ $stats['total_orders'] }}</div>
-                                        <div>Commandes</div>
-                                    </div>
-                                    <i class="fas fa-shopping-bag stat-icon"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <div class="stat-number">{{ number_format($stats['total_revenue'], 0, ',', ' ') }} FCFA</div>
-                                        <div>Chiffre d'Affaires</div>
-                                    </div>
-                                    <i class="fas fa-chart-line stat-icon"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <!-- Commandes récentes -->
-                        <div class="col-md-8">
-                            <h5 class="mb-3">
-                                <i class="fas fa-clock me-2"></i>
-                                Commandes Récentes
-                            </h5>
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Client</th>
-                                            <th>Statut</th>
-                                            <th>Total</th>
-                                            <th>Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse($recent_orders as $order)
-                                        <tr>
-                                            <td>#{{ $order->id }}</td>
-                                            <td>{{ $order->user ? $order->user->nom . ' ' . $order->user->prenom : 'Utilisateur supprimé' }}</td>
-                                            <td>
-                                                <span class="badge bg-{{ $order->getStatusClass() }}">
-                                                    {{ $order->getStatusIcon() }} {{ $order->getStatusLabel() }}
-                                                </span>
-                                            </td>
-                                            <td>{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</td>
-                                            <td>{{ $order->created_at ? $order->created_at->format('d/m/Y H:i') : 'N/A' }}</td>
-                                        </tr>
-                                        @empty
-                                        <tr>
-                                            <td colspan="5" class="text-center">Aucune commande récente</td>
-                                        </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Produits populaires -->
-                        <div class="col-md-4">
-                            <h5 class="mb-3">
-                                <i class="fas fa-star me-2"></i>
-                                Produits Populaires
-                            </h5>
-                            <div class="list-group">
-                                @forelse($top_products as $product)
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1">{{ $product->name }}</h6>
-                                        <small class="text-muted">{{ number_format($product->price, 0, ',', ' ') }} FCFA</small>
-                                    </div>
-                                    <span class="badge bg-primary rounded-pill">{{ $product->total_sold }}</span>
-                                </div>
-                                @empty
-                                <div class="list-group-item text-center">Aucun produit vendu</div>
-                                @endforelse
-                            </div>
-                        </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <div class="col-md-3 mb-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ $stats['total_products'] ?? 0 }}</h4>
+                        <p class="card-text">Produits</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-box fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-4">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ $stats['total_orders'] ?? 0 }}</h4>
+                        <p class="card-text">Commandes</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-shopping-bag fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ $stats['total_revenue'] ?? 0 }} FCFA</h4>
+                        <p class="card-text">Chiffre d'affaires</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions rapides -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bolt me-2"></i>
+                    Actions Rapides
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ route('admin.products.create') }}" class="btn btn-primary w-100">
+                            <i class="fas fa-plus me-2"></i>
+                            Nouveau Produit
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ route('admin.users.index') }}" class="btn btn-success w-100">
+                            <i class="fas fa-users me-2"></i>
+                            Gérer Utilisateurs
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ route('admin.orders.index') }}" class="btn btn-warning w-100">
+                            <i class="fas fa-shopping-bag me-2"></i>
+                            Voir Commandes
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ route('admin.activity-logs.index') }}" class="btn btn-info w-100">
+                            <i class="fas fa-history me-2"></i>
+                            Journal Activités
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Commandes récentes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-clock me-2"></i>
+                    Commandes Récentes
+                </h5>
+            </div>
+            <div class="card-body">
+                @if(isset($recent_orders) && $recent_orders->count() > 0)
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Client</th>
+                                    <th>Total</th>
+                                    <th>Statut</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($recent_orders as $order)
+                                <tr>
+                                    <td>#{{ $order->id }}</td>
+                                    <td>{{ $order->user->nom ?? 'N/A' }} {{ $order->user->prenom ?? '' }}</td>
+                                    <td>{{ number_format($order->total, 0, ',', ' ') }} FCFA</td>
+                                    <td>
+                                        <span class="badge bg-{{ $order->getStatusClass() }}">
+                                            {{ $order->getStatusLabel() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ $order->created_at->format('d/m/Y H:i') }}</td>
+                                    <td>
+                                        <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-center py-4">
+                        <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Aucune commande récente</p>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

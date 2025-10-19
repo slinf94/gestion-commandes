@@ -22,12 +22,29 @@ class ActivityLog extends Activity
     {
         $properties = $this->properties ?? [];
 
+        // S'assurer que $properties est un tableau, pas une Collection
+        if ($properties instanceof \Illuminate\Support\Collection) {
+            $properties = $properties->toArray();
+        } elseif (!is_array($properties)) {
+            $properties = [];
+        }
+
         if (isset($properties['attributes'])) {
-            $properties['attributes'] = $this->formatAttributes($properties['attributes']);
+            $attributes = $properties['attributes'];
+            // S'assurer que attributes est un tableau
+            if ($attributes instanceof \Illuminate\Support\Collection) {
+                $attributes = $attributes->toArray();
+            }
+            $properties['attributes'] = $this->formatAttributes($attributes);
         }
 
         if (isset($properties['old'])) {
-            $properties['old'] = $this->formatAttributes($properties['old']);
+            $old = $properties['old'];
+            // S'assurer que old est un tableau
+            if ($old instanceof \Illuminate\Support\Collection) {
+                $old = $old->toArray();
+            }
+            $properties['old'] = $this->formatAttributes($old);
         }
 
         return $properties;
@@ -36,8 +53,15 @@ class ActivityLog extends Activity
     /**
      * Format attributes for display (hide sensitive data).
      */
-    private function formatAttributes(array $attributes): array
+    private function formatAttributes($attributes): array
     {
+        // S'assurer que $attributes est un tableau
+        if ($attributes instanceof \Illuminate\Support\Collection) {
+            $attributes = $attributes->toArray();
+        } elseif (!is_array($attributes)) {
+            return [];
+        }
+
         $sensitiveFields = ['password', 'password_confirmation', 'remember_token', 'api_token'];
 
         $formatted = [];
@@ -46,6 +70,8 @@ class ActivityLog extends Activity
                 $formatted[$key] = '***';
             } elseif (is_array($value)) {
                 $formatted[$key] = json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            } elseif ($value instanceof \Illuminate\Support\Collection) {
+                $formatted[$key] = json_encode($value->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             } else {
                 $formatted[$key] = $value;
             }

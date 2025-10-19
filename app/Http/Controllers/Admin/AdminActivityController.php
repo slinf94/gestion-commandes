@@ -15,8 +15,7 @@ class AdminActivityController extends Controller
      */
     public function index(Request $request)
     {
-        $query = ActivityLog::with(['causer', 'subject'])
-            ->orderBy('created_at', 'desc');
+        $query = ActivityLog::orderBy('created_at', 'desc');
 
         // Filtrage par utilisateur
         if ($request->filled('user_id')) {
@@ -53,25 +52,20 @@ class AdminActivityController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('description', 'like', "%{$search}%")
-                  ->orWhere('log_name', 'like', "%{$search}%")
-                  ->orWhereHas('causer', function($subQuery) use ($search) {
-                      $subQuery->where('nom', 'like', "%{$search}%")
-                               ->orWhere('prenom', 'like', "%{$search}%")
-                               ->orWhere('email', 'like', "%{$search}%");
-                  });
+                  ->orWhere('log_name', 'like', "%{$search}%");
             });
         }
 
         $activities = $query->paginate(20);
 
         // Données pour les filtres
-        $users = User::orderBy('nom')->get();
+        $users = collect(); // Temporairement désactivé pour éviter les problèmes
         $subjectTypes = ActivityLog::select('subject_type')
             ->distinct()
             ->whereNotNull('subject_type')
             ->orderBy('subject_type')
             ->pluck('subject_type');
-        
+
         $logNames = ActivityLog::select('log_name')
             ->distinct()
             ->whereNotNull('log_name')
@@ -80,7 +74,7 @@ class AdminActivityController extends Controller
 
         $activityTypes = [
             'created' => 'Créé',
-            'updated' => 'Modifié', 
+            'updated' => 'Modifié',
             'deleted' => 'Supprimé',
             'restored' => 'Restauré',
             'logged_in' => 'Connexion',
@@ -102,7 +96,7 @@ class AdminActivityController extends Controller
     public function show(ActivityLog $activityLog)
     {
         $activityLog->load(['causer', 'subject']);
-        
+
         return view('admin.activity_logs.show', compact('activityLog'));
     }
 
@@ -191,7 +185,7 @@ class AdminActivityController extends Controller
 
         // Activités par type
         $activitiesByType = ActivityLog::selectRaw('
-                CASE 
+                CASE
                     WHEN description LIKE "%créé%" THEN "created"
                     WHEN description LIKE "%modifié%" THEN "updated"
                     WHEN description LIKE "%supprimé%" THEN "deleted"
@@ -227,10 +221,10 @@ class AdminActivityController extends Controller
     public function cleanup(Request $request)
     {
         $days = $request->input('days', 30);
-        
+
         $deletedCount = ActivityLog::where('created_at', '<', now()->subDays($days))->delete();
 
-        return redirect()->back()->with('success', 
+        return redirect()->back()->with('success',
             "Nettoyage terminé : {$deletedCount} activités supprimées (plus anciennes que {$days} jours)"
         );
     }

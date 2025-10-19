@@ -34,6 +34,12 @@
             min-height: 100vh;
             color: var(--white);
             box-shadow: var(--shadow);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            z-index: 1000;
+            overflow-y: auto;
         }
 
         .sidebar .nav-link {
@@ -261,6 +267,8 @@
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
+                position: relative;
+                width: 100%;
                 min-height: auto;
             }
 
@@ -271,6 +279,10 @@
 
             .main-header {
                 padding: 15px 20px;
+            }
+
+            .col-md-9.col-lg-10 {
+                margin-left: 0 !important;
             }
         }
     </style>
@@ -299,6 +311,18 @@
                             <i class="fas fa-box"></i>
                             <span>Produits</span>
                         </a>
+                        <a class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}" href="{{ route('admin.categories.index') }}">
+                            <i class="fas fa-folder"></i>
+                            <span>Catégories</span>
+                        </a>
+                        <a class="nav-link {{ request()->routeIs('admin.attributes.*') ? 'active' : '' }}" href="{{ route('admin.attributes.index') }}">
+                            <i class="fas fa-tags"></i>
+                            <span>Attributs</span>
+                        </a>
+                        <a class="nav-link {{ request()->routeIs('admin.product-types.*') ? 'active' : '' }}" href="{{ route('admin.product-types.index') }}">
+                            <i class="fas fa-cube"></i>
+                            <span>Types de Produits</span>
+                        </a>
                         <a class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}" href="{{ route('admin.orders.index') }}">
                             <i class="fas fa-shopping-bag"></i>
                             <span>Commandes</span>
@@ -316,7 +340,7 @@
             </div>
 
             <!-- Contenu principal -->
-            <div class="col-md-9 col-lg-10">
+            <div class="col-md-9 col-lg-10" style="margin-left: 250px;">
                 <!-- Header uniforme -->
                 <div class="main-header">
                     <div class="d-flex justify-content-between align-items-center">

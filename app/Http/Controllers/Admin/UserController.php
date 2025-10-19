@@ -42,7 +42,10 @@ class UserController extends Controller
 
         $users = $query->orderBy('created_at', 'desc')->paginate(20);
 
-        return view('admin.users.index', compact('users'));
+        // Récupérer la liste des quartiers pour le filtre
+        $quartiers = \App\Models\Quartier::getQuartiers();
+
+        return view('admin.users.index', compact('users', 'quartiers'));
     }
 
     public function show(User $user)
@@ -53,7 +56,10 @@ class UserController extends Controller
 
     public function create()
     {
-        return view('admin.users.create');
+        // Récupérer la liste des quartiers pour le formulaire
+        $quartiers = \App\Models\Quartier::getQuartiers();
+
+        return view('admin.users.create', compact('quartiers'));
     }
 
     public function store(Request $request)
@@ -126,7 +132,10 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        return view('admin.users.edit', compact('user'));
+        // Récupérer la liste des quartiers pour le formulaire
+        $quartiers = \App\Models\Quartier::getQuartiers();
+
+        return view('admin.users.edit', compact('user', 'quartiers'));
     }
 
     public function update(Request $request, User $user)

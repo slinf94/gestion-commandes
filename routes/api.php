@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ProductApiController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\OrderController;
@@ -30,12 +31,21 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
     Route::get('/auth/quartiers', [AuthController::class, 'getQuartiers']); // Liste des quartiers
 
-    // Produits et catégories (lecture seule)
-    Route::get('/products', [ProductController::class, 'index']);
-    Route::get('/products/featured', [ProductController::class, 'featured']);
-    Route::get('/products/search', [ProductController::class, 'search']);
-    Route::get('/products/{id}', [ProductController::class, 'show']);
-    Route::get('/categories', [CategoryController::class, 'index']);
+    // Produits et catégories (lecture seule) - Nouvelle API améliorée
+    Route::get('/products', [ProductApiController::class, 'index']);
+    Route::get('/products/featured', [ProductApiController::class, 'featured']);
+    Route::get('/products/search', [ProductApiController::class, 'search']);
+    Route::get('/products/{id}', [ProductApiController::class, 'show']);
+    Route::get('/products/category/{category}', [ProductApiController::class, 'byCategory']);
+    Route::get('/products/type/{productType}', [ProductApiController::class, 'byType']);
+
+    // Catégories et types
+    Route::get('/categories', [ProductApiController::class, 'categories']);
+    Route::get('/product-types', [ProductApiController::class, 'productTypes']);
+    Route::get('/attributes', [ProductApiController::class, 'attributes']);
+    Route::get('/attribute-values', [ProductApiController::class, 'attributeValues']);
+
+    // Anciennes routes pour compatibilité
     Route::get('/categories/{id}', [CategoryController::class, 'show']);
     Route::get('/categories/{id}/products', [CategoryController::class, 'products']);
 

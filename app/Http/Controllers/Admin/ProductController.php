@@ -3,21 +3,54 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Product;
+use App\Models\ProductSimple as Product;
 use App\Models\Category;
+use App\Models\ProductType;
+use App\Models\Attribute;
+use App\Models\ProductAttributeValue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::with(['category', 'productImages'])
-            ->withTrashed()
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        // Utiliser une requête simple pour éviter les problèmes de mémoire
+        $query = DB::table('products')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+            ->leftJoin('product_types', 'products.product_type_id', '=', 'product_types.id')
+            ->select('products.*', 'categories.name as category_name', 'product_types.name as product_type_name')
+            ->whereNull('products.deleted_at');
 
-        return view('admin.products.index', compact('products'));
+        // Filtres
+        if ($request->filled('category_id')) {
+            $query->where('products.category_id', $request->category_id);
+        }
+
+        if ($request->filled('product_type_id')) {
+            $query->where('products.product_type_id', $request->product_type_id);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('products.status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('products.name', 'like', "%{$search}%")
+                  ->orWhere('products.sku', 'like', "%{$search}%")
+                  ->orWhere('products.description', 'like', "%{$search}%");
+            });
+        }
+
+        $products = $query->orderBy('products.created_at', 'desc')->paginate(20);
+
+        $categories = Category::where('is_active', true)->get();
+        $productTypes = ProductType::where('is_active', true)->get();
+
+        return view('admin.products.index', compact('products', 'categories', 'productTypes'));
     }
 
     public function show(Product $product)
@@ -29,7 +62,10 @@ class ProductController extends Controller
     public function create()
     {
         $categories = Category::where('is_active', true)->get();
-        return view('admin.products.create', compact('categories'));
+        $productTypes = ProductType::where('is_active', true)->get();
+        $attributes = Attribute::where('is_active', true)->get();
+
+        return view('admin.products.create', compact('categories', 'productTypes', 'attributes'));
     }
 
     public function store(Request $request)
@@ -42,6 +78,7 @@ class ProductController extends Controller
             'stock_quantity' => 'required|integer|min:0|regex:/^[1-9][0-9]*$/',
             'min_stock_alert' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
+            'product_type_id' => 'nullable|exists:product_types,id',
             'sku' => 'required|string|unique:products,sku',
             'barcode' => 'nullable|string|unique:products,barcode',
             'status' => 'required|in:active,inactive',
@@ -51,6 +88,10 @@ class ProductController extends Controller
             'tags' => 'nullable|string',
             'images' => 'nullable|array|max:5',
             'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'attributes' => 'nullable|array',
+            'attributes.*.attribute_id' => 'required|exists:attributes,id',
+            'attributes.*.value' => 'required|string',
+            'attributes.*.display_value' => 'nullable|string',
         ], [
             'stock_quantity.regex' => 'La quantité en stock doit être un nombre entier positif (ne peut pas commencer par 0).',
             'images.*.required' => 'Chaque image est requise.',
@@ -78,6 +119,19 @@ class ProductController extends Controller
 
         $product = Product::create($data);
 
+        // Gérer les attributs du produit
+        if ($request->has('attributes')) {
+            foreach ($request->input('attributes') as $attributeData) {
+                if (!empty($attributeData['attribute_id']) && !empty($attributeData['value'])) {
+                    $product->attributeValues()->create([
+                        'attribute_id' => $attributeData['attribute_id'],
+                        'value' => $attributeData['value'],
+                        'display_value' => $attributeData['display_value'] ?? $attributeData['value'],
+                    ]);
+                }
+            }
+        }
+
         // Créer les entrées dans product_images si des images ont été uploadées
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
@@ -97,9 +151,12 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        $product->load(['category', 'productImages']);
+        $product->load(['category', 'productType', 'productImages', 'attributeValues.attribute']);
         $categories = Category::where('is_active', true)->get();
-        return view('admin.products.edit', compact('product', 'categories'));
+        $productTypes = ProductType::where('is_active', true)->get();
+        $attributes = Attribute::where('is_active', true)->get();
+
+        return view('admin.products.edit', compact('product', 'categories', 'productTypes', 'attributes'));
     }
 
     public function update(Request $request, Product $product)
@@ -112,6 +169,7 @@ class ProductController extends Controller
             'stock_quantity' => 'required|integer|min:0',
             'min_stock_alert' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
+            'product_type_id' => 'nullable|exists:product_types,id',
             'sku' => 'required|string|unique:products,sku,' . $product->id,
             'barcode' => 'nullable|string|unique:products,barcode,' . $product->id,
             'status' => 'required|in:active,inactive',
@@ -119,9 +177,37 @@ class ProductController extends Controller
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:500',
             'tags' => 'nullable|string',
+            'attributes' => 'nullable|array',
+            'attributes.*.attribute_id' => 'required|exists:attributes,id',
+            'attributes.*.value' => 'required|string',
+            'attributes.*.display_value' => 'nullable|string',
         ]);
 
-        $product->update($request->all());
+        $data = $request->all();
+
+        // Traitement des tags
+        if ($request->has('tags') && !empty($request->tags)) {
+            $data['tags'] = array_map('trim', explode(',', $request->tags));
+        }
+
+        $product->update($data);
+
+        // Mettre à jour les attributs du produit
+        if ($request->has('attributes')) {
+            // Supprimer les anciens attributs
+            $product->attributeValues()->delete();
+
+            // Créer les nouveaux attributs
+            foreach ($request->input('attributes') as $attributeData) {
+                if (!empty($attributeData['attribute_id']) && !empty($attributeData['value'])) {
+                    $product->attributeValues()->create([
+                        'attribute_id' => $attributeData['attribute_id'],
+                        'value' => $attributeData['value'],
+                        'display_value' => $attributeData['display_value'] ?? $attributeData['value'],
+                    ]);
+                }
+            }
+        }
 
         return redirect()->route('admin.products.show', $product)
             ->with('success', 'Produit mis à jour avec succès');

@@ -35,9 +35,7 @@ class FixAdminPasswordSeeder extends Seeder
         $user->update([
             'password' => Hash::make($password)
         ]);
-
         echo "✅ Mot de passe mis à jour: {$password}\n";
-
         // Vérifier que le mot de passe fonctionne
         $freshUser = $user->fresh();
         $isCorrect = Hash::check($password, $freshUser->password);

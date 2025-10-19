@@ -131,11 +131,11 @@ class AdminController extends Controller
                 ->whereYear('created_at', date('Y'))
                 ->groupBy('month')
                 ->get(),
-            
+
             'orders_by_status' => Order::selectRaw('status, COUNT(*) as count')
                 ->groupBy('status')
                 ->get(),
-            
+
             'revenue_by_month' => Order::selectRaw('MONTH(created_at) as month, SUM(total_amount) as revenue')
                 ->whereYear('created_at', date('Y'))
                 ->where('status', 'delivered')
@@ -213,7 +213,7 @@ class AdminController extends Controller
 
         if (Auth::attempt($credentials)) {
             $user = Auth::user();
-            
+
             if ($user->role === 'admin' || $user->role === 'super_admin') {
                 $request->session()->regenerate();
                 return redirect()->intended(route('admin.dashboard'));
@@ -238,7 +238,7 @@ class AdminController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        
+
         return redirect()->route('admin.login');
     }
 }

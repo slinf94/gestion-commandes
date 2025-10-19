@@ -114,7 +114,7 @@
                 @php
                     $properties = $activityLog->formatted_properties;
                 @endphp
-                
+
                 @if(isset($properties['attributes']) || isset($properties['old']))
                     <div class="table-responsive">
                         <table class="table table-striped">
@@ -131,7 +131,7 @@
                                     $newValues = $properties['attributes'] ?? [];
                                     $allKeys = array_unique(array_merge(array_keys($oldValues), array_keys($newValues)));
                                 @endphp
-                                
+
                                 @foreach($allKeys as $key)
                                 <tr>
                                     <td>
@@ -194,7 +194,7 @@
                         <h5>{{ $activityLog->causer->full_name }}</h5>
                         <p class="text-muted">{{ $activityLog->causer->email }}</p>
                         <span class="badge bg-{{ $activityLog->causer->status == 'active' ? 'success' : 'secondary' }}">
-                            {{ ucfirst($activityLog->causer->status) }}
+                            {{ ucfirst(is_object($activityLog->causer->status) ? $activityLog->causer->status->value : $activityLog->causer->status) }}
                         </span>
                         <br>
                         <small class="text-muted">
@@ -236,11 +236,11 @@
                     </tr>
                     @endif
                 </table>
-                
+
                 @if(method_exists($activityLog->subject, 'name'))
                     <p><strong>Nom :</strong> {{ $activityLog->subject->name }}</p>
                 @endif
-                
+
                 @if(method_exists($activityLog->subject, 'title'))
                     <p><strong>Titre :</strong> {{ $activityLog->subject->title }}</p>
                 @endif
@@ -258,13 +258,13 @@
                     <a href="{{ route('admin.activity-logs.index') }}" class="btn btn-primary">
                         <i class="fas fa-list me-2"></i>Voir toutes les activités
                     </a>
-                    
+
                     @if($activityLog->causer)
                     <a href="{{ route('admin.activity-logs.index', ['user_id' => $activityLog->causer_id]) }}" class="btn btn-outline-info">
                         <i class="fas fa-user me-2"></i>Activités de cet utilisateur
                     </a>
                     @endif
-                    
+
                     @if($activityLog->subject_type)
                     <a href="{{ route('admin.activity-logs.index', ['subject_type' => $activityLog->subject_type]) }}" class="btn btn-outline-secondary">
                         <i class="fas fa-cube me-2"></i>Activités de ce modèle
@@ -292,7 +292,7 @@
     .activity-logged_in { background: linear-gradient(135deg, #9C27B0, #7B1FA2); color: white; }
     .activity-logged_out { background: linear-gradient(135deg, #607D8B, #455A64); color: white; }
     .activity-other { background: linear-gradient(135deg, #6C757D, #495057); color: white; }
-    
+
     .user-avatar {
         width: 40px;
         height: 40px;
@@ -305,7 +305,7 @@
         font-weight: bold;
         font-size: 0.9em;
     }
-    
+
     pre {
         max-height: 400px;
         overflow-y: auto;

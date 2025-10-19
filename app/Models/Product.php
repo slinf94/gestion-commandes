@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Traits\LogsActivity;
+// use App\Traits\LogsActivity;
 
 class Product extends Model
 {
-    use SoftDeletes, LogsActivity;
+    use SoftDeletes;
 
     protected $fillable = [
         'name', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price',
@@ -89,55 +89,21 @@ class Product extends Model
         return $this->hasMany(ProductImage::class)->orderBy('order');
     }
 
-    // Récupérer l'image principale
+    // Récupérer l'image principale (temporairement désactivé)
+    /*
     public function getMainImageAttribute()
     {
-        // Essayer d'abord avec la relation productImages
-        if ($this->relationLoaded('productImages') && $this->productImages->isNotEmpty()) {
-            // Chercher l'image principale
-            $principale = $this->productImages->where('type', 'principale')->first();
-            if ($principale && $principale->url) {
-                return $this->formatImageUrl($principale->url);
-            }
-
-            // Sinon prendre la première image disponible
-            $firstImage = $this->productImages->whereNotNull('url')->first();
-            if ($firstImage && $firstImage->url) {
-                return $this->formatImageUrl($firstImage->url);
-            }
-        }
-
-        // Fallback sur l'ancien système d'images
-        if ($this->images && is_array($this->images) && !empty($this->images)) {
-            $firstImage = array_filter($this->images)[0] ?? null;
-            if ($firstImage) return $this->formatImageUrl($firstImage);
-        }
-
-        // Image par défaut si aucune image
-        return $this->formatImageUrl('products/placeholder.jpg');
+        return 'placeholder.jpg';
     }
+    */
 
-    // Récupérer toutes les images
+    // Récupérer toutes les images (temporairement désactivé)
+    /*
     public function getAllImagesAttribute()
     {
-        if ($this->relationLoaded('productImages') && $this->productImages->isNotEmpty()) {
-            return $this->productImages
-                ->whereNotNull('url')
-                ->map(function($image) {
-                    return $this->formatImageUrl($image->url);
-                })
-                ->filter()
-                ->values()
-                ->toArray();
-        }
-
-        // Fallback sur l'ancien système d'images
-        if ($this->images && is_array($this->images)) {
-            return array_filter(array_map([$this, 'formatImageUrl'], $this->images));
-        }
-
         return [];
     }
+    */
 
     // Formater l'URL de l'image
     private function formatImageUrl($url)
@@ -179,5 +145,155 @@ class Product extends Model
                 ]];
             })
             ->toArray();
+    }
+
+    // Accessor pour s'assurer que les tags sont toujours un tableau
+    public function getTagsAttribute($value)
+    {
+        if (is_string($value)) {
+            // Si c'est une chaîne, essayer de la décoder comme JSON
+            $decoded = json_decode($value, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return is_array($value) ? $value : [];
+    }
+
+    /**
+     * Get the product's attribute values as a key-value array.
+     */
+    public function getAttributeValuesArray()
+    {
+        return $this->attributeValues->pluck('value', 'attribute.name')->toArray();
+    }
+
+    /**
+     * Get a specific attribute value.
+     */
+    public function getAttributeValue($attributeName)
+    {
+        $attributeValue = $this->attributeValues()
+            ->whereHas('attribute', function($query) use ($attributeName) {
+                $query->where('name', $attributeName);
+            })
+            ->first();
+
+        return $attributeValue ? $attributeValue->value : null;
+    }
+
+    /**
+     * Set an attribute value.
+     */
+    public function setAttributeValue($attributeName, $value, $displayValue = null)
+    {
+        $attribute = Attribute::where('name', $attributeName)->first();
+
+        if (!$attribute) {
+            return false;
+        }
+
+        return $this->attributeValues()->updateOrCreate(
+            ['attribute_id' => $attribute->id],
+            [
+                'value' => $value,
+                'display_value' => $displayValue ?? $value,
+            ]
+        );
+    }
+
+    /**
+     * Get available variants for this product.
+     */
+    public function getAvailableVariants()
+    {
+        return $this->variants()->where('is_active', true)->get();
+    }
+
+    /**
+     * Get variant attributes (attributes that are marked as variants).
+     */
+    public function getVariantAttributes()
+    {
+        if (!$this->productType) {
+            return collect();
+        }
+
+        return $this->productType->attributes()->wherePivot('is_variant', true)->get();
+    }
+
+    /**
+     * Check if product has variants.
+     */
+    public function hasVariants()
+    {
+        return $this->variants()->count() > 0;
+    }
+
+    /**
+     * Get the formatted price with currency.
+     */
+    public function getFormattedPriceAttribute()
+    {
+        return number_format($this->price, 2) . ' €';
+    }
+
+    /**
+     * Get the formatted cost price with currency.
+     */
+    public function getFormattedCostPriceAttribute()
+    {
+        return number_format($this->cost_price, 2) . ' €';
+    }
+
+    /**
+     * Scope for products with specific attribute value.
+     */
+    public function scopeWithAttributeValue($query, $attributeName, $value)
+    {
+        return $query->whereHas('attributeValues', function($q) use ($attributeName, $value) {
+            $q->whereHas('attribute', function($subQ) use ($attributeName) {
+                $subQ->where('name', $attributeName);
+            })->where('value', $value);
+        });
+    }
+
+    /**
+     * Scope for products in a specific category.
+     */
+    public function scopeInCategory($query, $categoryId)
+    {
+        return $query->where('category_id', $categoryId);
+    }
+
+    /**
+     * Scope for products of a specific type.
+     */
+    public function scopeOfType($query, $productTypeId)
+    {
+        return $query->where('product_type_id', $productTypeId);
+    }
+
+    /**
+     * Scope for featured products.
+     */
+    public function scopeFeatured($query)
+    {
+        return $query->where('is_featured', true);
+    }
+
+    /**
+     * Scope for products in stock.
+     */
+    public function scopeInStock($query)
+    {
+        return $query->where('stock_quantity', '>', 0);
+    }
+
+    /**
+     * Scope for low stock products.
+     */
+    public function scopeLowStock($query)
+    {
+        return $query->whereColumn('stock_quantity', '<=', 'min_stock_alert');
     }
 }

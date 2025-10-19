@@ -16,9 +16,65 @@
         <h4 class="mb-0">Liste des Produits</h4>
         <small class="text-muted">Gérez votre catalogue de produits</small>
     </div>
-    <a href="{{ route('admin.products.create') }}" class="btn btn-primary">
-        <i class="fas fa-plus me-2"></i>Nouveau Produit
-    </a>
+    <div>
+        <a href="{{ route('admin.products.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Nouveau Produit
+        </a>
+        <a href="{{ route('admin.products.import-export') }}" class="btn btn-success">
+            <i class="fas fa-file-csv me-2"></i>Import/Export
+        </a>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ route('admin.products.index') }}" class="row g-3">
+            <div class="col-md-3">
+                <label for="search" class="form-label">Recherche</label>
+                <input type="text" class="form-control" id="search" name="search"
+                       value="{{ request('search') }}" placeholder="Nom, SKU, description...">
+            </div>
+            <div class="col-md-2">
+                <label for="category_id" class="form-label">Catégorie</label>
+                <select class="form-select" id="category_id" name="category_id">
+                    <option value="">Toutes les catégories</option>
+                    @foreach($categories as $category)
+                        <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
+                            {{ $category->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="product_type_id" class="form-label">Type de Produit</label>
+                <select class="form-select" id="product_type_id" name="product_type_id">
+                    <option value="">Tous les types</option>
+                    @foreach($productTypes as $productType)
+                        <option value="{{ $productType->id }}" {{ request('product_type_id') == $productType->id ? 'selected' : '' }}>
+                            {{ $productType->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="status" class="form-label">Statut</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">Tous les statuts</option>
+                    <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Actif</option>
+                    <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactif</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search"></i> Filtrer
+                </button>
+                <a href="{{ route('admin.products.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Effacer
+                </a>
+            </div>
+        </form>
+    </div>
 </div>
 
 <div class="table-responsive">
@@ -30,6 +86,7 @@
                                     <th>Prix</th>
                                     <th>Stock</th>
                                     <th>Catégorie</th>
+                                    <th>Type</th>
                                     <th>Statut</th>
                                     <th>Vedette</th>
                                     <th>Actions</th>
@@ -39,8 +96,8 @@
                                 @forelse($products as $product)
                                 <tr>
                                     <td>
-                                        @if($product->mainImage)
-                                            <img src="{{ $product->mainImage }}"
+                                        @if($product->images && is_array($product->images) && count($product->images) > 0)
+                                            <img src="{{ url('storage/' . $product->images[0]) }}"
                                                  alt="{{ $product->name }}"
                                                  class="product-image"
                                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
@@ -64,10 +121,17 @@
                                             {{ $product->stock_quantity }}
                                         </span>
                                     </td>
-                                    <td>{{ $product->category->name ?? 'N/A' }}</td>
+                                    <td>{{ $product->category_name ?? 'N/A' }}</td>
+                                    <td>
+                                        @if($product->product_type_name)
+                                            <span class="badge bg-info">{{ $product->product_type_name }}</span>
+                                        @else
+                                            <span class="text-muted">N/A</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         <span class="badge bg-{{ $product->status == 'active' ? 'success' : 'secondary' }}">
-                                            {{ ucfirst($product->status) }}
+                                            {{ ucfirst(is_object($product->status) ? $product->status->value : $product->status) }}
                                         </span>
                                     </td>
                                     <td>
@@ -79,13 +143,16 @@
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <a href="{{ route('admin.products.show', $product) }}" class="btn btn-sm btn-outline-primary">
+                                            <a href="{{ route('admin.products.show', $product->id) }}" class="btn btn-sm btn-outline-primary">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-sm btn-outline-warning">
+                                            <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-sm btn-outline-warning">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            @if($product->trashed())
+                                            <a href="{{ route('admin.products.variants.index', $product->id) }}" class="btn btn-sm btn-outline-info" title="Variantes">
+                                                <i class="fas fa-cubes"></i>
+                                            </a>
+                                            @if($product->deleted_at)
                                                 <form method="POST" action="{{ route('admin.products.restore', $product->id) }}" class="d-inline">
                                                     @csrf
                                                     <button type="submit" class="btn btn-sm btn-outline-success">
@@ -93,7 +160,7 @@
                                                     </button>
                                                 </form>
                                             @else
-                                                <form method="POST" action="{{ route('admin.products.destroy', $product) }}" class="d-inline">
+                                                <form method="POST" action="{{ route('admin.products.destroy', $product->id) }}" class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-sm btn-outline-danger"

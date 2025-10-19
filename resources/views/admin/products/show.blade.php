@@ -44,7 +44,7 @@
                                             <td><strong>Statut:</strong></td>
                                             <td>
                                                 <span class="badge badge-{{ $product->status == 'active' ? 'success' : ($product->status == 'inactive' ? 'danger' : 'warning') }}">
-                                                    {{ ucfirst($product->status) }}
+                                                    {{ ucfirst(is_object($product->status) ? $product->status->value : $product->status) }}
                                                 </span>
                                             </td>
                                         </tr>
@@ -108,7 +108,7 @@
                             </div>
                             @endif
 
-                            @if($product->tags && count($product->tags) > 0)
+                            @if($product->tags && is_array($product->tags) && count($product->tags) > 0)
                             <div class="row mt-3">
                                 <div class="col-12">
                                     <h5>Tags</h5>
