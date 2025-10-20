@@ -20,11 +20,8 @@ class OrderController extends Controller
     {
         $user = auth()->user();
 
-        $query = $user->orders()->with([
-            'items.product.productImages',
-            'items.product.category',
-            'statusHistory.changedBy'
-        ]);
+        // Version simplifiée pour éviter l'épuisement mémoire
+        $query = $user->orders();
 
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
@@ -37,38 +34,25 @@ class OrderController extends Controller
         $perPage = $request->get('per_page', 20);
         $orders = $query->paginate($perPage);
 
-        // Formater les données pour inclure toutes les informations nécessaires
+        // Formater les données de manière simplifiée
         $formattedOrders = collect($orders->items())->map(function ($order) {
-            $orderData = $order->toArray();
-
-            // Formater les items avec les détails complets du produit
-            $orderData['items'] = $order->items->map(function ($item) {
-                $itemData = $item->toArray();
-
-                if ($item->product) {
-                    $itemData['product_name'] = $item->product->name;
-                    $itemData['product_image'] = $item->product->main_image;
-                    $itemData['product_sku'] = $item->product->sku;
-                    $itemData['product_stock'] = $item->product->stock_quantity;
-
-                    // Ajouter les détails du produit complet
-                    $itemData['product'] = [
-                        'id' => $item->product->id,
-                        'name' => $item->product->name,
-                        'sku' => $item->product->sku,
-                        'price' => $item->product->price,
-                        'stock_quantity' => $item->product->stock_quantity,
-                        'main_image' => $item->product->main_image,
-                        'all_images' => $item->product->all_images,
-                        'category' => $item->product->category ? [
-                            'id' => $item->product->category->id,
-                            'name' => $item->product->category->name,
-                        ] : null,
-                    ];
-                }
-
-                return $itemData;
-            })->toArray();
+            $orderData = [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'status' => $order->status instanceof \App\Enums\OrderStatus ? $order->status->value : $order->status,
+                'subtotal' => $order->subtotal,
+                'tax_amount' => $order->tax_amount,
+                'discount_amount' => $order->discount_amount,
+                'shipping_cost' => $order->shipping_cost,
+                'total_amount' => $order->total_amount,
+                'delivery_address' => $order->delivery_address,
+                'delivery_date' => $order->delivery_date,
+                'delivery_time_slot' => $order->delivery_time_slot,
+                'notes' => $order->notes,
+                'created_at' => $order->created_at,
+                'updated_at' => $order->updated_at,
+                'items_count' => $order->items()->count(),
+            ];
 
             return $orderData;
         });
@@ -107,7 +91,19 @@ class OrderController extends Controller
         }
 
         $user = auth()->user();
-        $sessionId = $request->header('X-Session-ID') ?? $request->get('session_id');
+
+        // Utiliser la même logique de session_id que le contrôleur du panier
+        $userId = auth()->id();
+        if ($userId) {
+            $sessionId = 'user_' . $userId;
+        } else {
+            $sessionId = $request->header('X-Session-ID') ?? $request->get('session_id');
+            if (!$sessionId) {
+                $ip = $request->ip();
+                $userAgent = $request->userAgent();
+                $sessionId = 'guest_' . md5($ip . $userAgent . date('Y-m-d'));
+            }
+        }
 
         // Debug: Log des informations
         \Log::info('Order creation attempt', [

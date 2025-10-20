@@ -149,14 +149,17 @@
 
                             <!-- Formulaire d'upload d'images supplémentaires -->
                             <div class="mb-3">
-                                <form method="POST" action="{{ route('admin.products.upload-images', $product) }}" enctype="multipart/form-data">
+                                <form method="POST" action="{{ route('admin.products.upload-images', $product) }}" enctype="multipart/form-data" id="uploadForm">
                                     @csrf
                                     <div class="mb-2">
                                         <label for="images" class="form-label">Ajouter des images</label>
-                                        <input type="file" class="form-control" id="images" name="images[]" multiple accept="image/*">
+                                        <input type="file" class="form-control @error('images') is-invalid @enderror" id="images" name="images[]" multiple accept="image/*" required>
+                                        @error('images')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                         <small class="form-text text-muted">Vous pouvez sélectionner plusieurs images (max 10)</small>
                                     </div>
-                                    <button type="submit" class="btn btn-sm btn-success">
+                                    <button type="submit" class="btn btn-sm btn-success" id="uploadBtn">
                                         <i class="fas fa-upload"></i> Ajouter
                                     </button>
                                 </form>
@@ -245,4 +248,75 @@
                             </table>
                         </div>
                     </div>
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadForm = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('images');
+    const uploadBtn = document.getElementById('uploadBtn');
+
+    if (uploadForm && fileInput && uploadBtn) {
+        // Afficher le nombre de fichiers sélectionnés
+        fileInput.addEventListener('change', function() {
+            const files = this.files;
+            console.log('Fichiers sélectionnés:', files.length);
+
+            if (files.length > 0) {
+                uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Ajouter (' + files.length + ' fichier' + (files.length > 1 ? 's' : '') + ')';
+                uploadBtn.disabled = false;
+            } else {
+                uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Ajouter';
+                uploadBtn.disabled = true;
+            }
+        });
+
+        // Validation avant soumission
+        uploadForm.addEventListener('submit', function(e) {
+            const files = fileInput.files;
+
+            if (files.length === 0) {
+                e.preventDefault();
+                alert('Veuillez sélectionner au moins un fichier');
+                return false;
+            }
+
+            if (files.length > 10) {
+                e.preventDefault();
+                alert('Vous ne pouvez pas uploader plus de 10 images à la fois');
+                return false;
+            }
+
+            // Vérifier les types de fichiers
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/svg+xml', 'image/webp'];
+
+                if (!validTypes.includes(file.type)) {
+                    e.preventDefault();
+                    alert('Le fichier "' + file.name + '" n\'est pas une image valide');
+                    return false;
+                }
+
+                if (file.size > 2 * 1024 * 1024) { // 2MB
+                    e.preventDefault();
+                    alert('Le fichier "' + file.name + '" est trop volumineux (max 2MB)');
+                    return false;
+                }
+            }
+
+            // Désactiver le bouton pendant l'upload
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Upload en cours...';
+
+            console.log('Formulaire soumis avec', files.length, 'fichier(s)');
+        });
+
+        console.log('Script d\'upload initialisé');
+    } else {
+        console.error('Éléments du formulaire non trouvés');
+    }
+});
+</script>
 @endsection

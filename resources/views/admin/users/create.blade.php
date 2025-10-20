@@ -61,10 +61,10 @@
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="telephone" class="form-label">Téléphone</label>
-                            <input type="tel" class="form-control @error('telephone') is-invalid @enderror"
-                                   id="telephone" name="telephone" value="{{ old('telephone') }}">
-                            @error('telephone')
+                            <label for="numero_telephone" class="form-label">Téléphone</label>
+                            <input type="tel" class="form-control @error('numero_telephone') is-invalid @enderror"
+                                   id="numero_telephone" name="numero_telephone" value="{{ old('numero_telephone') }}">
+                            @error('numero_telephone')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>

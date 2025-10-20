@@ -181,7 +181,7 @@
                                 </div>
                             </td>
                             <td>{{ $user->email }}</td>
-                            <td>{{ $user->telephone ?? 'N/A' }}</td>
+                            <td>{{ $user->numero_telephone ?? 'N/A' }}</td>
                             <td>{{ $user->quartier ?? 'N/A' }}</td>
                             <td>
                                 <span class="badge bg-{{ $user->status == 'active' ? 'success' : 'warning' }}">

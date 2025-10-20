@@ -16,8 +16,8 @@ class ProductApiController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'productType', 'productImages', 'attributeValues.attribute', 'variants'])
-            ->where('status', 'active');
+        // Utiliser une requête simple pour éviter les problèmes de mémoire
+        $query = \App\Models\ProductSimple::where('status', 'active');
 
         // Appliquer les filtres
         $this->applyFilters($query, $request);
@@ -26,18 +26,21 @@ class ProductApiController extends Controller
         $perPage = $request->get('per_page', 20);
         $products = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
+        // Formater les produits avec les URLs complètes des images
+        $formattedProducts = collect($products->items())->map(function($product) {
+            return $this->formatProductForApi($product);
+        });
+
         return response()->json([
             'success' => true,
-            'data' => [
-                'products' => $products->items(),
-                'pagination' => [
-                    'current_page' => $products->currentPage(),
-                    'last_page' => $products->lastPage(),
-                    'per_page' => $products->perPage(),
-                    'total' => $products->total(),
-                    'from' => $products->firstItem(),
-                    'to' => $products->lastItem(),
-                ]
+            'data' => $formattedProducts,
+            'pagination' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+                'from' => $products->firstItem(),
+                'to' => $products->lastItem(),
             ]
         ]);
     }
@@ -221,22 +224,19 @@ class ProductApiController extends Controller
     {
         $perPage = $request->get('per_page', 10);
 
-        $products = Product::with(['category', 'productType', 'productImages', 'attributeValues.attribute'])
-            ->where('status', 'active')
+        $products = \App\Models\ProductSimple::where('status', 'active')
             ->where('is_featured', true)
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'products' => $products->items(),
-                'pagination' => [
-                    'current_page' => $products->currentPage(),
-                    'last_page' => $products->lastPage(),
-                    'per_page' => $products->perPage(),
-                    'total' => $products->total(),
-                ]
+            'data' => $products->items(),
+            'pagination' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
             ]
         ]);
     }
@@ -365,5 +365,40 @@ class ProductApiController extends Controller
             default:
                 $query->orderBy('created_at', 'desc');
         }
+    }
+
+    /**
+     * Formater un produit pour l'API avec les URLs complètes des images.
+     */
+    private function formatProductForApi($product)
+    {
+        $productData = $product->toArray();
+
+        // Formater les images avec URLs complètes
+        if ($product->images) {
+            $images = is_array($product->images) ? $product->images : json_decode($product->images, true);
+            if ($images && count($images) > 0) {
+                $productData['images'] = array_map(function($image) {
+                    return 'http://192.168.100.73:8000/storage/' . $image;
+                }, $images);
+                $productData['main_image'] = 'http://192.168.100.73:8000/storage/' . $images[0];
+            } else {
+                $productData['images'] = [];
+                $productData['main_image'] = 'http://192.168.100.73:8000/images/placeholder.jpg';
+            }
+        } else {
+            $productData['images'] = [];
+            $productData['main_image'] = 'http://192.168.100.73:8000/images/placeholder.jpg';
+        }
+
+        // Formater les tags
+        if ($product->tags) {
+            $tags = is_array($product->tags) ? $product->tags : json_decode($product->tags, true);
+            $productData['tags'] = $tags ?: [];
+        } else {
+            $productData['tags'] = [];
+        }
+
+        return $productData;
     }
 }

@@ -43,12 +43,17 @@ class ProductSimple extends Model
 
     public function productImages(): HasMany
     {
-        return $this->hasMany(ProductImage::class);
+        return $this->hasMany(ProductImage::class, 'product_id');
     }
 
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class, 'product_id');
+    }
+
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(\App\Models\OrderItem::class, 'product_id');
     }
 
     // Accessor simple pour les tags
@@ -67,9 +72,33 @@ class ProductSimple extends Model
         return ucfirst($this->status ?? 'inactive');
     }
 
+    // Relations manquantes pour compatibilité
+    public function attributeValues(): HasMany
+    {
+        return $this->hasMany(ProductAttributeValue::class, 'product_id');
+    }
+
     // Méthode simplifiée pour les attributs de variantes
     public function getVariantAttributes()
     {
         return collect(); // Retourne une collection vide pour l'instant
+    }
+
+    // Accessor pour les images
+    public function getMainImageAttribute()
+    {
+        if ($this->images && is_array($this->images) && count($this->images) > 0) {
+            return $this->images[0];
+        }
+        return 'placeholder.jpg';
+    }
+
+    // Accessor pour toutes les images
+    public function getAllImagesAttribute()
+    {
+        if ($this->images && is_array($this->images)) {
+            return $this->images;
+        }
+        return [];
     }
 }

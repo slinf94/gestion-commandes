@@ -335,32 +335,43 @@ class ProductController extends Controller
     public function favorites()
     {
         $user = auth()->user();
-        $favorites = $user->favorites()->with(['product.category', 'product.productImages'])->get();
 
-        // Extraire les produits des favoris
-        $products = $favorites->map(function ($favorite) {
-            $product = $favorite->product;
+        // Version ultra-simplifiée pour éviter l'épuisement mémoire
+        $favorites = $user->favorites()->get();
+
+        // Extraire les produits des favoris et les formater sans relations
+        $products = [];
+        foreach ($favorites as $favorite) {
+            // Récupérer le produit directement par ID sans relations
+            $product = \App\Models\ProductSimple::find($favorite->product_id);
             if ($product) {
-                $productData = $product->toArray();
+                $productData = [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'description' => $product->description,
+                    'price' => $product->price,
+                    'sku' => $product->sku,
+                    'stock_quantity' => $product->stock_quantity,
+                    'status' => $product->status,
+                    'is_featured' => $product->is_featured,
+                    'created_at' => $product->created_at,
+                    'updated_at' => $product->updated_at,
+                ];
 
-                // Formater les images
-                if (isset($productData['images']) && is_array($productData['images'])) {
+                // Formater les images de manière simplifiée
+                if ($product->images && is_array($product->images) && count($product->images) > 0) {
+                    $productData['main_image'] = url('storage/' . ltrim($product->images[0], '/'));
                     $productData['images'] = array_map(function ($image) {
-                        if (empty($image)) return null;
-                        if (str_starts_with($image, 'http')) return $image;
                         return url('storage/' . ltrim($image, '/'));
-                    }, $productData['images']);
-                    $productData['images'] = array_filter($productData['images']);
+                    }, array_slice($product->images, 0, 3)); // Limiter à 3 images
+                } else {
+                    $productData['main_image'] = null;
+                    $productData['images'] = [];
                 }
 
-                // Ajouter l'image principale
-                $productData['main_image'] = $product->main_image;
-                $productData['all_images'] = $product->all_images;
-
-                return $productData;
+                $products[] = $productData;
             }
-            return null;
-        })->filter()->values();
+        }
 
         return response()->json([
             'success' => true,

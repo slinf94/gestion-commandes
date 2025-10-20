@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ProductSimple as Product;
+use App\Models\ProductImage;
 use App\Models\Category;
 use App\Models\ProductType;
 use App\Models\Attribute;
@@ -16,36 +17,33 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        // Utiliser une requête simple pour éviter les problèmes de mémoire
-        $query = DB::table('products')
-            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
-            ->leftJoin('product_types', 'products.product_type_id', '=', 'product_types.id')
-            ->select('products.*', 'categories.name as category_name', 'product_types.name as product_type_name')
-            ->whereNull('products.deleted_at');
+        // Utiliser les modèles Eloquent avec les relations pour afficher les images
+        $query = Product::with(['category', 'productType', 'productImages'])
+            ->whereNull('deleted_at');
 
         // Filtres
         if ($request->filled('category_id')) {
-            $query->where('products.category_id', $request->category_id);
+            $query->where('category_id', $request->category_id);
         }
 
         if ($request->filled('product_type_id')) {
-            $query->where('products.product_type_id', $request->product_type_id);
+            $query->where('product_type_id', $request->product_type_id);
         }
 
         if ($request->filled('status')) {
-            $query->where('products.status', $request->status);
+            $query->where('status', $request->status);
         }
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('products.name', 'like', "%{$search}%")
-                  ->orWhere('products.sku', 'like', "%{$search}%")
-                  ->orWhere('products.description', 'like', "%{$search}%");
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
-        $products = $query->orderBy('products.created_at', 'desc')->paginate(20);
+        $products = $query->orderBy('created_at', 'desc')->paginate(20);
 
         $categories = Category::where('is_active', true)->get();
         $productTypes = ProductType::where('is_active', true)->get();
@@ -123,19 +121,30 @@ class ProductController extends Controller
         if ($request->has('attributes')) {
             foreach ($request->input('attributes') as $attributeData) {
                 if (!empty($attributeData['attribute_id']) && !empty($attributeData['value'])) {
-                    $product->attributeValues()->create([
-                        'attribute_id' => $attributeData['attribute_id'],
-                        'value' => $attributeData['value'],
-                        'display_value' => $attributeData['display_value'] ?? $attributeData['value'],
-                    ]);
+                    // Trouver le product_type_attribute_id correspondant
+                    $productTypeAttribute = \DB::table('product_type_attributes')
+                        ->where('product_type_id', $product->product_type_id)
+                        ->where('attribute_id', $attributeData['attribute_id'])
+                        ->first();
+
+                    if ($productTypeAttribute) {
+                        $product->attributeValues()->create([
+                            'product_type_attribute_id' => $productTypeAttribute->id,
+                            'attribute_value' => $attributeData['value'],
+                            'numeric_value' => is_numeric($attributeData['value']) ? $attributeData['value'] : null,
+                        ]);
+                    }
                 }
             }
         }
 
         // Créer les entrées dans product_images si des images ont été uploadées
         if ($request->hasFile('images')) {
+            $uploadedImages = [];
             foreach ($request->file('images') as $index => $image) {
                 $path = $image->store('products', 'public');
+                $uploadedImages[] = $path;
+
                 $product->productImages()->create([
                     'url' => $path,
                     'type' => $index === 0 ? 'principale' : 'galerie',
@@ -143,6 +152,9 @@ class ProductController extends Controller
                     'alt_text' => "Image du produit {$product->name}"
                 ]);
             }
+
+            // Mettre à jour la colonne images du produit
+            $product->update(['images' => $uploadedImages]);
         }
 
         return redirect()->route('admin.products.show', $product)
@@ -232,12 +244,15 @@ class ProductController extends Controller
     {
         $request->validate([
             'images' => 'required|array|max:10',
-            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
         ]);
 
         $uploadedImages = [];
+        $uploadedPaths = [];
+
         foreach ($request->file('images') as $index => $image) {
             $path = $image->store('products', 'public');
+            $uploadedPaths[] = $path;
             $order = $product->productImages()->max('order') + $index + 1;
 
             $productImage = $product->productImages()->create([
@@ -250,12 +265,27 @@ class ProductController extends Controller
             $uploadedImages[] = $productImage;
         }
 
+        // Mettre à jour la colonne images du produit
+        $existingImages = $product->images ? (is_array($product->images) ? $product->images : json_decode($product->images, true)) : [];
+        $allImages = array_merge($existingImages, $uploadedPaths);
+        $product->update(['images' => $allImages]);
+
         return redirect()->route('admin.products.show', $product)
             ->with('success', count($uploadedImages) . ' image(s) ajoutée(s) avec succès');
     }
 
-    public function setMainImage(Request $request, Product $product, ProductImage $image)
+    public function setMainImage(Request $request, Product $product, $imageId)
     {
+        // Récupérer l'image par ID
+        $image = ProductImage::where('id', $imageId)
+            ->where('product_id', $product->id)
+            ->first();
+
+        if (!$image) {
+            return redirect()->route('admin.products.show', $product)
+                ->with('error', 'Image non trouvée');
+        }
+
         // Retirer le statut "principale" de toutes les autres images
         $product->productImages()->update(['type' => 'galerie']);
 
@@ -266,8 +296,18 @@ class ProductController extends Controller
             ->with('success', 'Image principale mise à jour avec succès');
     }
 
-    public function deleteImage(Product $product, ProductImage $image)
+    public function deleteImage(Request $request, Product $product, $imageId)
     {
+        // Récupérer l'image par ID
+        $image = ProductImage::where('id', $imageId)
+            ->where('product_id', $product->id)
+            ->first();
+
+        if (!$image) {
+            return redirect()->route('admin.products.show', $product)
+                ->with('error', 'Image non trouvée');
+        }
+
         // Supprimer le fichier physique
         if (Storage::disk('public')->exists($image->url)) {
             Storage::disk('public')->delete($image->url);
@@ -275,6 +315,13 @@ class ProductController extends Controller
 
         // Supprimer l'entrée de la base de données
         $image->delete();
+
+        // Mettre à jour la colonne images du produit
+        $existingImages = $product->images ? (is_array($product->images) ? $product->images : json_decode($product->images, true)) : [];
+        $updatedImages = array_filter($existingImages, function($img) use ($image) {
+            return $img !== $image->url;
+        });
+        $product->update(['images' => array_values($updatedImages)]);
 
         return redirect()->route('admin.products.show', $product)
             ->with('success', 'Image supprimée avec succès');

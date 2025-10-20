@@ -127,35 +127,65 @@ class Order extends Model
         return $query->where('status', 'cancelled');
     }
 
+    // Accessors
+    public function getStatusLabelAttribute()
+    {
+        if ($this->status instanceof \App\Enums\OrderStatus) {
+            return $this->status->value;
+        }
+        return $this->status;
+    }
+
+    public function getStatusClassAttribute()
+    {
+        $status = $this->status instanceof \App\Enums\OrderStatus ? $this->status->value : $this->status;
+
+        return match($status) {
+            'pending' => 'warning',
+            'confirmed' => 'info',
+            'processing' => 'primary',
+            'shipped' => 'success',
+            'delivered' => 'success',
+            'cancelled' => 'danger',
+            default => 'secondary'
+        };
+    }
+
     // Helper methods
     public function isPending()
     {
-        return $this->status === 'pending';
+        $status = $this->status instanceof \App\Enums\OrderStatus ? $this->status->value : $this->status;
+        return $status === 'pending';
     }
 
     public function isConfirmed()
     {
-        return $this->status === 'confirmed';
+        $status = $this->status instanceof \App\Enums\OrderStatus ? $this->status->value : $this->status;
+        return $status === 'confirmed';
     }
 
     public function isProcessing()
     {
-        return $this->status === 'processing';
+        $status = $this->status instanceof \App\Enums\OrderStatus ? $this->status->value : $this->status;
+        return $status === 'processing';
     }
 
     public function isShipped()
     {
-        return $this->status === 'shipped';
+        $status = $this->status instanceof \App\Enums\OrderStatus ? $this->status->value : $this->status;
+        return $status === 'shipped';
     }
 
     public function isDelivered()
     {
-        return $this->status === 'delivered';
+        $status = $this->status instanceof \App\Enums\OrderStatus ? $this->status->value : $this->status;
+        return $status === 'delivered';
     }
 
     public function isCancelled()
     {
-        return $this->status === OrderStatus::CANCELLED;
+        $status = $this->status instanceof \App\Enums\OrderStatus ? $this->status->value : $this->status;
+        return $status === 'cancelled';
     }
 
     /**

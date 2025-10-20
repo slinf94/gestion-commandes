@@ -142,6 +142,18 @@
             font-size: 0.7rem;
         }
 
+        .forgot-password-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-password-link:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+
         .alert {
             padding: 12px 15px;
             border-radius: 8px;
@@ -236,6 +248,13 @@
                     SE CONNECTER
                 </button>
             </form>
+
+            <div class="text-center mt-3">
+                <a href="{{ route('password.request') }}" class="forgot-password-link">
+                    <i class="fas fa-key me-2"></i>
+                    Mot de passe oublié ?
+                </a>
+            </div>
 
             <div class="footer-text">
                 <i class="fas fa-shield-alt"></i>

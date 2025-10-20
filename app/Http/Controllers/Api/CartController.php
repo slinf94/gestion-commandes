@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\TemporaryCart;
-use App\Models\Product;
+use App\Models\ProductSimple as Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -122,7 +122,7 @@ class CartController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $productId)
     {
         $validator = Validator::make($request->all(), [
             'quantity' => 'required|integer|min:1|max:99',
@@ -136,7 +136,20 @@ class CartController extends Controller
             ], 422);
         }
 
-        $cartItem = TemporaryCart::with('product')->findOrFail($id);
+        $sessionId = $this->getSessionId($request);
+        
+        $cartItem = TemporaryCart::with('product')
+            ->where('session_id', $sessionId)
+            ->where('product_id', $productId)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (!$cartItem) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Article non trouvé dans le panier'
+            ], 404);
+        }
 
         // Vérifier la disponibilité en stock
         if ($cartItem->product && $cartItem->product->stock_quantity < $request->quantity) {
@@ -162,9 +175,22 @@ class CartController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function remove($id)
+    public function remove(Request $request, $productId)
     {
-        $cartItem = TemporaryCart::findOrFail($id);
+        $sessionId = $this->getSessionId($request);
+        
+        $cartItem = TemporaryCart::where('session_id', $sessionId)
+            ->where('product_id', $productId)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (!$cartItem) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Article non trouvé dans le panier'
+            ], 404);
+        }
+
         $cartItem->delete();
 
         return response()->json([
@@ -213,13 +239,23 @@ class CartController extends Controller
      */
     private function getSessionId(Request $request)
     {
-        $sessionId = $request->header('X-Session-ID')
-            ?? $request->get('session_id')
-            ?? session()->getId();
+        // Pour les utilisateurs authentifiés, utiliser l'ID utilisateur comme session
+        $userId = auth()->id();
+        
+        
+        if ($userId) {
+            return 'user_' . $userId;
+        }
 
-        // Si pas de session ID, en créer un nouveau
+        // Pour les utilisateurs non authentifiés, utiliser le header ou créer un nouveau
+        $sessionId = $request->header('X-Session-ID')
+            ?? $request->get('session_id');
+
+        // Si pas de session ID, en créer un nouveau basé sur l'IP et User-Agent
         if (!$sessionId) {
-            $sessionId = Str::uuid();
+            $ip = $request->ip();
+            $userAgent = $request->userAgent();
+            $sessionId = 'guest_' . md5($ip . $userAgent . date('Y-m-d'));
         }
 
         return $sessionId;

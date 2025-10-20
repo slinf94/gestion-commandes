@@ -12,9 +12,55 @@ class AttributeController extends Controller
     /**
      * Display a listing of attributes.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $attributes = Attribute::orderBy('sort_order')->orderBy('name')->get();
+        $query = Attribute::query();
+
+        // Filtres
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        if ($request->filled('status')) {
+            if ($request->status === 'active') {
+                $query->where('is_active', true);
+            } elseif ($request->status === 'inactive') {
+                $query->where('is_active', false);
+            }
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%");
+            });
+        }
+
+        // Tri
+        $sortField = $request->get('sort', 'sort_order');
+        $sortOrder = $request->get('order', 'asc');
+
+        // Validation des champs de tri pour la sécurité
+        $allowedSortFields = ['name', 'type', 'sort_order', 'created_at'];
+        if (!in_array($sortField, $allowedSortFields)) {
+            $sortField = 'sort_order';
+        }
+
+        $allowedSortOrders = ['asc', 'desc'];
+        if (!in_array($sortOrder, $allowedSortOrders)) {
+            $sortOrder = 'asc';
+        }
+
+        $query->orderBy($sortField, $sortOrder);
+
+        // Si on trie par autre chose que sort_order, ajouter sort_order comme tri secondaire
+        if ($sortField !== 'sort_order') {
+            $query->orderBy('sort_order', 'asc');
+        }
+
+        $attributes = $query->get();
+
         return view('admin.attributes.index', compact('attributes'));
     }
 

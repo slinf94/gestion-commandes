@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\AdminActivityController;
 use App\Http\Controllers\MobileRedirectController;
+use App\Http\Controllers\PasswordResetController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,6 +28,12 @@ use App\Http\Controllers\MobileRedirectController;
 Route::get('/', function () {
     return redirect()->route('admin.login');
 });
+
+// Routes de réinitialisation de mot de passe
+Route::get('/password/reset', [PasswordResetController::class, 'showForgotPasswordForm'])->name('password.request');
+Route::post('/password/email', [PasswordResetController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::get('/reset-password', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
+Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
 
 // Routes Admin
 Route::prefix('admin')->group(function () {
@@ -59,6 +66,15 @@ Route::prefix('admin')->group(function () {
         Route::get('/products', [ProductController::class, 'index'])->name('admin.products.index');
         Route::get('/products/create', [ProductController::class, 'create'])->name('admin.products.create');
         Route::post('/products', [ProductController::class, 'store'])->name('admin.products.store');
+
+        // Import/Export des produits (DOIT être avant /products/{product})
+        Route::get('/products/import-export', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'index'])->name('admin.products.import-export');
+        Route::get('/products/export/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'exportCsv'])->name('admin.products.export.csv');
+        Route::post('/products/import/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'importCsv'])->name('admin.products.import.csv');
+        Route::get('/products/template/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'downloadTemplate'])->name('admin.products.template.csv');
+        Route::post('/products/bulk-update', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'bulkUpdate'])->name('admin.products.bulk-update');
+        Route::get('/products/statistics/export', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'exportStatistics'])->name('admin.products.statistics.export');
+
         Route::get('/products/{product}', [ProductController::class, 'show'])->name('admin.products.show');
         Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('admin.products.edit');
         Route::put('/products/{product}', [ProductController::class, 'update'])->name('admin.products.update');
@@ -159,13 +175,6 @@ Route::prefix('admin')->group(function () {
                 Route::post('/products/{product}/variants/{variant}/toggle-status', [\App\Http\Controllers\Admin\ProductVariantController::class, 'toggleStatus'])->name('admin.products.variants.toggle-status');
                 Route::post('/products/{product}/variants/generate', [\App\Http\Controllers\Admin\ProductVariantController::class, 'generateVariants'])->name('admin.products.variants.generate');
 
-                // Import/Export des produits
-                Route::get('/products/import-export', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'index'])->name('admin.products.import-export');
-                Route::get('/products/export/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'exportCsv'])->name('admin.products.export.csv');
-                Route::post('/products/import/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'importCsv'])->name('admin.products.import.csv');
-                Route::get('/products/template/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'downloadTemplate'])->name('admin.products.template.csv');
-                Route::post('/products/bulk-update', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'bulkUpdate'])->name('admin.products.bulk-update');
-                Route::get('/products/statistics/export', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'exportStatistics'])->name('admin.products.statistics.export');
 
                 // Paramètres admin
                 Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings.index');

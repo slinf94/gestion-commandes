@@ -96,7 +96,19 @@
                                 @forelse($products as $product)
                                 <tr>
                                     <td>
-                                        @if($product->images && is_array($product->images) && count($product->images) > 0)
+                                        @if($product->productImages && $product->productImages->count() > 0)
+                                            @php
+                                                $firstImage = $product->productImages->first();
+                                                $imageUrl = asset('storage/' . ltrim($firstImage->url, '/'));
+                                            @endphp
+                                            <img src="{{ $imageUrl }}"
+                                                 alt="{{ $product->name }}"
+                                                 class="product-image"
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="product-image bg-light d-flex align-items-center justify-content-center" style="display: none;">
+                                                <i class="fas fa-image text-muted"></i>
+                                            </div>
+                                        @elseif($product->images && is_array($product->images) && count($product->images) > 0)
                                             <img src="{{ url('storage/' . $product->images[0]) }}"
                                                  alt="{{ $product->name }}"
                                                  class="product-image"
@@ -121,10 +133,10 @@
                                             {{ $product->stock_quantity }}
                                         </span>
                                     </td>
-                                    <td>{{ $product->category_name ?? 'N/A' }}</td>
+                                    <td>{{ $product->category->name ?? 'N/A' }}</td>
                                     <td>
-                                        @if($product->product_type_name)
-                                            <span class="badge bg-info">{{ $product->product_type_name }}</span>
+                                        @if($product->productType)
+                                            <span class="badge bg-info">{{ $product->productType->name }}</span>
                                         @else
                                             <span class="text-muted">N/A</span>
                                         @endif

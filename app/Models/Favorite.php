@@ -12,32 +12,24 @@ class Favorite extends Model
         'product_id',
     ];
 
-    // Relations
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    /**
+     * Get the user that owns the favorite.
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Get the product that is favorited.
+     */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
-
-    // Scopes
-    public function scopeByUser($query, $userId)
-    {
-        return $query->where('user_id', $userId);
-    }
-
-    public function scopeByProduct($query, $productId)
-    {
-        return $query->where('product_id', $productId);
-    }
 }
-
-
-
-
-
-
-

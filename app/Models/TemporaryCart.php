@@ -25,7 +25,7 @@ class TemporaryCart extends Model
     // Relations
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(\App\Models\ProductSimple::class, 'product_id');
     }
 
     // Scopes

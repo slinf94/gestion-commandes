@@ -183,7 +183,7 @@
                                 <!-- Gestion des images existantes -->
                                 @if($product->productImages && $product->productImages->count() > 0)
                                 <div class="form-group">
-                                    <label><i class="fas fa-images"></i> Images actuelles</label>
+                                    <label><i class="fas fa-images"></i> Images actuelles ({{ $product->productImages->count() }} image(s))</label>
                                     <div class="current-images-container">
                                         <div class="row">
                                             @foreach($product->productImages as $image)
@@ -194,6 +194,7 @@
                                                         $imageUrl = asset('storage/' . ltrim($imageUrl, '/'));
                                                     }
                                                 @endphp
+                                                <!-- Debug: Image ID {{ $image->id }}, URL: {{ $imageUrl }} -->
                                                 <div class="image-item position-relative">
                                                     <img src="{{ $imageUrl }}"
                                                          class="img-thumbnail"
@@ -204,7 +205,7 @@
                                                     <!-- Actions sur l'image -->
                                                     <div class="position-absolute top-0 end-0 p-1">
                                                         @if($image->type !== 'principale')
-                                                            <form method="POST" action="{{ route('admin.products.set-main-image', [$product, $image]) }}" class="d-inline">
+                                                            <form method="POST" action="{{ route('admin.products.set-main-image', [$product, $image->id]) }}" class="d-inline">
                                                                 @csrf
                                                                 <button type="submit" class="btn btn-sm btn-warning" title="Définir comme image principale">
                                                                     <i class="fas fa-star"></i>
@@ -218,7 +219,7 @@
                                                     </div>
 
                                                     <div class="position-absolute bottom-0 end-0 p-1">
-                                                        <form method="POST" action="{{ route('admin.products.delete-image', [$product, $image]) }}" class="d-inline">
+                                                        <form method="POST" action="{{ route('admin.products.delete-image', [$product, $image->id]) }}" class="d-inline">
                                                             @csrf
                                                             @method('DELETE')
                                                             <button type="submit" class="btn btn-sm btn-danger"
