@@ -202,7 +202,7 @@
                                             <td>{{ $order->created_at->format('d/m/Y H:i') }}</td>
                                             <td>
                                                 <span class="badge bg-{{ $order->getStatusClass() }}">
-                                                    {{ $order->getStatusIcon() }} {{ $order->getStatusLabel() }}
+                                                    {{ $order->getStatusLabel() }}
                                                 </span>
                                             </td>
                                             <td>

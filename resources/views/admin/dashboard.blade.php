@@ -142,7 +142,7 @@
                                 <tr>
                                     <td>#{{ $order->id }}</td>
                                     <td>{{ $order->user->nom ?? 'N/A' }} {{ $order->user->prenom ?? '' }}</td>
-                                    <td>{{ number_format($order->total, 0, ',', ' ') }} FCFA</td>
+                                    <td>{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</td>
                                     <td>
                                         <span class="badge bg-{{ $order->getStatusClass() }}">
                                             {{ $order->getStatusLabel() }}

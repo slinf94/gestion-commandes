@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Product;
-use App\Models\Order;
+use App\Models\OrderSimple as Order;
 use App\Models\Category;
 use App\Enums\OrderStatus;
 use Illuminate\Http\Request;
@@ -28,8 +28,8 @@ class DashboardController extends Controller
             'total_revenue' => Order::whereNotIn('status', [OrderStatus::CANCELLED])->sum('total_amount'),
         ];
 
-        // Commandes récentes
-        $recent_orders = Order::with(['user', 'items'])
+        // Commandes récentes - version simplifiée pour éviter l'épuisement mémoire
+        $recent_orders = Order::with(['user'])
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();

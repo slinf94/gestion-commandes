@@ -10,3 +10,5 @@ echo.
 echo Appuyez sur Ctrl+C pour arreter le serveur
 echo.
 php artisan serve --host=0.0.0.0 --port=8000
+
+

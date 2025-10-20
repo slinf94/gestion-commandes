@@ -40,26 +40,15 @@
                                     </td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            @if($order->items->count() > 0)
-                                                @foreach($order->items->take(3) as $item)
-                                                    @if($item->product && $item->product->mainImage)
-                                                        <img src="{{ $item->product->mainImage }}"
-                                                             class="img-thumbnail me-1"
-                                                             style="width: 30px; height: 30px; object-fit: cover;"
-                                                             alt="{{ $item->product->name }}"
-                                                             onerror="this.src='{{ asset('images/placeholder.svg') }}'"
-                                                             title="{{ $item->product->name }}">
-                                                    @else
-                                                        <div class="img-thumbnail d-flex align-items-center justify-content-center bg-light me-1"
-                                                             style="width: 30px; height: 30px;"
-                                                             title="{{ $item->product ? $item->product->name : 'Produit supprimé' }}">
-                                                            <i class="fas fa-image text-muted" style="font-size: 10px;"></i>
-                                                        </div>
-                                                    @endif
-                                                @endforeach
-                                                @if($order->items->count() > 3)
-                                                    <span class="badge bg-secondary ms-1">+{{ $order->items->count() - 3 }}</span>
-                                                @endif
+                                            @php
+                                                // Version simplifiée pour éviter l'épuisement mémoire
+                                                $itemsCount = \DB::table('order_items')->where('order_id', $order->id)->count();
+                                            @endphp
+                                            @if($itemsCount > 0)
+                                                <span class="badge bg-info">
+                                                    <i class="fas fa-shopping-cart me-1"></i>
+                                                    {{ $itemsCount }} article(s)
+                                                </span>
                                             @else
                                                 <span class="text-muted">Aucun article</span>
                                             @endif
@@ -67,7 +56,7 @@
                                     </td>
                                     <td>
                                         <span class="badge bg-{{ $order->getStatusClass() }}">
-                                            {{ $order->getStatusIcon() }} {{ $order->getStatusLabel() }}
+                                            {{ $order->getStatusLabel() }}
                                         </span>
                                     </td>
                                     <td>{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</td>

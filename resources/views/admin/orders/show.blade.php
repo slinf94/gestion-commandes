@@ -39,7 +39,7 @@
                                 <td><strong>Statut actuel:</strong></td>
                                 <td>
                                     <span class="badge badge-{{ $order->getStatusClass() }} fs-6">
-                                        {{ $order->getStatusIcon() }} {{ $order->getStatusLabel() }}
+                                        {{ $order->getStatusLabel() }}
                                     </span>
                                 </td>
                             </tr>
@@ -149,10 +149,10 @@
                                 <tr>
                                     <td>
                                         @if($item->product_image)
-                                            <img src="{{ $item->product_image }}" alt="{{ $item->product_name }}" 
+                                            <img src="{{ $item->product_image }}" alt="{{ $item->product_name }}"
                                                  class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
                                         @else
-                                            <div class="bg-light d-flex align-items-center justify-content-center" 
+                                            <div class="bg-light d-flex align-items-center justify-content-center"
                                                  style="width: 50px; height: 50px;">
                                                 <i class="fas fa-image text-muted"></i>
                                             </div>
@@ -201,7 +201,6 @@
                 <!-- Statut actuel -->
                 <div class="alert alert-{{ $order->getStatusClass() }} mb-3">
                     <div class="d-flex align-items-center">
-                        <span class="me-2">{{ $order->getStatusIcon() }}</span>
                         <div>
                             <strong>Statut actuel:</strong> {{ $order->getStatusLabel() }}<br>
                             <small>{{ $order->getStatusDescription() }}</small>

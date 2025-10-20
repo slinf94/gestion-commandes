@@ -64,11 +64,13 @@ class AuthController extends Controller
             'status' => 'pending', // En attente d'activation par l'admin
         ]);
 
-        // Notifier les administrateurs par email
+        // Notifier les administrateurs par email (désactivé temporairement pour éviter les timeouts)
+        /*
         $admins = User::whereIn('role', ['admin', 'gestionnaire'])->get();
         foreach ($admins as $admin) {
             $admin->notify(new NewUserRegistrationNotification($user));
         }
+        */
 
         return response()->json([
             'success' => true,

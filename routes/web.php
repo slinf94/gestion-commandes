@@ -190,3 +190,4 @@ Route::prefix('admin')->group(function () {
 
 // Route pour la redirection mobile après activation du compte
 Route::get('/mobile-app', [MobileRedirectController::class, 'index'])->name('mobile.app');
+

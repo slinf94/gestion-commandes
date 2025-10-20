@@ -33,12 +33,21 @@ class CorsMiddleware
 
         // Ajouter les headers CORS à toutes les réponses
         foreach ($headers as $key => $value) {
-            $response->header($key, $value);
+            // Vérifier si la réponse est une StreamedResponse
+            if ($response instanceof \Symfony\Component\HttpFoundation\StreamedResponse) {
+                // Pour StreamedResponse, ajouter les headers avant de retourner
+                $response->headers->set($key, $value);
+            } else {
+                // Pour les autres types de réponse, utiliser la méthode header()
+                $response->header($key, $value);
+            }
         }
 
         return $response;
     }
 }
+
+
 
 
 

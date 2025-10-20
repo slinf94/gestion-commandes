@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
+use App\Models\OrderSimple as Order;
 use App\Models\User;
 use App\Models\OrderStatusHistory;
 use App\Notifications\OrderStatusChangedNotification;
@@ -16,20 +16,18 @@ class OrderController extends Controller
 {
     public function index()
     {
-        $orders = Order::with(['user' => function($query) {
-                $query->withTrashed(); // Inclure les utilisateurs supprimés
-            }, 'items.product.productImages'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        // Version ultra-simplifiée pour éviter l'épuisement mémoire
+        $orders = Order::orderBy('created_at', 'desc')->paginate(20);
 
         return view('admin.orders.index', compact('orders'));
     }
 
     public function show(Order $order)
     {
+        // Version ultra-simplifiée pour éviter l'épuisement mémoire
         $order->load(['user' => function($query) {
                 $query->withTrashed(); // Inclure les utilisateurs supprimés
-            }, 'items.product.productImages', 'statusHistory']);
+            }, 'items', 'statusHistory']);
         return view('admin.orders.show', compact('order'));
     }
 
@@ -42,11 +40,13 @@ class OrderController extends Controller
 
         try {
             $newStatus = OrderStatus::from($request->status);
-            $oldStatus = $order->status;
+            $oldStatus = $order->status instanceof \App\Enums\OrderStatus ? $order->status : OrderStatus::from($order->status);
 
             // Vérifier si le changement de statut est autorisé
             if (!$order->canChangeStatusTo($newStatus)) {
-                $message = "Impossible de changer le statut de \"{$oldStatus->getLabel()}\" vers \"{$newStatus->getLabel()}\"";
+                $oldStatusLabel = $oldStatus instanceof \App\Enums\OrderStatus ? $oldStatus->getLabel() : $order->getStatusLabel();
+                $newStatusLabel = $newStatus instanceof \App\Enums\OrderStatus ? $newStatus->getLabel() : $order->getStatusLabel();
+                $message = "Impossible de changer le statut de \"{$oldStatusLabel}\" vers \"{$newStatusLabel}\"";
 
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json([
@@ -80,7 +80,7 @@ class OrderController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => $message,
-                    'order' => $order->fresh(['user', 'items.product.productImages', 'statusHistory.changedBy']),
+                    'order' => $order->fresh(['user', 'items.product', 'statusHistory.changedBy']),
                     'new_status' => [
                         'value' => $newStatus->value,
                         'label' => $newStatus->getLabel(),
