@@ -334,50 +334,112 @@ class ProductController extends Controller
      */
     public function favorites()
     {
-        $user = auth()->user();
+        try {
+            $user = auth()->user();
 
-        // Version ultra-simplifiée pour éviter l'épuisement mémoire
-        $favorites = $user->favorites()->get();
+            // Version ultra-simplifiée pour éviter l'épuisement mémoire
+            $favorites = $user->favorites()->get();
 
-        // Extraire les produits des favoris et les formater sans relations
-        $products = [];
-        foreach ($favorites as $favorite) {
-            // Récupérer le produit directement par ID sans relations
-            $product = \App\Models\ProductSimple::find($favorite->product_id);
-            if ($product) {
-                $productData = [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'description' => $product->description,
-                    'price' => $product->price,
-                    'sku' => $product->sku,
-                    'stock_quantity' => $product->stock_quantity,
-                    'status' => $product->status,
-                    'is_featured' => $product->is_featured,
-                    'created_at' => $product->created_at,
-                    'updated_at' => $product->updated_at,
-                ];
+            // Extraire les produits des favoris et les formater sans relations
+            $products = [];
+            foreach ($favorites as $favorite) {
+                try {
+                    // Récupérer le produit directement par ID sans relations
+                    $product = \App\Models\ProductSimple::find($favorite->product_id);
+                    if ($product) {
+                        $productData = [
+                            'id' => $product->id,
+                            'name' => $product->name,
+                            'description' => $product->description,
+                            'price' => $product->price,
+                            'sku' => $product->sku,
+                            'stock_quantity' => $product->stock_quantity,
+                            'status' => $product->status,
+                            'is_featured' => $product->is_featured,
+                            'created_at' => $product->created_at,
+                            'updated_at' => $product->updated_at,
+                        ];
 
-                // Formater les images de manière simplifiée
-                if ($product->images && is_array($product->images) && count($product->images) > 0) {
-                    $productData['main_image'] = url('storage/' . ltrim($product->images[0], '/'));
-                    $productData['images'] = array_map(function ($image) {
-                        return url('storage/' . ltrim($image, '/'));
-                    }, array_slice($product->images, 0, 3)); // Limiter à 3 images
-                } else {
-                    $productData['main_image'] = null;
-                    $productData['images'] = [];
+                        // Formater les images de manière robuste
+                        $productData['main_image'] = $this->formatProductImage($product);
+                        $productData['images'] = $this->formatProductImages($product);
+
+                        $products[] = $productData;
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Erreur lors du traitement du favori ID: ' . $favorite->id . ' - ' . $e->getMessage());
+                    // Continuer avec les autres favoris même si un échoue
                 }
-
-                $products[] = $productData;
             }
-        }
 
-        return response()->json([
-            'success' => true,
-            'data' => $products,
-            'message' => 'Favoris récupérés avec succès'
-        ]);
+            return response()->json([
+                'success' => true,
+                'data' => $products,
+                'message' => 'Favoris récupérés avec succès'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur dans favorites(): ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des favoris',
+                'data' => []
+            ], 500);
+        }
+    }
+
+    /**
+     * Formater l'image principale d'un produit
+     */
+    private function formatProductImage($product)
+    {
+        try {
+            if ($product->images && is_array($product->images) && count($product->images) > 0) {
+                $firstImage = $product->images[0];
+                if (is_string($firstImage) && !empty($firstImage)) {
+                    // Si c'est une URL complète, l'utiliser directement
+                    if (str_starts_with($firstImage, 'http')) {
+                        return $firstImage;
+                    }
+                    // Sinon, ajouter le chemin storage
+                    return url('storage/' . ltrim($firstImage, '/'));
+                }
+            }
+            // Image par défaut
+            return url('storage/products/placeholder.svg');
+        } catch (\Exception $e) {
+            \Log::error('Erreur formatProductImage: ' . $e->getMessage());
+            return url('storage/products/placeholder.svg');
+        }
+    }
+
+    /**
+     * Formater toutes les images d'un produit
+     */
+    private function formatProductImages($product)
+    {
+        try {
+            if ($product->images && is_array($product->images) && count($product->images) > 0) {
+                $formattedImages = [];
+                foreach (array_slice($product->images, 0, 3) as $image) { // Limiter à 3 images
+                    if (is_string($image) && !empty($image)) {
+                        // Si c'est une URL complète, l'utiliser directement
+                        if (str_starts_with($image, 'http')) {
+                            $formattedImages[] = $image;
+                        } else {
+                            // Sinon, ajouter le chemin storage
+                            $formattedImages[] = url('storage/' . ltrim($image, '/'));
+                        }
+                    }
+                }
+                return $formattedImages;
+            }
+            return [];
+        } catch (\Exception $e) {
+            \Log::error('Erreur formatProductImages: ' . $e->getMessage());
+            return [];
+        }
     }
 
     /**

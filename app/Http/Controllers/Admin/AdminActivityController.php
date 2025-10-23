@@ -283,7 +283,7 @@ class AdminActivityController extends Controller
 
             $callback = function() use ($query) {
                 $file = fopen('php://output', 'w');
-                
+
                 // Ajouter BOM pour UTF-8
                 fputs($file, "\xEF\xBB\xBF");
 
@@ -304,8 +304,8 @@ class AdminActivityController extends Controller
                     foreach ($activities as $activity) {
                         $properties = '';
                         try {
-                            $properties = is_array($activity->properties) 
-                                ? json_encode($activity->properties, JSON_UNESCAPED_UNICODE) 
+                            $properties = is_array($activity->properties)
+                                ? json_encode($activity->properties, JSON_UNESCAPED_UNICODE)
                                 : $activity->properties;
                         } catch (\Exception $e) {
                             $properties = 'Erreur encodage';
@@ -331,8 +331,8 @@ class AdminActivityController extends Controller
 
         } catch (\Exception $e) {
             \Log::error('Erreur lors de l\'export des journaux d\'activité: ' . $e->getMessage());
-            
-            return redirect()->back()->with('error', 
+
+            return redirect()->back()->with('error',
                 'Erreur lors de l\'export: ' . $e->getMessage()
             );
         }

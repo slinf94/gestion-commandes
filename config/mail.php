@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'default' => env('MAIL_MAILER', 'log'),
+    'default' => 'log',
 
     /*
     |--------------------------------------------------------------------------
@@ -39,14 +39,19 @@ return [
 
         'smtp' => [
             'transport' => 'smtp',
-            'scheme' => env('MAIL_SCHEME'),
-            'url' => env('MAIL_URL'),
-            'host' => env('MAIL_HOST', '127.0.0.1'),
-            'port' => env('MAIL_PORT', 2525),
-            'username' => env('MAIL_USERNAME'),
-            'password' => env('MAIL_PASSWORD'),
+            'scheme' => null,
+            'url' => null,
+            'host' => 'smtp.gmail.com',
+            'port' => 587,
+            'username' => 'alnoreply48@gmail.com',
+            'password' => 'hqat hdgh wrek hilc',
             'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'local_domain' => 'allomobile.com',
+            'encryption' => 'tls',
+        ],
+
+        'mailgun' => [
+            'transport' => 'mailgun',
         ],
 
         'ses' => [
@@ -111,8 +116,8 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'address' => 'alnoreply48@gmail.com',
+        'name' => 'Allo Mobile',
     ],
 
 ];

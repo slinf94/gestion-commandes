@@ -276,23 +276,26 @@ document.addEventListener('DOMContentLoaded', function() {
         // Dans une version plus avancée, on pourrait filtrer par type de produit
         let html = '<div class="row">';
 
-        allAttributes.forEach((attribute, index) => {
+        // Limiter à seulement 5 attributs les plus importants pour simplifier
+        const importantAttributes = allAttributes.slice(0, 5);
+
+        importantAttributes.forEach((attribute, index) => {
             html += `
                 <div class="col-md-6 mb-3">
-                    <label for="attribute_${attribute.id}" class="form-label">${attribute.name}</label>
+                    <label for="attribute_${attribute.id}" class="form-label">${attribute.name} <small class="text-muted">(optionnel)</small></label>
                     <input type="hidden" name="attributes[${index}][attribute_id]" value="${attribute.id}">
             `;
 
             if (attribute.type === 'select' && attribute.options) {
                 html += `<select class="form-select" name="attributes[${index}][value]" id="attribute_${attribute.id}">
-                    <option value="">Sélectionner...</option>`;
+                    <option value="">Sélectionner... (optionnel)</option>`;
                 attribute.options.forEach(option => {
                     html += `<option value="${option}">${option}</option>`;
                 });
                 html += '</select>';
             } else if (attribute.type === 'boolean') {
                 html += `<select class="form-select" name="attributes[${index}][value]" id="attribute_${attribute.id}">
-                    <option value="">Sélectionner...</option>
+                    <option value="">Sélectionner... (optionnel)</option>
                     <option value="1">Oui</option>
                     <option value="0">Non</option>
                 </select>`;
@@ -300,11 +303,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += `<input type="${attribute.type === 'number' ? 'number' : 'text'}"
                          class="form-control"
                          name="attributes[${index}][value]"
-                         id="attribute_${attribute.id}">`;
+                         id="attribute_${attribute.id}"
+                         placeholder="Optionnel">`;
             }
 
             html += '</div></div>';
         });
+
+        if (allAttributes.length > 5) {
+            html += `
+                <div class="col-12">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Seuls les 5 attributs les plus importants sont affichés pour simplifier la création.
+                        Vous pourrez ajouter d'autres attributs après la création du produit.
+                    </small>
+                </div>
+            `;
+        }
 
         html += '</div>';
         attributesContainer.innerHTML = html;
@@ -321,6 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endsection
+
 
 
 

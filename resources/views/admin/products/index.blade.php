@@ -96,7 +96,7 @@
                                 @forelse($products as $product)
                                 <tr>
                                     <td>
-                                        @if($product->productImages && $product->productImages->count() > 0)
+                                        @if($product->productImages && $product->productImages->count() > 0 && $product->productImages->first()->url)
                                             @php
                                                 $firstImage = $product->productImages->first();
                                                 $imageUrl = asset('storage/' . ltrim($firstImage->url, '/'));
@@ -108,14 +108,52 @@
                                             <div class="product-image bg-light d-flex align-items-center justify-content-center" style="display: none;">
                                                 <i class="fas fa-image text-muted"></i>
                                             </div>
-                                        @elseif($product->images && is_array($product->images) && count($product->images) > 0)
-                                            <img src="{{ url('storage/' . $product->images[0]) }}"
-                                                 alt="{{ $product->name }}"
-                                                 class="product-image"
-                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                            <div class="product-image bg-light d-flex align-items-center justify-content-center" style="display: none;">
-                                                <i class="fas fa-image text-muted"></i>
-                                            </div>
+                                        @elseif($product->images && is_array($product->images) && count(array_filter($product->images, function($img) { return !empty($img) && (is_string($img) || (is_array($img) && !empty($img))); })) > 0)
+                                            @php
+                                                $firstImage = $product->images[0];
+                                                $imagePath = null;
+
+                                                // Debug temporaire - décommentez pour voir les données
+                                                // dd('Product ID: ' . $product->id, 'Images: ', $product->images, 'First Image: ', $firstImage, 'ImagePath: ', $imagePath);
+
+                                                // Gestion robuste des différents formats d'images
+                                                if (is_string($firstImage)) {
+                                                    // Si c'est déjà une chaîne, l'utiliser directement
+                                                    $imagePath = $firstImage;
+                                                } elseif (is_object($firstImage)) {
+                                                    // Si c'est un objet, chercher une propriété url ou path
+                                                    $imagePath = $firstImage->url ?? $firstImage->path ?? $firstImage->filename ?? null;
+                                                } elseif (is_array($firstImage)) {
+                                                    // Si c'est un array, chercher une clé url ou path
+                                                    $imagePath = $firstImage['url'] ?? $firstImage['path'] ?? $firstImage['filename'] ?? $firstImage[0] ?? null;
+                                                }
+
+                                                // S'assurer que $imagePath est une chaîne valide
+                                                if (is_string($imagePath) && !empty($imagePath)) {
+                                                    // Si c'est une URL complète (http/https), l'utiliser directement
+                                                    if (str_starts_with($imagePath, 'http')) {
+                                                        $imageUrl = $imagePath;
+                                                    } else {
+                                                        // Sinon, ajouter le chemin storage
+                                                        $imageUrl = asset('storage/' . ltrim($imagePath, '/'));
+                                                    }
+                                                } else {
+                                                    $imageUrl = null;
+                                                }
+                                            @endphp
+                                            @if($imageUrl)
+                                                <img src="{{ $imageUrl }}"
+                                                     alt="{{ $product->name }}"
+                                                     class="product-image"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <div class="product-image bg-light d-flex align-items-center justify-content-center" style="display: none;">
+                                                    <i class="fas fa-image text-muted"></i>
+                                                </div>
+                                            @else
+                                                <div class="product-image bg-light d-flex align-items-center justify-content-center">
+                                                    <i class="fas fa-image text-muted"></i>
+                                                </div>
+                                            @endif
                                         @else
                                             <div class="product-image bg-light d-flex align-items-center justify-content-center">
                                                 <i class="fas fa-image text-muted"></i>

@@ -14,6 +14,12 @@ return [
     |
     */
 
+    'mailgun' => [
+        'domain' => 'sandbox-123.mailgun.org', // Remplacez par votre domaine Mailgun
+        'secret' => 'your-mailgun-secret-key', // Remplacez par votre clé secrète
+        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
+    ],
+
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],

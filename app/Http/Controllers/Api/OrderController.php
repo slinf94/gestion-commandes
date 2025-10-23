@@ -21,7 +21,7 @@ class OrderController extends Controller
         $user = auth()->user();
 
         // Version simplifiée pour éviter l'épuisement mémoire
-        $query = $user->orders();
+        $query = $user->orders()->with('items');
 
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
@@ -52,6 +52,23 @@ class OrderController extends Controller
                 'created_at' => $order->created_at,
                 'updated_at' => $order->updated_at,
                 'items_count' => $order->items()->count(),
+                'items' => $order->items->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'order_id' => $item->order_id,
+                        'product_id' => $item->product_id,
+                        'product_name' => $item->product_name,
+                        'product_image' => $item->product_image,
+                        'product_sku' => $item->product_sku,
+                        'product_stock' => $item->product_stock,
+                        'quantity' => $item->quantity,
+                        'unit_price' => $item->unit_price,
+                        'total_price' => $item->total_price,
+                        'product_details' => $item->product_details,
+                        'created_at' => $item->created_at,
+                        'updated_at' => $item->updated_at,
+                    ];
+                })->toArray(),
             ];
 
             return $orderData;
@@ -165,6 +182,15 @@ class OrderController extends Controller
                 $unitPrice = $cartItem->unit_price ?? $cartItem->product->price;
                 $totalPrice = $cartItem->quantity * $unitPrice;
 
+                // Récupérer l'image principale du produit
+                $mainImage = 'products/placeholder.svg'; // Image par défaut
+                if ($cartItem->product->images && is_array($cartItem->product->images)) {
+                    $firstImage = $cartItem->product->images[0];
+                    if (is_string($firstImage) && !empty($firstImage)) {
+                        $mainImage = $firstImage;
+                    }
+                }
+
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $cartItem->product_id,
@@ -172,7 +198,7 @@ class OrderController extends Controller
                     'unit_price' => $unitPrice,
                     'total_price' => $totalPrice,
                     'product_name' => $cartItem->product->name,
-                    'product_image' => $cartItem->product->main_image,
+                    'product_image' => $mainImage,
                     'product_sku' => $cartItem->product->sku,
                     'product_stock' => $cartItem->product->stock_quantity,
                     'product_details' => [

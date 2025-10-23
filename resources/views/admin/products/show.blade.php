@@ -165,9 +165,13 @@
                                 </form>
                             </div>
 
-                            @if($product->productImages && $product->productImages->count() > 0)
+                            {{-- Debug temporaire --}}
+                            {{-- @dd('Product ID:', $product->id, 'ProductImages count:', $product->productImages->count(), 'ProductImages:', $product->productImages->toArray(), 'Images attribute:', $product->images) --}}
+
+                            @if($product->productImages && $product->productImages->count() > 0 && $product->productImages->where('url', '!=', '')->count() > 0)
                                 <div class="row">
                                     @foreach($product->productImages as $image)
+                                        @if($image->url && !empty($image->url))
                                         <div class="col-12 mb-3">
                                             @php
                                                 $imageUrl = $image->url;
@@ -216,14 +220,28 @@
                                                 </small>
                                             @endif
                                         </div>
+                                        @endif
                                     @endforeach
                                 </div>
-                            @elseif($product->images && count($product->images) > 0 && !empty(array_filter($product->images)))
+                            @elseif($product->images && is_array($product->images) && count(array_filter($product->images, function($img) { return !empty($img) && (is_string($img) || (is_array($img) && !empty($img))); })) > 0)
                                 <div class="row">
                                     @foreach($product->images as $image)
                                         @if(is_string($image) && !empty($image))
                                         <div class="col-12 mb-3">
-                                            <img src="{{ asset('storage/' . $image) }}" class="img-thumbnail" style="width: 100%; height: 200px; object-fit: cover;" alt="Image du produit">
+                                            @php
+                                                // Si c'est une URL complète (http/https), l'utiliser directement
+                                                if (str_starts_with($image, 'http')) {
+                                                    $imageUrl = $image;
+                                                } else {
+                                                    // Sinon, ajouter le chemin storage
+                                                    $imageUrl = asset('storage/' . ltrim($image, '/'));
+                                                }
+                                            @endphp
+                                            <img src="{{ $imageUrl }}"
+                                                 class="img-thumbnail"
+                                                 style="width: 100%; height: 200px; object-fit: cover;"
+                                                 alt="Image du produit"
+                                                 onerror="this.src='{{ asset('images/placeholder.svg') }}'">
                                         </div>
                                         @endif
                                     @endforeach

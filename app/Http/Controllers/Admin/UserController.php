@@ -195,20 +195,21 @@ class UserController extends Controller
             $user->update(['password' => Hash::make($request->password)]);
         }
 
+        $message = 'Utilisateur mis à jour avec succès';
+
         // Envoyer l'email de notification si le compte vient d'être activé
         if ($wasActivated) {
             try {
+                // Utiliser la queue pour éviter les timeouts
                 $user->notify(new AccountActivatedNotification($user));
                 \Log::info('Email d\'activation envoyé à l\'utilisateur: ' . $user->email);
+                $message .= '. Un email de confirmation a été envoyé au client.';
             } catch (\Exception $e) {
                 \Log::error('Erreur lors de l\'envoi de l\'email d\'activation: ' . $e->getMessage());
-                // On continue quand même, l'activation est réussie même si l'email n'est pas envoyé
-            }
-        }
 
-        $message = 'Utilisateur mis à jour avec succès';
-        if ($wasActivated) {
-            $message .= '. Un email de confirmation a été envoyé au client.';
+                // Afficher un message à l'admin mais continuer l'activation
+                $message .= '. ⚠️ Attention: L\'email de confirmation n\'a pas pu être envoyé (problème de configuration SMTP).';
+            }
         }
 
         return redirect()->route('admin.users.show', $user)

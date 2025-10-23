@@ -379,9 +379,21 @@ class ProductApiController extends Controller
             $images = is_array($product->images) ? $product->images : json_decode($product->images, true);
             if ($images && count($images) > 0) {
                 $productData['images'] = array_map(function($image) {
+                    // Si c'est une URL complète, l'utiliser directement
+                    if (is_string($image) && str_starts_with($image, 'http')) {
+                        return $image;
+                    }
+                    // Si c'est un array vide, l'ignorer
+                    if (is_array($image) && empty($image)) {
+                        return null;
+                    }
+                    // Sinon, traiter comme un chemin relatif
                     return 'http://192.168.100.73:8000/storage/' . $image;
                 }, $images);
-                $productData['main_image'] = 'http://192.168.100.73:8000/storage/' . $images[0];
+
+                // Filtrer les images null et récupérer la première image valide
+                $validImages = array_filter($productData['images'], function($img) { return $img !== null; });
+                $productData['main_image'] = !empty($validImages) ? reset($validImages) : 'http://192.168.100.73:8000/images/placeholder.jpg';
             } else {
                 $productData['images'] = [];
                 $productData['main_image'] = 'http://192.168.100.73:8000/images/placeholder.jpg';

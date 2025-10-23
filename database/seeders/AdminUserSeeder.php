@@ -20,7 +20,7 @@ class AdminUserSeeder extends Seeder
         if ($existingAdmin) {
             echo "✅ Administrateur existant trouvé:\n";
             echo "   Email: {$existingAdmin->email}\n";
-            echo "   Nom: {$existingAdmin->full_name}\n";
+            echo "   Nom: {$existingAdmin->nom} {$existingAdmin->prenom}\n";
 
             // Réinitialiser le mot de passe
             $existingAdmin->password = Hash::make('admin123');
@@ -31,18 +31,20 @@ class AdminUserSeeder extends Seeder
             echo "Création d'un nouvel administrateur...\n";
 
             $admin = User::create([
-                'full_name' => 'Admin Super',
-                'email' => 'admin@example.com',
+                'nom' => 'Admin',
+                'prenom' => 'Super',
+                'email' => 'admin@allomobile.com',
                 'password' => Hash::make('admin123'),
-                'phone' => '+22612345678',
+                'numero_telephone' => '+22612345678',
                 'role' => 'admin',
+                'status' => 'active',
                 'email_verified_at' => now(),
             ]);
 
             echo "✅ Administrateur créé avec succès!\n";
             echo "   Email: {$admin->email}\n";
             echo "   Mot de passe: admin123\n";
-            echo "   Nom: {$admin->full_name}\n";
+            echo "   Nom: {$admin->nom} {$admin->prenom}\n";
         }
 
         echo "\n📋 INSTRUCTIONS DE CONNEXION:\n";

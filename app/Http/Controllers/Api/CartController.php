@@ -137,7 +137,7 @@ class CartController extends Controller
         }
 
         $sessionId = $this->getSessionId($request);
-        
+
         $cartItem = TemporaryCart::with('product')
             ->where('session_id', $sessionId)
             ->where('product_id', $productId)
@@ -178,7 +178,7 @@ class CartController extends Controller
     public function remove(Request $request, $productId)
     {
         $sessionId = $this->getSessionId($request);
-        
+
         $cartItem = TemporaryCart::where('session_id', $sessionId)
             ->where('product_id', $productId)
             ->where('expires_at', '>', now())
@@ -241,8 +241,8 @@ class CartController extends Controller
     {
         // Pour les utilisateurs authentifiés, utiliser l'ID utilisateur comme session
         $userId = auth()->id();
-        
-        
+
+
         if ($userId) {
             return 'user_' . $userId;
         }

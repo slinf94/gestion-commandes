@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\OrderSimple as Order;
+use App\Models\Order;
 use App\Models\User;
 use App\Models\OrderStatusHistory;
 use App\Notifications\OrderStatusChangedNotification;
@@ -40,7 +40,7 @@ class OrderController extends Controller
 
         try {
             $newStatus = OrderStatus::from($request->status);
-            $oldStatus = $order->status instanceof \App\Enums\OrderStatus ? $order->status : OrderStatus::from($order->status);
+            $oldStatus = $order->status;
 
             // Vérifier si le changement de statut est autorisé
             if (!$order->canChangeStatusTo($newStatus)) {
@@ -48,12 +48,12 @@ class OrderController extends Controller
                 $newStatusLabel = $newStatus instanceof \App\Enums\OrderStatus ? $newStatus->getLabel() : $order->getStatusLabel();
                 $message = "Impossible de changer le statut de \"{$oldStatusLabel}\" vers \"{$newStatusLabel}\"";
 
-                if ($request->ajax() || $request->wantsJson()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => $message
-                    ], 422);
-                }
+            if ($request->ajax() || $request->wantsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+                return response()->json([
+                    'success' => false,
+                    'message' => $message
+                ], 422);
+            }
 
                 return redirect()->back()->withErrors(['status' => $message]);
             }
@@ -76,11 +76,11 @@ class OrderController extends Controller
             $message = "Statut de la commande changé de \"{$oldStatus->getLabel()}\" vers \"{$newStatus->getLabel()}\" avec succès";
 
             // Vérifier si c'est une requête AJAX
-            if ($request->ajax() || $request->wantsJson()) {
+            if ($request->ajax() || $request->wantsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
                 return response()->json([
                     'success' => true,
                     'message' => $message,
-                    'order' => $order->fresh(['user', 'items.product', 'statusHistory.changedBy']),
+                    'order' => $order->fresh(),
                     'new_status' => [
                         'value' => $newStatus->value,
                         'label' => $newStatus->getLabel(),
@@ -103,7 +103,7 @@ class OrderController extends Controller
 
             $errorMessage = 'Erreur lors de la mise à jour du statut: ' . $e->getMessage();
 
-            if ($request->ajax() || $request->wantsJson()) {
+            if ($request->ajax() || $request->wantsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
                 return response()->json([
                     'success' => false,
                     'message' => $errorMessage

@@ -262,17 +262,22 @@ class Order extends Model
         }
 
         $oldStatus = $this->status;
+        $oldStatusValue = $oldStatus instanceof \App\Enums\OrderStatus ? $oldStatus->value : $oldStatus;
 
         // Mettre à jour le statut
         $this->update(['status' => $newStatus]);
 
         // Enregistrer l'historique
-        $this->statusHistory()->create([
-            'previous_status' => $oldStatus->value,
-            'new_status' => $newStatus->value,
-            'comment' => $comment,
-            'changed_by' => $changedBy ?? auth()->id(),
-        ]);
+        try {
+            $this->statusHistory()->create([
+                'previous_status' => $oldStatusValue,
+                'new_status' => $newStatus->value,
+                'comment' => $comment,
+                'changed_by' => $changedBy ?? auth()->id(),
+            ]);
+        } catch (\Exception $e) {
+            \Log::warning('Impossible d\'enregistrer l\'historique des statuts: ' . $e->getMessage());
+        }
 
         return true;
     }

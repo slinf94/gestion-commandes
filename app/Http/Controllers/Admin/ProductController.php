@@ -87,8 +87,8 @@ class ProductController extends Controller
             'images' => 'nullable|array|max:5',
             'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             'attributes' => 'nullable|array',
-            'attributes.*.attribute_id' => 'required|exists:attributes,id',
-            'attributes.*.value' => 'required|string',
+            'attributes.*.attribute_id' => 'nullable|exists:attributes,id',
+            'attributes.*.value' => 'nullable|string',
             'attributes.*.display_value' => 'nullable|string',
         ], [
             'stock_quantity.regex' => 'La quantité en stock doit être un nombre entier positif (ne peut pas commencer par 0).',
@@ -190,8 +190,8 @@ class ProductController extends Controller
             'meta_description' => 'nullable|string|max:500',
             'tags' => 'nullable|string',
             'attributes' => 'nullable|array',
-            'attributes.*.attribute_id' => 'required|exists:attributes,id',
-            'attributes.*.value' => 'required|string',
+            'attributes.*.attribute_id' => 'nullable|exists:attributes,id',
+            'attributes.*.value' => 'nullable|string',
             'attributes.*.display_value' => 'nullable|string',
         ]);
 
@@ -266,7 +266,22 @@ class ProductController extends Controller
         }
 
         // Mettre à jour la colonne images du produit
-        $existingImages = $product->images ? (is_array($product->images) ? $product->images : json_decode($product->images, true)) : [];
+        $existingImages = [];
+        if ($product->images) {
+            if (is_array($product->images)) {
+                // Filtrer les éléments vides et les arrays vides
+                $existingImages = array_filter($product->images, function($img) {
+                    return !empty($img) && (is_string($img) || (is_array($img) && !empty($img)));
+                });
+            } else {
+                $decoded = json_decode($product->images, true);
+                if (is_array($decoded)) {
+                    $existingImages = array_filter($decoded, function($img) {
+                        return !empty($img) && (is_string($img) || (is_array($img) && !empty($img)));
+                    });
+                }
+            }
+        }
         $allImages = array_merge($existingImages, $uploadedPaths);
         $product->update(['images' => $allImages]);
 
