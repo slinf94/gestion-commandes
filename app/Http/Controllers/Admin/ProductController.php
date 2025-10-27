@@ -3,67 +3,205 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ProductSimple as Product;
-use App\Models\ProductImage;
-use App\Models\Category;
-use App\Models\ProductType;
-use App\Models\Attribute;
-use App\Models\ProductAttributeValue;
+use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * Augmentation de la mémoire PHP et désactivation des fonctionnalités lourdes
+     */
+    public function __construct()
     {
-        // Utiliser les modèles Eloquent avec les relations pour afficher les images
-        $query = Product::with(['category', 'productType', 'productImages'])
-            ->whereNull('deleted_at');
-
-        // Filtres
-        if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
-        }
-
-        if ($request->filled('product_type_id')) {
-            $query->where('product_type_id', $request->product_type_id);
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
-            });
-        }
-
-        $products = $query->orderBy('created_at', 'desc')->paginate(20);
-
-        $categories = Category::where('is_active', true)->get();
-        $productTypes = ProductType::where('is_active', true)->get();
-
-        return view('admin.products.index', compact('products', 'categories', 'productTypes'));
+        ini_set('memory_limit', '1G'); // Augmentation à 1GB
+        ini_set('max_execution_time', 300); // 5 minutes max
     }
 
-    public function show(Product $product)
+    public function index(Request $request)
     {
-        $product->load(['category', 'orderItems', 'productImages']);
-        return view('admin.products.show', compact('product'));
+        try {
+            // Construction de la requête avec filtres dynamiques
+            $query = DB::table('products')
+                ->select('id', 'name', 'price', 'status', 'created_at', 'category_id', 'product_type_id')
+                ->whereNull('deleted_at');
+
+            // Filtres dynamiques
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%")
+                      ->orWhere('sku', 'like', "%{$search}%");
+                });
+            }
+
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->filled('category_id')) {
+                $query->where('category_id', $request->category_id);
+            }
+
+            if ($request->filled('product_type_id')) {
+                $query->where('product_type_id', $request->product_type_id);
+            }
+
+            if ($request->filled('price_min')) {
+                $query->where('price', '>=', $request->price_min);
+            }
+
+            if ($request->filled('price_max')) {
+                $query->where('price', '<=', $request->price_max);
+            }
+
+            if ($request->filled('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+
+            if ($request->filled('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            // Tri dynamique
+            $sortBy = $request->get('sort_by', 'created_at');
+            $sortOrder = $request->get('sort_order', 'desc');
+            $query->orderBy($sortBy, $sortOrder);
+
+            // Pagination configurable
+            $perPage = $request->get('per_page', 10);
+            $products = $query->paginate($perPage)->appends($request->query());
+
+            // Données pour les filtres
+            $categories = DB::table('categories')
+                ->select('id', 'name')
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
+
+            $productTypes = DB::table('product_types')
+                ->select('id', 'name')
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
+
+            // Statistiques pour les filtres
+            $stats = [
+                'total' => DB::table('products')->whereNull('deleted_at')->count(),
+                'active' => DB::table('products')->where('status', 'active')->whereNull('deleted_at')->count(),
+                'inactive' => DB::table('products')->where('status', 'inactive')->whereNull('deleted_at')->count(),
+                'draft' => DB::table('products')->where('status', 'draft')->whereNull('deleted_at')->count(),
+            ];
+
+            return view('admin.products.index', compact('products', 'categories', 'productTypes', 'stats'));
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur dans ProductController::index: ' . $e->getMessage());
+
+            return view('admin.products.index', [
+                'products' => (object)['data' => collect([]), 'total' => 0],
+                'categories' => collect([]),
+                'productTypes' => collect([]),
+                'stats' => ['total' => 0, 'active' => 0, 'inactive' => 0, 'draft' => 0],
+                'error' => 'Erreur lors du chargement des produits. Veuillez réessayer.'
+            ]);
+        }
+    }
+
+    public function show($id)
+    {
+        try {
+            // Version ULTRA-SIMPLE - Pas de modèle Eloquent du tout
+            $product = DB::table('products')
+                ->select('id', 'name', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price', 'min_wholesale_quantity', 'stock_quantity', 'min_stock_alert', 'status', 'sku', 'barcode', 'category_id', 'product_type_id', 'meta_title', 'meta_description', 'tags', 'images', 'created_at', 'updated_at')
+                ->where('id', $id)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if (!$product) {
+                return redirect()->route('admin.products.index')
+                    ->with('error', 'Produit non trouvé.');
+            }
+
+            // Chargement séparé des relations si nécessaire (avec limite)
+            $category = null;
+            if ($product->category_id) {
+                $category = DB::table('categories')
+                    ->select('id', 'name')
+                    ->where('id', $product->category_id)
+                    ->first();
+            }
+
+            $productType = null;
+            if ($product->product_type_id) {
+                $productType = DB::table('product_types')
+                    ->select('id', 'name')
+                    ->where('id', $product->product_type_id)
+                    ->first();
+            }
+
+            // Chargement des attributs du produit
+            $attributeValues = DB::table('product_attribute_values')
+                ->join('attributes', 'product_attribute_values.attribute_id', '=', 'attributes.id')
+                ->select('product_attribute_values.*', 'attributes.name as attribute_name', 'attributes.type as attribute_type')
+                ->where('product_attribute_values.product_id', $id)
+                ->get();
+
+            // Chargement des images du produit
+            $productImages = DB::table('product_images')
+                ->select('id', 'product_id', 'url', 'order')
+                ->where('product_id', $id)
+                ->orderBy('order')
+                ->get();
+
+            // Conversion en objet pour la compatibilité avec la vue
+            $product = (object) $product;
+            $product->category = $category;
+            $product->productType = $productType;
+            $product->attributeValues = $attributeValues;
+            $product->productImages = $productImages;
+
+            // Libération mémoire
+            unset($category, $productType, $attributeValues, $productImages);
+
+            return view('admin.products.show', compact('product'));
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur dans ProductController::show: ' . $e->getMessage());
+            return redirect()->route('admin.products.index')
+                ->with('error', 'Erreur lors du chargement du produit.');
+        }
     }
 
     public function create()
     {
-        $categories = Category::where('is_active', true)->get();
-        $productTypes = ProductType::where('is_active', true)->get();
-        $attributes = Attribute::where('is_active', true)->get();
+        try {
+            // Chargement minimal avec limites strictes
+            $categories = DB::table('categories')
+                ->select('id', 'name')
+                ->where('is_active', true)
+                ->limit(20)
+                ->get();
 
-        return view('admin.products.create', compact('categories', 'productTypes', 'attributes'));
+            $productTypes = DB::table('product_types')
+                ->select('id', 'name')
+                ->where('is_active', true)
+                ->limit(20)
+                ->get();
+
+            $attributes = DB::table('attributes')
+                ->select('id', 'name', 'type', 'options')
+                ->limit(50)
+                ->get();
+
+            return view('admin.products.create', compact('categories', 'productTypes', 'attributes'));
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur dans ProductController::create: ' . $e->getMessage());
+            return redirect()->route('admin.products.index')
+                ->with('error', 'Erreur lors du chargement du formulaire.');
+        }
     }
 
     public function store(Request $request)
@@ -72,273 +210,222 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
-            'cost_price' => 'nullable|numeric|min:0',
-            'stock_quantity' => 'required|integer|min:0|regex:/^[1-9][0-9]*$/',
-            'min_stock_alert' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'product_type_id' => 'nullable|exists:product_types,id',
-            'sku' => 'required|string|unique:products,sku',
-            'barcode' => 'nullable|string|unique:products,barcode',
-            'status' => 'required|in:active,inactive',
-            'is_featured' => 'boolean',
-            'meta_title' => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string|max:500',
-            'tags' => 'nullable|string',
-            'images' => 'nullable|array|max:5',
-            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'attributes' => 'nullable|array',
-            'attributes.*.attribute_id' => 'nullable|exists:attributes,id',
-            'attributes.*.value' => 'nullable|string',
-            'attributes.*.display_value' => 'nullable|string',
-        ], [
-            'stock_quantity.regex' => 'La quantité en stock doit être un nombre entier positif (ne peut pas commencer par 0).',
-            'images.*.required' => 'Chaque image est requise.',
-            'images.*.image' => 'Le fichier doit être une image.',
-            'images.*.mimes' => 'L\'image doit être de type: jpeg, png, jpg, gif.',
-            'images.*.max' => 'L\'image ne doit pas dépasser 2MB.',
+            'status' => 'required|in:active,inactive,draft',
+            'sku' => 'nullable|string|max:255|unique:products,sku',
         ]);
 
-        $data = $request->all();
+        try {
+            DB::beginTransaction();
 
-        // Traitement des images
-        if ($request->hasFile('images')) {
-            $imagePaths = [];
-            foreach ($request->file('images') as $index => $image) {
-                $path = $image->store('products', 'public');
-                $imagePaths[] = $path;
-            }
-            $data['images'] = $imagePaths;
-        }
-
-        // Traitement des tags
-        if ($request->has('tags') && !empty($request->tags)) {
-            $data['tags'] = array_map('trim', explode(',', $request->tags));
-        }
-
-        $product = Product::create($data);
-
-        // Gérer les attributs du produit
-        if ($request->has('attributes')) {
-            foreach ($request->input('attributes') as $attributeData) {
-                if (!empty($attributeData['attribute_id']) && !empty($attributeData['value'])) {
-                    // Trouver le product_type_attribute_id correspondant
-                    $productTypeAttribute = \DB::table('product_type_attributes')
-                        ->where('product_type_id', $product->product_type_id)
-                        ->where('attribute_id', $attributeData['attribute_id'])
-                        ->first();
-
-                    if ($productTypeAttribute) {
-                        $product->attributeValues()->create([
-                            'product_type_attribute_id' => $productTypeAttribute->id,
-                            'attribute_value' => $attributeData['value'],
-                            'numeric_value' => is_numeric($attributeData['value']) ? $attributeData['value'] : null,
-                        ]);
-                    }
-                }
-            }
-        }
-
-        // Créer les entrées dans product_images si des images ont été uploadées
-        if ($request->hasFile('images')) {
-            $uploadedImages = [];
-            foreach ($request->file('images') as $index => $image) {
-                $path = $image->store('products', 'public');
-                $uploadedImages[] = $path;
-
-                $product->productImages()->create([
-                    'url' => $path,
-                    'type' => $index === 0 ? 'principale' : 'galerie',
-                    'order' => $index + 1,
-                    'alt_text' => "Image du produit {$product->name}"
-                ]);
-            }
-
-            // Mettre à jour la colonne images du produit
-            $product->update(['images' => $uploadedImages]);
-        }
-
-        return redirect()->route('admin.products.show', $product)
-            ->with('success', 'Produit créé avec succès');
-    }
-
-    public function edit(Product $product)
-    {
-        $product->load(['category', 'productType', 'productImages', 'attributeValues.attribute']);
-        $categories = Category::where('is_active', true)->get();
-        $productTypes = ProductType::where('is_active', true)->get();
-        $attributes = Attribute::where('is_active', true)->get();
-
-        return view('admin.products.edit', compact('product', 'categories', 'productTypes', 'attributes'));
-    }
-
-    public function update(Request $request, Product $product)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'cost_price' => 'nullable|numeric|min:0',
-            'stock_quantity' => 'required|integer|min:0',
-            'min_stock_alert' => 'required|integer|min:0',
-            'category_id' => 'required|exists:categories,id',
-            'product_type_id' => 'nullable|exists:product_types,id',
-            'sku' => 'required|string|unique:products,sku,' . $product->id,
-            'barcode' => 'nullable|string|unique:products,barcode,' . $product->id,
-            'status' => 'required|in:active,inactive',
-            'is_featured' => 'boolean',
-            'meta_title' => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string|max:500',
-            'tags' => 'nullable|string',
-            'attributes' => 'nullable|array',
-            'attributes.*.attribute_id' => 'nullable|exists:attributes,id',
-            'attributes.*.value' => 'nullable|string',
-            'attributes.*.display_value' => 'nullable|string',
-        ]);
-
-        $data = $request->all();
-
-        // Traitement des tags
-        if ($request->has('tags') && !empty($request->tags)) {
-            $data['tags'] = array_map('trim', explode(',', $request->tags));
-        }
-
-        $product->update($data);
-
-        // Mettre à jour les attributs du produit
-        if ($request->has('attributes')) {
-            // Supprimer les anciens attributs
-            $product->attributeValues()->delete();
-
-            // Créer les nouveaux attributs
-            foreach ($request->input('attributes') as $attributeData) {
-                if (!empty($attributeData['attribute_id']) && !empty($attributeData['value'])) {
-                    $product->attributeValues()->create([
-                        'attribute_id' => $attributeData['attribute_id'],
-                        'value' => $attributeData['value'],
-                        'display_value' => $attributeData['display_value'] ?? $attributeData['value'],
-                    ]);
-                }
-            }
-        }
-
-        return redirect()->route('admin.products.show', $product)
-            ->with('success', 'Produit mis à jour avec succès');
-    }
-
-    public function destroy(Product $product)
-    {
-        $product->delete();
-        return redirect()->route('admin.products.index')
-            ->with('success', 'Produit supprimé avec succès');
-    }
-
-    public function restore($id)
-    {
-        $product = Product::withTrashed()->findOrFail($id);
-        $product->restore();
-        return redirect()->route('admin.products.index')
-            ->with('success', 'Produit restauré avec succès');
-    }
-
-    public function uploadImages(Request $request, Product $product)
-    {
-        $request->validate([
-            'images' => 'required|array|max:10',
-            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
-        ]);
-
-        $uploadedImages = [];
-        $uploadedPaths = [];
-
-        foreach ($request->file('images') as $index => $image) {
-            $path = $image->store('products', 'public');
-            $uploadedPaths[] = $path;
-            $order = $product->productImages()->max('order') + $index + 1;
-
-            $productImage = $product->productImages()->create([
-                'url' => $path,
-                'type' => 'galerie',
-                'order' => $order,
-                'alt_text' => "Image du produit {$product->name}"
+            // Création ultra-simple
+            $productId = DB::table('products')->insertGetId([
+                'name' => $request->name,
+                'description' => $request->description,
+                'price' => $request->price,
+                'category_id' => $request->category_id,
+                'product_type_id' => $request->product_type_id,
+                'status' => $request->status,
+                'sku' => $request->sku,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
-            $uploadedImages[] = $productImage;
-        }
+            DB::commit();
 
-        // Mettre à jour la colonne images du produit
-        $existingImages = [];
-        if ($product->images) {
-            if (is_array($product->images)) {
-                // Filtrer les éléments vides et les arrays vides
-                $existingImages = array_filter($product->images, function($img) {
-                    return !empty($img) && (is_string($img) || (is_array($img) && !empty($img)));
-                });
-            } else {
-                $decoded = json_decode($product->images, true);
-                if (is_array($decoded)) {
-                    $existingImages = array_filter($decoded, function($img) {
-                        return !empty($img) && (is_string($img) || (is_array($img) && !empty($img)));
-                    });
-                }
+            return redirect()->route('admin.products.show', $productId)
+                ->with('success', 'Produit créé avec succès.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Erreur lors de la création du produit: ' . $e->getMessage());
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Erreur lors de la création du produit.');
+        }
+    }
+
+    public function edit($id)
+    {
+        try {
+            // Chargement minimal avec limites
+            $categories = DB::table('categories')
+                ->select('id', 'name')
+                ->where('is_active', true)
+                ->limit(20)
+                ->get();
+
+            $productTypes = DB::table('product_types')
+                ->select('id', 'name')
+                ->where('is_active', true)
+                ->limit(20)
+                ->get();
+
+            $attributes = DB::table('attributes')
+                ->select('id', 'name', 'type', 'options')
+                ->limit(50)
+                ->get();
+
+            // Chargement du produit
+            $product = DB::table('products')
+                ->select('id', 'name', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price', 'min_wholesale_quantity', 'stock_quantity', 'min_stock_alert', 'status', 'sku', 'barcode', 'category_id', 'product_type_id', 'meta_title', 'meta_description', 'tags', 'images')
+                ->where('id', $id)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if (!$product) {
+                return redirect()->route('admin.products.index')
+                    ->with('error', 'Produit non trouvé.');
             }
-        }
-        $allImages = array_merge($existingImages, $uploadedPaths);
-        $product->update(['images' => $allImages]);
 
-        return redirect()->route('admin.products.show', $product)
-            ->with('success', count($uploadedImages) . ' image(s) ajoutée(s) avec succès');
+            // Chargement des attributs existants du produit (LIMITÉ)
+            $productAttributeValues = DB::table('product_attribute_values')
+                ->where('product_id', $id)
+                ->limit(100)
+                ->get()
+                ->keyBy('attribute_id');
+
+            // Chargement des images existantes (LIMITÉ)
+            $productImages = DB::table('product_images')
+                ->select('id', 'url', 'order')
+                ->where('product_id', $id)
+                ->orderBy('order')
+                ->limit(20)
+                ->get();
+
+            // Conversion pour compatibilité
+            $product = (object) $product;
+            $product->productImages = $productImages;
+
+            return view('admin.products.edit', compact('product', 'categories', 'productTypes', 'attributes', 'productAttributeValues'));
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur dans ProductController::edit: ' . $e->getMessage());
+            return redirect()->route('admin.products.index')
+                ->with('error', 'Erreur lors du chargement du formulaire.');
+        }
     }
 
-    public function setMainImage(Request $request, Product $product, $imageId)
+    public function update(Request $request, $id)
     {
-        // Récupérer l'image par ID
-        $image = ProductImage::where('id', $imageId)
-            ->where('product_id', $product->id)
-            ->first();
+        // Log pour debug
+        \Log::info('=== UPDATE PRODUCT ===', [
+            'id' => $id,
+            'all_data' => $request->all(),
+            'name' => $request->name,
+            'price' => $request->price
+        ]);
 
-        if (!$image) {
-            return redirect()->route('admin.products.show', $product)
-                ->with('error', 'Image non trouvée');
+                try {
+            // Validation
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'price' => 'required|numeric|min:0',
+                'stock_quantity' => 'required|integer|min:0',
+                'category_id' => 'required|exists:categories,id',
+                'product_type_id' => 'nullable|exists:product_types,id',
+                'status' => 'required|in:active,inactive,draft',
+                'sku' => 'nullable|string|max:255',
+                'cost_price' => 'nullable|numeric|min:0',
+                'min_stock_alert' => 'nullable|integer|min:0',
+                'barcode' => 'nullable|string|max:255',
+                'meta_title' => 'nullable|string|max:255',
+                'meta_description' => 'nullable|string|max:500',
+                'tags' => 'nullable|string',
+                'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            ], [
+                'name.required' => 'Le nom est obligatoire.',
+                'price.required' => 'Le prix est obligatoire.',
+                'price.numeric' => 'Le prix doit être un nombre.',
+                'stock_quantity.required' => 'La quantité en stock est obligatoire.',
+                'category_id.required' => 'La catégorie est obligatoire.',
+                'status.required' => 'Le statut est obligatoire.',
+            ]);
+
+            \Log::info('Validation OK, données validées:', $validated);
+
+            // Conversion des virgules en points pour les prix
+            $validated['price'] = str_replace(',', '.', $validated['price']);
+            if (!empty($validated['cost_price'])) {
+                $validated['cost_price'] = str_replace(',', '.', $validated['cost_price']);
+            }
+
+            // Mise à jour avec DB::table pour éviter les problèmes de mémoire
+            DB::table('products')
+                ->where('id', $id)
+                ->update(array_merge($validated, ['updated_at' => now()]));
+
+            \Log::info('Produit mis à jour:', ['id' => $id, 'name' => $validated['name']]);
+
+            // Gestion des images
+            if ($request->hasFile('images')) {
+                $this->handleImageUpload($request->file('images'), $id);
+            }
+
+            return redirect()->route('admin.products.index')
+                ->with('success', 'Produit mis à jour avec succès !');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Erreur de validation:', ['errors' => $e->errors()]);
+            return redirect()->back()
+                ->withErrors($e->errors())
+                ->withInput()
+                ->with('error', 'Veuillez corriger les erreurs de validation.');
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la mise à jour:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Erreur: ' . $e->getMessage());
         }
-
-        // Retirer le statut "principale" de toutes les autres images
-        $product->productImages()->update(['type' => 'galerie']);
-
-        // Définir cette image comme principale
-        $image->update(['type' => 'principale']);
-
-        return redirect()->route('admin.products.show', $product)
-            ->with('success', 'Image principale mise à jour avec succès');
     }
 
-    public function deleteImage(Request $request, Product $product, $imageId)
+    /**
+     * Gère l'upload des images pour un produit
+     */
+    private function handleImageUpload($images, $productId)
     {
-        // Récupérer l'image par ID
-        $image = ProductImage::where('id', $imageId)
-            ->where('product_id', $product->id)
-            ->first();
+        foreach ($images as $image) {
+            // Générer un nom unique pour l'image
+            $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
 
-        if (!$image) {
-            return redirect()->route('admin.products.show', $product)
-                ->with('error', 'Image non trouvée');
+            // Déplacer l'image vers le dossier storage/app/public/products
+            $imagePath = $image->storeAs('products', $imageName, 'public');
+
+            // Obtenir l'ordre suivant pour cette image
+            $nextOrder = DB::table('product_images')
+                ->where('product_id', $productId)
+                ->max('order') + 1;
+
+            // Insérer l'image dans la base de données
+            DB::table('product_images')->insert([
+                'product_id' => $productId,
+                'url' => $imagePath,
+                'order' => $nextOrder ?? 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
+    }
 
-        // Supprimer le fichier physique
-        if (Storage::disk('public')->exists($image->url)) {
-            Storage::disk('public')->delete($image->url);
+    public function destroy($id)
+    {
+        try {
+            // Suppression ultra-simple (soft delete)
+            DB::table('products')
+                ->where('id', $id)
+                ->update(['deleted_at' => now()]);
+
+            return redirect()->route('admin.products.index')
+                ->with('success', 'Produit supprimé avec succès.');
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la suppression du produit: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Erreur lors de la suppression du produit.');
         }
-
-        // Supprimer l'entrée de la base de données
-        $image->delete();
-
-        // Mettre à jour la colonne images du produit
-        $existingImages = $product->images ? (is_array($product->images) ? $product->images : json_decode($product->images, true)) : [];
-        $updatedImages = array_filter($existingImages, function($img) use ($image) {
-            return $img !== $image->url;
-        });
-        $product->update(['images' => array_values($updatedImages)]);
-
-        return redirect()->route('admin.products.show', $product)
-            ->with('success', 'Image supprimée avec succès');
     }
 }

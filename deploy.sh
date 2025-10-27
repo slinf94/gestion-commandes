@@ -83,3 +83,6 @@ echo "   - Configurer votre serveur web (Apache/Nginx)"
 echo "   - Configurer SSL/HTTPS"
 echo "   - Mettre à jour l'URL dans l'application mobile"
 echo "   - Tester la communication backend-mobile"
+
+
+

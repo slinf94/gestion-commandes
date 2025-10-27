@@ -15,27 +15,72 @@
 
 @section('content')
 
+<!-- Statistiques -->
+@if(isset($stats))
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h3>{{ $stats['total'] }}</h3>
+                <p class="mb-0">Total Clients</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h3>{{ $stats['with_orders'] }}</h3>
+                <p class="mb-0">Avec Commandes</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h3>{{ $stats['new_this_month'] }}</h3>
+                <p class="mb-0">Nouveaux ce Mois</p>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
                     <!-- Section de recherche -->
                     <div class="search-section">
-                        <form method="GET" action="{{ route('admin.clients.search') }}">
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <div class="input-group">
-                                        <span class="input-group-text">
-                                            <i class="fas fa-search"></i>
-                                        </span>
-                                        <input type="text" class="form-control" name="search"
-                                               placeholder="Rechercher par nom, email, téléphone..."
-                                               value="{{ request('search') }}">
-                                    </div>
-                                </div>
+                        <form method="GET" action="{{ route('admin.clients.index') }}">
+                            <div class="row mb-3">
                                 <div class="col-md-4">
-                                    <button type="submit" class="btn btn-primary me-2">
-                                        <i class="fas fa-search"></i> Rechercher
+                                    <input type="text" class="form-control" name="search"
+                                           placeholder="Rechercher par nom, email, téléphone..."
+                                           value="{{ request('search') }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <select name="quartier_id" class="form-control">
+                                        <option value="">Tous les quartiers</option>
+                                        @foreach($quartiers ?? [] as $quartier)
+                                            <option value="{{ $quartier->id }}" {{ request('quartier_id') == $quartier->id ? 'selected' : '' }}>
+                                                {{ $quartier->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="date" name="start_date" class="form-control" placeholder="Date début" value="{{ request('start_date') }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="date" name="end_date" class="form-control" placeholder="Date fin" value="{{ request('end_date') }}">
+                                </div>
+                                <div class="col-md-1">
+                                    <select name="per_page" class="form-control">
+                                        <option value="15" {{ request('per_page') == 15 ? 'selected' : '' }}>15</option>
+                                        <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                                        <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-search"></i>
                                     </button>
-                                    <a href="{{ route('admin.clients.index') }}" class="btn btn-outline-secondary">
-                                        <i class="fas fa-times"></i> Effacer
-                                    </a>
                                 </div>
                             </div>
                         </form>
@@ -132,7 +177,14 @@
                     </div>
 
 <!-- Pagination -->
-<div class="d-flex justify-content-center mt-4">
-    {{ $clients->links() }}
+@if(isset($clients) && $clients->hasPages())
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="text-muted">
+        Affichage de {{ $clients->firstItem() }} à {{ $clients->lastItem() }} sur {{ $clients->total() }} résultats
+    </div>
+    <div>
+        {{ $clients->appends(request()->query())->links() }}
+    </div>
 </div>
+@endif
 @endsection

@@ -40,12 +40,23 @@ class UserController extends Controller
             });
         }
 
-        $users = $query->orderBy('created_at', 'desc')->paginate(20);
+        $users = $query->orderBy('created_at', 'desc')->paginate($request->get('per_page', 20))->appends($request->query());
 
         // Récupérer la liste des quartiers pour le filtre
         $quartiers = \App\Models\Quartier::getQuartiers();
 
-        return view('admin.users.index', compact('users', 'quartiers'));
+        // Statistiques pour les filtres
+        $stats = [
+            'total' => \App\Models\User::count(),
+            'active' => \App\Models\User::where('status', 'active')->count(),
+            'inactive' => \App\Models\User::where('status', 'inactive')->count(),
+            'pending' => \App\Models\User::where('status', 'pending')->count(),
+            'suspended' => \App\Models\User::where('status', 'suspended')->count(),
+            'clients' => \App\Models\User::where('role', 'client')->count(),
+            'admins' => \App\Models\User::where('role', 'admin')->count(),
+        ];
+
+        return view('admin.users.index', compact('users', 'quartiers', 'stats'));
     }
 
     public function show(User $user)
@@ -216,6 +227,117 @@ class UserController extends Controller
             ->with('success', $message);
     }
 
+    /**
+     * Activation rapide d'un compte client
+     */
+    public function quickActivate(Request $request, User $user)
+    {
+        // Vérifier que c'est un client en attente
+        if ($user->role !== 'client' || $user->status !== 'pending') {
+            return redirect()->back()
+                ->with('error', 'Seuls les comptes clients en attente peuvent être activés rapidement.');
+        }
+
+        try {
+            // Activer le compte
+            $user->update(['status' => 'active']);
+
+            // Envoyer l'email de notification
+            try {
+                $user->notify(new AccountActivatedNotification($user));
+                \Log::info('Email d\'activation envoyé à l\'utilisateur: ' . $user->email);
+                $message = 'Compte activé avec succès. Un email de confirmation a été envoyé au client.';
+            } catch (\Exception $e) {
+                \Log::error('Erreur lors de l\'envoi de l\'email d\'activation: ' . $e->getMessage());
+                $message = 'Compte activé avec succès. ⚠️ Attention: L\'email de confirmation n\'a pas pu être envoyé.';
+            }
+
+            return redirect()->route('admin.users.index')
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de l\'activation rapide: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Erreur lors de l\'activation du compte.');
+        }
+    }
+
+    /**
+     * Toggle user status between active and inactive (AJAX)
+     */
+    public function toggleStatus(Request $request, User $user)
+    {
+        $oldStatus = $user->status;
+
+        // Ne pas permettre de basculer le statut des comptes admin
+        if ($user->role === 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible de modifier le statut d\'un compte administrateur'
+            ], 403);
+        }
+
+        // Ne pas permettre de basculer le statut des comptes en attente
+        if ($oldStatus === 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible de basculer le statut d\'un compte en attente. Utilisez l\'activation manuelle.'
+            ], 403);
+        }
+
+        try {
+            // Basculer entre actif et inactif
+            $newStatus = ($oldStatus === 'active') ? 'inactive' : 'active';
+
+            $user->update([
+                'status' => $newStatus,
+            ]);
+
+            // Envoyer un email si le compte est activé
+            if ($newStatus === 'active' && $oldStatus !== 'active') {
+                try {
+                    $user->notify(new AccountActivatedNotification($user));
+                } catch (\Exception $e) {
+                    \Log::error('Erreur envoi email activation: ' . $e->getMessage());
+                }
+            }
+
+            // Traduire le statut en français
+            $statusTranslations = [
+                'active' => 'Actif',
+                'inactive' => 'Inactif',
+                'pending' => 'En attente',
+                'suspended' => 'Suspendu'
+            ];
+
+            $statusColors = [
+                'active' => 'success',
+                'inactive' => 'secondary',
+                'pending' => 'warning',
+                'suspended' => 'danger'
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'user' => $user->fresh(),
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus,
+                    'status_label' => $statusTranslations[$newStatus] ?? $newStatus,
+                    'status_color' => $statusColors[$newStatus] ?? 'secondary'
+                ],
+                'message' => 'Statut utilisateur basculé avec succès'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors du basculement du statut: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du changement de statut'
+            ], 500);
+        }
+    }
+
     public function destroy(User $user)
     {
         $user->delete();
@@ -312,35 +434,42 @@ class UserController extends Controller
         $callback = function() use ($clients) {
             $file = fopen('php://output', 'w');
 
-            // En-têtes CSV
+            // En-têtes CSV avec organisation améliorée
             fputcsv($file, [
-                'ID',
-                'Nom',
-                'Prénom',
+                'ID Client',
+                'Nom Complet',
                 'Email',
-                'Téléphone',
+                'Téléphone Principal',
                 'WhatsApp',
                 'Quartier',
-                'Localisation',
-                'Statut',
-                'Date d\'inscription',
-                'Dernière connexion'
+                'Localisation Complète',
+                'Statut du Compte',
+                'Date d\'Inscription',
+                'Dernière Activité',
+                'Nombre de Commandes',
+                'Total Dépensé (FCFA)'
             ]);
 
-            // Données des clients
+            // Données des clients avec informations enrichies
             foreach ($clients as $client) {
+                // Calculer le nombre de commandes et le total dépensé
+                $orders = $client->orders()->where('status', '!=', 'cancelled')->get();
+                $totalOrders = $orders->count();
+                $totalSpent = $orders->sum('total_amount');
+
                 fputcsv($file, [
                     $client->id,
-                    $client->nom,
-                    $client->prenom,
+                    trim($client->prenom . ' ' . $client->nom),
                     $client->email,
                     $client->numero_telephone,
-                    $client->numero_whatsapp ?? '',
+                    $client->numero_whatsapp ?? 'Non renseigné',
                     $client->quartier ?? 'Non défini',
-                    $client->localisation ?? '',
+                    $client->localisation ?? 'Non renseignée',
                     ucfirst($client->status),
                     $client->created_at ? $client->created_at->format('d/m/Y H:i') : '',
-                    $client->updated_at ? $client->updated_at->format('d/m/Y H:i') : ''
+                    $client->updated_at ? $client->updated_at->format('d/m/Y H:i') : '',
+                    $totalOrders,
+                    number_format($totalSpent, 0, ',', ' ')
                 ]);
             }
 
@@ -366,37 +495,66 @@ class UserController extends Controller
         $callback = function() use ($quartiers) {
             $file = fopen('php://output', 'w');
 
-            // En-têtes CSV
+            // En-têtes CSV avec organisation améliorée
             fputcsv($file, [
                 'Quartier',
                 'Total Clients',
                 'Clients Actifs',
                 'Clients En Attente',
+                'Clients Suspendus',
                 'Taux d\'Activité (%)',
-                'Dernière Inscription'
+                'Revenus Totaux (FCFA)',
+                'Commandes Totales',
+                'Dernière Inscription',
+                'Client le Plus Actif'
             ]);
 
-            // Données par quartier
+            // Données par quartier avec statistiques enrichies
             foreach ($quartiers as $quartier) {
-                $totalClients = User::where('role', 'client')->where('quartier', $quartier)->count();
-                $activeClients = User::where('role', 'client')->where('quartier', $quartier)->where('status', 'active')->count();
-                $pendingClients = User::where('role', 'client')->where('quartier', $quartier)->where('status', 'pending')->count();
+                $clientsQuartier = User::where('role', 'client')->where('quartier', $quartier);
+                $totalClients = $clientsQuartier->count();
+                $activeClients = $clientsQuartier->where('status', 'active')->count();
+                $pendingClients = $clientsQuartier->where('status', 'pending')->count();
+                $suspendedClients = $clientsQuartier->where('status', 'suspended')->count();
                 $tauxActivite = $totalClients > 0 ? round(($activeClients / $totalClients) * 100, 1) : 0;
 
-                $derniereInscription = User::where('role', 'client')
-                    ->where('quartier', $quartier)
-                    ->orderBy('created_at', 'desc')
+                // Calculer les revenus et commandes du quartier
+                $ordersQuartier = \DB::table('orders')
+                    ->join('users', 'orders.user_id', '=', 'users.id')
+                    ->where('users.quartier', $quartier)
+                    ->where('orders.status', '!=', 'cancelled')
+                    ->selectRaw('
+                        COALESCE(SUM(orders.total_amount), 0) as total_revenue,
+                        COUNT(orders.id) as total_orders
+                    ')
                     ->first();
 
+                $derniereInscription = $clientsQuartier->orderBy('created_at', 'desc')->first();
                 $dateDerniereInscription = $derniereInscription ? $derniereInscription->created_at->format('d/m/Y') : 'Aucune';
+
+                // Client le plus actif du quartier
+                $clientActif = \DB::table('orders')
+                    ->join('users', 'orders.user_id', '=', 'users.id')
+                    ->where('users.quartier', $quartier)
+                    ->where('orders.status', '!=', 'cancelled')
+                    ->selectRaw('users.nom, users.prenom, COUNT(orders.id) as nb_commandes')
+                    ->groupBy('users.id', 'users.nom', 'users.prenom')
+                    ->orderBy('nb_commandes', 'desc')
+                    ->first();
+
+                $clientActifNom = $clientActif ? trim($clientActif->prenom . ' ' . $clientActif->nom) : 'Aucun';
 
                 fputcsv($file, [
                     $quartier,
                     $totalClients,
                     $activeClients,
                     $pendingClients,
+                    $suspendedClients,
                     $tauxActivite,
-                    $dateDerniereInscription
+                    number_format($ordersQuartier->total_revenue, 0, ',', ' '),
+                    $ordersQuartier->total_orders,
+                    $dateDerniereInscription,
+                    $clientActifNom
                 ]);
             }
 

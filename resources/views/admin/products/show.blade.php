@@ -51,11 +51,7 @@
                                         <tr>
                                             <td><strong>En vedette:</strong></td>
                                             <td>
-                                                @if($product->is_featured)
-                                                    <span class="badge badge-warning">Oui</span>
-                                                @else
-                                                    <span class="badge badge-secondary">Non</span>
-                                                @endif
+                                                <span class="badge badge-secondary">Non disponible</span>
                                             </td>
                                         </tr>
                                     </table>
@@ -142,6 +138,46 @@
                                 </div>
                             </div>
                             @endif
+
+                            @if($product->attributeValues && $product->attributeValues->count() > 0)
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h5>Attributs du Produit</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Attribut</th>
+                                                    <th>Valeur</th>
+                                                    <th>Type</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($product->attributeValues as $attributeValue)
+                                                <tr>
+                                                    <td><strong>{{ $attributeValue->attribute_name ?? 'Attribut inconnu' }}</strong></td>
+                                                    <td>
+                                                        @if($attributeValue->attribute_type === 'boolean')
+                                                            <span class="badge badge-{{ $attributeValue->attribute_value == '1' ? 'success' : 'secondary' }}">
+                                                                {{ $attributeValue->attribute_value == '1' ? 'Oui' : 'Non' }}
+                                                            </span>
+                                                        @else
+                                                            {{ $attributeValue->attribute_value }}
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge badge-info">
+                                                            {{ ucfirst($attributeValue->attribute_type ?? 'text') }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
                         </div>
 
                         <div class="col-md-4">
@@ -149,7 +185,7 @@
 
                             <!-- Formulaire d'upload d'images supplémentaires -->
                             <div class="mb-3">
-                                <form method="POST" action="{{ route('admin.products.upload-images', $product) }}" enctype="multipart/form-data" id="uploadForm">
+                                <form method="POST" action="{{ route('admin.products.upload-images', $product->id) }}" enctype="multipart/form-data" id="uploadForm">
                                     @csrf
                                     <div class="mb-2">
                                         <label for="images" class="form-label">Ajouter des images</label>
@@ -184,13 +220,13 @@
                                                 <img src="{{ $imageUrl }}"
                                                      class="img-thumbnail"
                                                      style="width: 100%; height: 200px; object-fit: cover;"
-                                                     alt="{{ $image->alt_text ?: 'Image du produit' }}"
+                                                     alt="{{ isset($image->alt_text) ? $image->alt_text : 'Image du produit' }}"
                                                      onerror="this.src='{{ asset('images/placeholder.svg') }}'">
 
                                                 <!-- Actions sur l'image -->
                                                 <div class="position-absolute top-0 end-0 p-2">
-                                                    @if($image->type !== 'principale')
-                                                        <form method="POST" action="{{ route('admin.products.set-main-image', [$product, $image]) }}" class="d-inline">
+                                                    @if(!isset($image->type) || $image->type !== 'principale')
+                                                        <form method="POST" action="{{ route('admin.products.set-main-image', [$product->id, $image->id]) }}" class="d-inline">
                                                             @csrf
                                                             <button type="submit" class="btn btn-sm btn-warning" title="Définir comme image principale">
                                                                 <i class="fas fa-star"></i>
@@ -202,7 +238,7 @@
                                                         </span>
                                                     @endif
 
-                                                    <form method="POST" action="{{ route('admin.products.delete-image', [$product, $image]) }}" class="d-inline">
+                                                    <form method="POST" action="{{ route('admin.products.delete-image', [$product->id, $image->id]) }}" class="d-inline">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-sm btn-danger"
@@ -214,7 +250,7 @@
                                                 </div>
                                             </div>
 
-                                            @if($image->type)
+                                            @if(isset($image->type) && $image->type)
                                                 <small class="text-muted d-block mt-1">
                                                     <i class="fas fa-tag"></i> {{ ucfirst($image->type) }}
                                                 </small>
@@ -257,11 +293,11 @@
                             <table class="table table-borderless">
                                 <tr>
                                     <td><strong>Créé le:</strong></td>
-                                    <td>{{ $product->created_at ? $product->created_at->format('d/m/Y H:i') : 'N/A' }}</td>
+                                    <td>{{ $product->created_at ? \Carbon\Carbon::parse($product->created_at)->format('d/m/Y H:i') : 'N/A' }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Modifié le:</strong></td>
-                                    <td>{{ $product->updated_at ? $product->updated_at->format('d/m/Y H:i') : 'N/A' }}</td>
+                                    <td>{{ $product->updated_at ? \Carbon\Carbon::parse($product->updated_at)->format('d/m/Y H:i') : 'N/A' }}</td>
                                 </tr>
                             </table>
                         </div>

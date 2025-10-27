@@ -6,7 +6,7 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="mb-0">Commande #{{ $order->order_number }}</h4>
+        <h4 class="mb-0">Commande {{ $order->order_number }}</h4>
         <small class="text-muted">Informations détaillées et gestion du statut</small>
     </div>
     <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-primary">
@@ -29,7 +29,7 @@
                         <table class="table table-borderless">
                             <tr>
                                 <td><strong>Numéro de commande:</strong></td>
-                                <td>#{{ $order->order_number }}</td>
+                                <td>{{ $order->order_number }}</td>
                             </tr>
                             <tr>
                                 <td><strong>Date de création:</strong></td>
@@ -149,11 +149,19 @@
                                 <tr>
                                     <td>
                                         @if($item->product_image)
-                                            <img src="{{ $item->product_image }}" alt="{{ $item->product_name }}"
-                                                 class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                                            @php
+                                                // Gérer les URLs complètes et relatives
+                                                $imageUrl = $item->product_image;
+                                                if (!str_starts_with($imageUrl, 'http')) {
+                                                    $imageUrl = asset('storage/' . ltrim($imageUrl, '/'));
+                                                }
+                                            @endphp
+                                            <img src="{{ $imageUrl }}" alt="{{ $item->product_name }}"
+                                                 class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;"
+                                                 onerror="this.src='{{ asset('images/placeholder.svg') }}'">
                                         @else
                                             <div class="bg-light d-flex align-items-center justify-content-center"
-                                                 style="width: 50px; height: 50px;">
+                                                 style="width: 60px; height: 60px; border-radius: 4px;">
                                                 <i class="fas fa-image text-muted"></i>
                                             </div>
                                         @endif

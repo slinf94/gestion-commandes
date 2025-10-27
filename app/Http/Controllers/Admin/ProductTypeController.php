@@ -14,14 +14,63 @@ class ProductTypeController extends Controller
     /**
      * Display a listing of product types.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $productTypes = ProductType::with(['category', 'attributes'])
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get();
+        $query = ProductType::with(['category', 'attributes']);
 
-        return view('admin.product-types.index', compact('productTypes'));
+        // Recherche
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%");
+            });
+        }
+
+        // Filtre par catégorie
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        // Filtre par statut
+        if ($request->filled('status')) {
+            if ($request->status === 'active') {
+                $query->where('is_active', true);
+            } elseif ($request->status === 'inactive') {
+                $query->where('is_active', false);
+            }
+        }
+
+        // Tri
+        $sortBy = $request->get('sort_by', 'sort_order');
+        $sortOrder = $request->get('sort_order', 'asc');
+
+        $allowedSortFields = ['name', 'sort_order', 'created_at', 'is_active'];
+        if (!in_array($sortBy, $allowedSortFields)) {
+            $sortBy = 'sort_order';
+        }
+
+        $query->orderBy($sortBy, $sortOrder);
+
+        // Si on trie par autre chose que sort_order, ajouter sort_order comme tri secondaire
+        if ($sortBy !== 'sort_order') {
+            $query->orderBy('sort_order', 'asc');
+        }
+
+        // Pagination
+        $perPage = $request->get('per_page', 15);
+        $productTypes = $query->paginate($perPage)->appends($request->query());
+
+        // Données supplémentaires
+        $categories = Category::where('is_active', true)->orderBy('name')->get();
+        $stats = [
+            'total' => ProductType::count(),
+            'active' => ProductType::where('is_active', true)->count(),
+            'inactive' => ProductType::where('is_active', false)->count(),
+        ];
+
+        return view('admin.product-types.index', compact('productTypes', 'categories', 'stats'));
     }
 
     /**

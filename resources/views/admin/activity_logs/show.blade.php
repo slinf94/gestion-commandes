@@ -139,14 +139,22 @@
                                     </td>
                                     <td>
                                         @if(isset($oldValues[$key]))
-                                            <code class="text-danger">{{ $oldValues[$key] }}</code>
+                                            @php
+                                                $value = $oldValues[$key];
+                                                if($key === 'status' && $value === 'pending') $value = 'En attente';
+                                            @endphp
+                                            <code class="text-danger">{{ $value }}</code>
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif
                                     </td>
                                     <td>
                                         @if(isset($newValues[$key]))
-                                            <code class="text-success">{{ $newValues[$key] }}</code>
+                                            @php
+                                                $value = $newValues[$key];
+                                                if($key === 'status' && $value === 'pending') $value = 'En attente';
+                                            @endphp
+                                            <code class="text-success">{{ $value }}</code>
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif
@@ -166,17 +174,6 @@
         </div>
         @endif
 
-        <!-- Propriétés brutes -->
-        @if($activityLog->properties)
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-code me-2"></i>Propriétés Brutes</h5>
-            </div>
-            <div class="card-body">
-                <pre class="bg-light p-3 rounded"><code>{{ json_encode($activityLog->properties, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</code></pre>
-            </div>
-        </div>
-        @endif
     </div>
 
     <div class="col-md-4">
@@ -194,7 +191,13 @@
                         <h5>{{ $activityLog->causer->full_name }}</h5>
                         <p class="text-muted">{{ $activityLog->causer->email }}</p>
                         <span class="badge bg-{{ $activityLog->causer->status == 'active' ? 'success' : 'secondary' }}">
-                            {{ ucfirst(is_object($activityLog->causer->status) ? $activityLog->causer->status->value : $activityLog->causer->status) }}
+                            @php
+                                $status = is_object($activityLog->causer->status) ? $activityLog->causer->status->value : $activityLog->causer->status;
+                                if($status === 'pending') $status = 'En attente';
+                                elseif($status === 'active') $status = 'Actif';
+                                elseif($status === 'inactive') $status = 'Inactif';
+                            @endphp
+                            {{ ucfirst($status) }}
                         </span>
                         <br>
                         <small class="text-muted">

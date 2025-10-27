@@ -16,11 +16,16 @@ class AttributeController extends Controller
     {
         $query = Attribute::query();
 
-        // Filtres
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
+        // Recherche d'abord
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%");
+            });
         }
 
+        // Filtres
         if ($request->filled('status')) {
             if ($request->status === 'active') {
                 $query->where('is_active', true);
@@ -29,12 +34,8 @@ class AttributeController extends Controller
             }
         }
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('slug', 'like', "%{$search}%");
-            });
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
         }
 
         // Tri
@@ -59,9 +60,18 @@ class AttributeController extends Controller
             $query->orderBy('sort_order', 'asc');
         }
 
-        $attributes = $query->get();
+        // Statistiques
+        $stats = [
+            'total' => Attribute::count(),
+            'active' => Attribute::where('is_active', true)->count(),
+            'inactive' => Attribute::where('is_active', false)->count(),
+        ];
 
-        return view('admin.attributes.index', compact('attributes'));
+        // Pagination
+        $perPage = $request->get('per_page', 15);
+        $attributes = $query->paginate($perPage);
+
+        return view('admin.attributes.index', compact('attributes', 'stats'));
     }
 
     /**

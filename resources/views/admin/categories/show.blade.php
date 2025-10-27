@@ -14,7 +14,7 @@
                             <small class="text-muted">{{ $category->name }}</small>
                         </div>
                         <div>
-                            <a href="{{ route('admin.categories.edit', $category) }}" class="btn btn-warning">
+                            <a href="{{ route('admin.categories.edit', $category->id) }}" class="btn btn-warning">
                                 <i class="fas fa-edit"></i> Modifier
                             </a>
                             <a href="{{ route('admin.categories.index') }}" class="btn btn-secondary">
@@ -95,11 +95,11 @@
                                 </tr>
                                 <tr>
                                     <th>Créée le :</th>
-                                    <td>{{ $category->created_at->format('d/m/Y à H:i') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($category->created_at)->format('d/m/Y à H:i') }}</td>
                                 </tr>
                                 <tr>
                                     <th>Modifiée le :</th>
-                                    <td>{{ $category->updated_at->format('d/m/Y à H:i') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($category->updated_at)->format('d/m/Y à H:i') }}</td>
                                 </tr>
                             </table>
                         </div>
@@ -151,14 +151,14 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-info">{{ $child->products->count() }}</span>
+                                        <span class="badge bg-info">{{ $child->products_count ?? 0 }}</span>
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <a href="{{ route('admin.categories.show', $child) }}" class="btn btn-sm btn-outline-primary">
+                                            <a href="{{ route('admin.categories.show', $child->id) }}" class="btn btn-sm btn-outline-primary">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            <a href="{{ route('admin.categories.edit', $child) }}" class="btn btn-sm btn-outline-warning">
+                                            <a href="{{ route('admin.categories.edit', $child->id) }}" class="btn btn-sm btn-outline-warning">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                         </div>
@@ -195,17 +195,10 @@
                                 @foreach($category->products->take(10) as $product)
                                 <tr>
                                     <td>
-                                        @if($product->productImages && $product->productImages->count() > 0)
-                                            <img src="{{ Storage::url($product->productImages->first()->image_path) }}"
-                                                 alt="{{ $product->name }}"
-                                                 class="product-image"
-                                                 style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
-                                        @else
-                                            <div class="bg-light d-flex align-items-center justify-content-center"
-                                                 style="width: 50px; height: 50px; border-radius: 8px;">
-                                                <i class="fas fa-image text-muted"></i>
-                                            </div>
-                                        @endif
+                                        <div class="bg-light d-flex align-items-center justify-content-center"
+                                             style="width: 50px; height: 50px; border-radius: 8px;">
+                                            <i class="fas fa-box text-muted"></i>
+                                        </div>
                                     </td>
                                     <td>{{ $product->name }}</td>
                                     <td>{{ number_format($product->price, 0, ',', ' ') }} FCFA</td>
@@ -220,7 +213,7 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <a href="{{ route('admin.products.show', $product) }}" class="btn btn-sm btn-outline-primary">
+                                        <a href="{{ route('admin.products.show', $product->id) }}" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                     </td>

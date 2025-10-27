@@ -14,12 +14,65 @@ use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Version ultra-simplifiée pour éviter l'épuisement mémoire
-        $orders = Order::orderBy('created_at', 'desc')->paginate(20);
+        $query = Order::with(['user', 'items']);
 
-        return view('admin.orders.index', compact('orders'));
+        // Recherche
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('id', 'like', "%{$search}%")
+                  ->orWhere('order_number', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($userQuery) use ($search) {
+                      $userQuery->where('prenom', 'like', "%{$search}%")
+                                ->orWhere('nom', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%")
+                                ->orWhere('numero_telephone', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filtre par statut
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filtre par date
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // Tri
+        $sortBy = $request->get('sort_by', 'id');
+        $sortOrder = $request->get('sort_order', 'desc');
+
+        $allowedSortFields = ['id', 'created_at', 'total', 'status'];
+        if (!in_array($sortBy, $allowedSortFields)) {
+            $sortBy = 'id';
+        }
+
+        $query->orderBy($sortBy, $sortOrder);
+
+        // Pagination
+        $perPage = $request->get('per_page', 20);
+        $orders = $query->paginate($perPage)->appends($request->query());
+
+        // Statistiques
+        $stats = [
+            'total' => Order::count(),
+            'pending' => Order::where('status', 'pending')->count(),
+            'processing' => Order::where('status', 'processing')->count(),
+            'shipped' => Order::where('status', 'shipped')->count(),
+            'delivered' => Order::where('status', 'delivered')->count(),
+            'cancelled' => Order::where('status', 'cancelled')->count(),
+        ];
+
+        return view('admin.orders.index', compact('orders', 'stats'));
     }
 
     public function show(Order $order)
@@ -29,6 +82,52 @@ class OrderController extends Controller
                 $query->withTrashed(); // Inclure les utilisateurs supprimés
             }, 'items', 'statusHistory']);
         return view('admin.orders.show', compact('order'));
+    }
+
+    /**
+     * Annuler une commande
+     */
+    public function cancel(Request $request, Order $order)
+    {
+        try {
+            // Vérifier si la commande peut être annulée
+            if ($order->status === 'cancelled') {
+                return redirect()->back()
+                    ->with('error', 'Cette commande est déjà annulée.');
+            }
+
+            if ($order->status === 'delivered') {
+                return redirect()->back()
+                    ->with('error', 'Impossible d\'annuler une commande déjà livrée.');
+            }
+
+            // Annuler la commande
+            $oldStatus = $order->status;
+            $success = $order->changeStatus(OrderStatus::CANCELLED, 'Commande annulée par l\'administrateur', auth()->id());
+
+            if (!$success) {
+                throw new \Exception('Erreur lors de l\'annulation de la commande');
+            }
+
+            // Envoyer une notification au client
+            try {
+                $order->user->notify(new OrderStatusChangedNotification($order, $oldStatus, OrderStatus::CANCELLED));
+            } catch (\Exception $e) {
+                \Log::error('Erreur lors de l\'envoi de la notification d\'annulation: ' . $e->getMessage());
+            }
+
+            return redirect()->route('admin.orders.index')
+                ->with('success', 'Commande annulée avec succès.');
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de l\'annulation de la commande: ' . $e->getMessage(), [
+                'order_id' => $order->id,
+                'user_id' => auth()->id()
+            ]);
+
+            return redirect()->back()
+                ->with('error', 'Erreur lors de l\'annulation de la commande: ' . $e->getMessage());
+        }
     }
 
     public function updateStatus(Request $request, Order $order)

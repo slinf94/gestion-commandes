@@ -66,7 +66,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <form method="GET" action="{{ route('admin.attributes.index') }}">
+                    <form method="GET" action="{{ route('admin.attributes.index') }}" id="filterForm">
                         <div class="row">
                             <div class="col-md-3">
                                 <label for="type_filter" class="form-label">Type</label>
@@ -459,5 +459,28 @@ function bulkAction(action) {
         alert('Fonctionnalité d\'actions en lot à implémenter.');
     }
 }
+
+// Filtrage dynamique
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('filterForm');
+    if (form) {
+        const inputs = form.querySelectorAll('input, select');
+
+        inputs.forEach(input => {
+            input.addEventListener('change', function() {
+                form.submit();
+            });
+
+            if (input.type === 'text') {
+                input.addEventListener('keyup', function() {
+                    clearTimeout(this.searchTimeout);
+                    this.searchTimeout = setTimeout(() => {
+                        form.submit();
+                    }, 500);
+                });
+            }
+        });
+    }
+});
 </script>
 @endsection

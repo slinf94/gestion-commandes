@@ -188,17 +188,6 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-
-                                        <div class="mb-3">
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input"
-                                                       id="is_featured" name="is_featured" value="1"
-                                                       {{ old('is_featured') ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="is_featured">
-                                                    Produit vedette
-                                                </label>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
 
@@ -247,7 +236,7 @@
                                     <a href="{{ route('admin.products.index') }}" class="btn btn-secondary me-2">
                                         Annuler
                                     </a>
-                                    <button type="submit" class="btn btn-primary">
+                                    <button type="submit" class="btn btn-secondary">
                                         <i class="fas fa-save"></i> Créer le produit
                                     </button>
                                 </div>
@@ -272,17 +261,17 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Pour l'instant, afficher tous les attributs disponibles
-        // Dans une version plus avancée, on pourrait filtrer par type de produit
+        // Afficher TOUS les attributs disponibles comme optionnels
         let html = '<div class="row">';
 
-        // Limiter à seulement 5 attributs les plus importants pour simplifier
-        const importantAttributes = allAttributes.slice(0, 5);
-
-        importantAttributes.forEach((attribute, index) => {
+        // Afficher tous les attributs disponibles
+        allAttributes.forEach((attribute, index) => {
             html += `
                 <div class="col-md-6 mb-3">
-                    <label for="attribute_${attribute.id}" class="form-label">${attribute.name} <small class="text-muted">(optionnel)</small></label>
+                    <label for="attribute_${attribute.id}" class="form-label">
+                        ${attribute.name}
+                        <small class="text-muted">(optionnel)</small>
+                    </label>
                     <input type="hidden" name="attributes[${index}][attribute_id]" value="${attribute.id}">
             `;
 
@@ -310,17 +299,16 @@ document.addEventListener('DOMContentLoaded', function() {
             html += '</div></div>';
         });
 
-        if (allAttributes.length > 5) {
-            html += `
-                <div class="col-12">
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle"></i>
-                        Seuls les 5 attributs les plus importants sont affichés pour simplifier la création.
-                        Vous pourrez ajouter d'autres attributs après la création du produit.
-                    </small>
+        // Message informatif
+        html += `
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Tous les attributs sont optionnels.</strong>
+                    Vous pouvez laisser des champs vides et les remplir plus tard si nécessaire.
                 </div>
-            `;
-        }
+            </div>
+        `;
 
         html += '</div>';
         attributesContainer.innerHTML = html;

@@ -151,16 +151,6 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="is_featured" name="is_featured"
-                                               value="1" {{ old('is_featured', $product->is_featured) ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="is_featured">
-                                            Produit en vedette
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
                                     <label for="images">Nouvelles Images</label>
                                     <div class="image-upload-area">
                                         <input type="file" class="form-control @error('images') is-invalid @enderror"
@@ -199,13 +189,13 @@
                                                     <img src="{{ $imageUrl }}"
                                                          class="img-thumbnail"
                                                          style="width: 100%; height: 120px; object-fit: cover;"
-                                                         alt="{{ $image->alt_text ?: 'Image du produit' }}"
+                                                         alt="{{ isset($image->alt_text) ? $image->alt_text : 'Image du produit' }}"
                                                          onerror="this.src='{{ asset('images/placeholder.svg') }}'">
 
                                                     <!-- Actions sur l'image -->
                                                     <div class="position-absolute top-0 end-0 p-1">
-                                                        @if($image->type !== 'principale')
-                                                            <form method="POST" action="{{ route('admin.products.set-main-image', [$product, $image->id]) }}" class="d-inline">
+                                                        @if(!isset($image->type) || $image->type !== 'principale')
+                                                            <form method="POST" action="{{ route('admin.products.set-main-image', [$product->id, $image->id]) }}" class="d-inline">
                                                                 @csrf
                                                                 <button type="submit" class="btn btn-sm btn-warning" title="Définir comme image principale">
                                                                     <i class="fas fa-star"></i>
@@ -219,7 +209,7 @@
                                                     </div>
 
                                                     <div class="position-absolute bottom-0 end-0 p-1">
-                                                        <form method="POST" action="{{ route('admin.products.delete-image', [$product, $image->id]) }}" class="d-inline">
+                                                        <form method="POST" action="{{ route('admin.products.delete-image', [$product->id, $image->id]) }}" class="d-inline">
                                                             @csrf
                                                             @method('DELETE')
                                                             <button type="submit" class="btn btn-sm btn-danger"
@@ -230,9 +220,9 @@
                                                         </form>
                                                     </div>
 
-                                                    @if($image->type)
+                                                    @if(isset($image->type) && $image->type)
                                                         <div class="position-absolute top-0 start-0 p-1">
-                                                            <span class="badge bg-{{ $image->type === 'principale' ? 'warning' : 'info' }}">
+                                                            <span class="badge bg-{{ isset($image->type) && $image->type === 'principale' ? 'warning' : 'info' }}">
                                                                 {{ ucfirst($image->type) }}
                                                             </span>
                                                         </div>
@@ -243,7 +233,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                @elseif($product->images && count($product->images) > 0 && !empty(array_filter($product->images)))
+                                @elseif(isset($product->images) && is_array($product->images) && count(array_filter($product->images, function($img) { return !empty($img) && (is_string($img) || (is_array($img) && !empty($img))); })) > 0)
                                 <div class="form-group">
                                     <label><i class="fas fa-images"></i> Images actuelles (ancien système)</label>
                                     <div class="row">
@@ -309,111 +299,4 @@
 @endsection
 
 @push('scripts')
-<script>
-    // Auto-génération du SKU basé sur le nom
-    document.getElementById('name').addEventListener('input', function() {
-        const name = this.value;
-        const sku = name.toLowerCase()
-            .replace(/[^a-z0-9\s]/g, '')
-            .replace(/\s+/g, '-')
-            .substring(0, 20);
-        document.getElementById('sku').value = sku;
-    });
-
-    // Validation côté client pour le stock quantity
-    document.getElementById('stock_quantity').addEventListener('input', function() {
-        const value = this.value;
-        const regex = /^[1-9][0-9]*$/;
-
-        if (value && !regex.test(value)) {
-            this.setCustomValidity('La quantité doit être un nombre entier positif (ne peut pas commencer par 0)');
-        } else {
-            this.setCustomValidity('');
-        }
-    });
-
-    // Gestion avancée des images avec prévisualisation
-    document.getElementById('images').addEventListener('change', function() {
-        const files = this.files;
-        const maxSize = 2 * 1024 * 1024; // 2MB
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
-        const previewContainer = document.getElementById('preview-container');
-        const imagePreview = document.getElementById('image-preview');
-
-        // Vider la prévisualisation précédente
-        previewContainer.innerHTML = '';
-        imagePreview.style.display = 'none';
-
-        if (files.length > 10) {
-            alert('Vous ne pouvez sélectionner que 10 images maximum.');
-            this.value = '';
-            return;
-        }
-
-        let validFiles = [];
-        let hasErrors = false;
-
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-
-            if (!allowedTypes.includes(file.type)) {
-                alert(`Le fichier "${file.name}" n'est pas un format d'image valide. Formats acceptés: JPEG, PNG, JPG, GIF, WebP`);
-                hasErrors = true;
-                continue;
-            }
-
-            if (file.size > maxSize) {
-                alert(`Le fichier "${file.name}" est trop volumineux. Taille maximale: 2MB`);
-                hasErrors = true;
-                continue;
-            }
-
-            validFiles.push(file);
-        }
-
-        if (hasErrors) {
-            this.value = '';
-            return;
-        }
-
-        // Afficher la prévisualisation
-        if (validFiles.length > 0) {
-            imagePreview.style.display = 'block';
-
-            validFiles.forEach((file, index) => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const col = document.createElement('div');
-                    col.className = 'col-md-3 col-sm-4 col-6 mb-3';
-
-                    col.innerHTML = `
-                        <div class="image-preview-item position-relative">
-                            <img src="${e.target.result}" class="img-thumbnail" style="width: 100%; height: 120px; object-fit: cover;">
-                            <div class="position-absolute top-0 end-0 p-1">
-                                <span class="badge bg-success">Nouveau</span>
-                            </div>
-                            <div class="text-center mt-1">
-                                <small class="text-muted">${file.name}</small>
-                                <br>
-                                <small class="text-success">${(file.size / 1024).toFixed(1)} KB</small>
-                            </div>
-                        </div>
-                    `;
-
-                    previewContainer.appendChild(col);
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-    });
-
-    // Confirmation avant suppression d'image
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('button[title="Supprimer l\'image"]')) {
-            if (!confirm('Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible.')) {
-                e.preventDefault();
-            }
-        }
-    });
-</script>
 @endpush

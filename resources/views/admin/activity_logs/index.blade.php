@@ -32,7 +32,7 @@
     .activity-logged_in { background: linear-gradient(135deg, #9C27B0, #7B1FA2); color: white; }
     .activity-logged_out { background: linear-gradient(135deg, #607D8B, #455A64); color: white; }
     .activity-other { background: linear-gradient(135deg, #6C757D, #495057); color: white; }
-    
+
     .stats-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -44,7 +44,7 @@
     .stats-card.warning { background: linear-gradient(135deg, #FF9800, #F57C00); }
     .stats-card.info { background: linear-gradient(135deg, #2196F3, #1976D2); }
     .stats-card.danger { background: linear-gradient(135deg, #f44336, #d32f2f); }
-    
+
     .user-avatar {
         width: 40px;
         height: 40px;
@@ -57,13 +57,13 @@
         font-weight: bold;
         font-size: 0.9em;
     }
-    
+
     .loading-spinner {
         display: none;
         text-align: center;
         padding: 20px;
     }
-    
+
     .activity-details {
         background: #f8f9fa;
         border-radius: 8px;
@@ -86,9 +86,6 @@
         <a href="{{ route('admin.activity-logs.export') }}" class="btn btn-success me-2">
             <i class="fas fa-download me-2"></i>Exporter CSV
         </a>
-        <button class="btn btn-warning" onclick="showCleanupModal()">
-            <i class="fas fa-broom me-2"></i>Nettoyer
-        </button>
     </div>
 </div>
 
@@ -184,7 +181,7 @@
         <div class="row">
             <div class="col-md-10 mb-3">
                 <label for="search" class="form-label">Recherche</label>
-                <input type="text" name="search" id="search" class="form-control" 
+                <input type="text" name="search" id="search" class="form-control"
                        placeholder="Rechercher dans les descriptions, utilisateurs..." value="{{ request('search') }}">
             </div>
             <div class="col-md-2 mb-3">
@@ -233,37 +230,6 @@
     @include('admin.activity_logs.partials.pagination', ['activities' => $activities])
 </div>
 
-<!-- Modal de nettoyage -->
-<div class="modal fade" id="cleanupModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Nettoyer les Anciens Logs</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ route('admin.activity-logs.cleanup') }}" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <p>Cette action supprimera définitivement tous les logs d'activité plus anciens que la période spécifiée.</p>
-                    <div class="mb-3">
-                        <label for="days" class="form-label">Supprimer les logs plus anciens que (jours) :</label>
-                        <input type="number" name="days" id="days" class="form-control" value="30" min="1" max="365">
-                    </div>
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Attention :</strong> Cette action est irréversible !
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-warning">
-                        <i class="fas fa-broom me-2"></i>Nettoyer
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 @endsection
 
 @section('scripts')
@@ -291,20 +257,20 @@
         const loadingSpinner = document.getElementById('loadingSpinner');
         const tableBody = document.getElementById('activitiesTableBody');
         const paginationContainer = document.getElementById('paginationContainer');
-        
+
         loadingSpinner.style.display = 'block';
-        
+
         // Construire l'URL avec les paramètres actuels
         const formData = new FormData(document.getElementById('filterForm'));
         const params = new URLSearchParams(formData);
-        
+
         fetch(`{{ route('admin.activity-logs.get-logs') }}?${params}`)
             .then(response => response.json())
             .then(data => {
                 tableBody.innerHTML = data.html;
                 paginationContainer.innerHTML = data.pagination;
                 loadingSpinner.style.display = 'none';
-                
+
                 // Recharger les statistiques
                 loadStatistics();
             })
@@ -312,12 +278,6 @@
                 console.error('Erreur lors du rechargement:', error);
                 loadingSpinner.style.display = 'none';
             });
-    }
-
-    // Afficher le modal de nettoyage
-    function showCleanupModal() {
-        const modal = new bootstrap.Modal(document.getElementById('cleanupModal'));
-        modal.show();
     }
 
     // Auto-submit du formulaire de filtre

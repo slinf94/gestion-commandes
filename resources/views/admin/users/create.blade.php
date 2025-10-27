@@ -143,7 +143,7 @@
                             <i class="fas fa-times me-2"></i>
                             Annuler
                         </a>
-                        <button type="submit" class="btn btn-success">
+                        <button type="submit" class="btn btn-secondary">
                             <i class="fas fa-save me-2"></i>
                             Créer l'utilisateur
                         </button>

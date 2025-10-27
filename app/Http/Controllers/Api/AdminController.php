@@ -145,6 +145,68 @@ class AdminController extends Controller
     }
 
     /**
+     * Toggle user status between active and inactive
+     */
+    public function toggleUserStatus(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $oldStatus = $user->status;
+
+        // Ne pas permettre de basculer le statut des comptes admin
+        if ($user->role === 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible de modifier le statut d\'un compte administrateur'
+            ], 403);
+        }
+
+        // Ne pas permettre de basculer le statut des comptes en attente
+        if ($oldStatus === 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible de basculer le statut d\'un compte en attente. Utilisez l\'activation manuelle.'
+            ], 403);
+        }
+
+        // Basculer entre actif et inactif
+        $newStatus = ($oldStatus === 'active') ? 'inactive' : 'active';
+
+        $user->update([
+            'status' => $newStatus,
+        ]);
+
+        // Envoyer un email si le compte est activé
+        if ($newStatus === 'active' && $oldStatus !== 'active') {
+            try {
+                $user->notify(new AccountActivatedNotification($user));
+            } catch (\Exception $e) {
+                // Log l'erreur mais ne pas faire échouer la requête
+                \Log::error('Erreur envoi email activation: ' . $e->getMessage());
+            }
+        }
+
+        // Traduire le statut en français
+        $statusTranslations = [
+            'active' => 'Actif',
+            'inactive' => 'Inactif',
+            'pending' => 'En attente',
+            'suspended' => 'Suspendu'
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => $user->fresh(),
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'status_label' => $statusTranslations[$newStatus] ?? $newStatus,
+                'status_color' => $this->getStatusColor($newStatus)
+            ],
+            'message' => 'Statut utilisateur basculé avec succès'
+        ]);
+    }
+
+    /**
      * Delete user (soft delete)
      */
     public function deleteUser($id)
@@ -521,6 +583,25 @@ class AdminController extends Controller
                 return '%Y';
             default:
                 return '%Y-%m';
+        }
+    }
+
+    /**
+     * Get status color for badges
+     */
+    private function getStatusColor($status)
+    {
+        switch ($status) {
+            case 'active':
+                return 'success';
+            case 'inactive':
+                return 'secondary';
+            case 'pending':
+                return 'warning';
+            case 'suspended':
+                return 'danger';
+            default:
+                return 'secondary';
         }
     }
 }

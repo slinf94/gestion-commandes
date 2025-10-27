@@ -99,3 +99,6 @@ echo "4. Changez 'default' => 'mailgun' dans config/mail.php\n";
 echo "5. Relancez ce test\n\n";
 
 echo "Vos clients recevront leurs emails en temps réel !\n";
+
+
+

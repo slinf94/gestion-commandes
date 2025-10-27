@@ -12,17 +12,61 @@ class ClientController extends Controller
     /**
      * Afficher la liste des clients
      */
-    public function index()
+    public function index(Request $request)
     {
-        $clients = User::clients()
-            ->withCount('orders')
-            ->with(['orders' => function($query) {
-                $query->latest()->take(3); // Dernières 3 commandes
-            }])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $query = User::clients()->withCount('orders');
 
-        return view('admin.clients.index', compact('clients'));
+        // Recherche
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('prenom', 'like', "%{$search}%")
+                  ->orWhere('nom', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('numero_telephone', 'like', "%{$search}%");
+            });
+        }
+
+        // Filtre par quartier
+        if ($request->filled('quartier_id')) {
+            $query->where('quartier_id', $request->quartier_id);
+        }
+
+        // Filtre par date d'inscription
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // Tri
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+
+        $allowedSortFields = ['prenom', 'nom', 'email', 'created_at'];
+        if (!in_array($sortBy, $allowedSortFields)) {
+            $sortBy = 'created_at';
+        }
+
+        $query->orderBy($sortBy, $sortOrder);
+
+        // Pagination
+        $perPage = $request->get('per_page', 20);
+        $clients = $query->with(['orders' => function($ordersQuery) {
+                $ordersQuery->latest()->take(3); // Dernières 3 commandes
+            }])
+            ->paginate($perPage)->appends($request->query());
+
+        // Statistiques
+        $stats = [
+            'total' => User::clients()->count(),
+            'with_orders' => User::clients()->has('orders')->count(),
+            'new_this_month' => User::clients()->whereMonth('created_at', now()->month)->count(),
+        ];
+
+        return view('admin.clients.index', compact('clients', 'stats'));
     }
 
     /**

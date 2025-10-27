@@ -10,13 +10,13 @@
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <h3 class="card-title">Modifier la Catégorie</h3>
-                        <a href="{{ route('admin.categories.show', $category) }}" class="btn btn-secondary">
+                        <a href="{{ route('admin.categories.show', $category->id) }}" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Retour
                         </a>
                     </div>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('admin.categories.update', $category) }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ route('admin.categories.update', $category->id) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
 
@@ -140,7 +140,7 @@
                             <button type="submit" class="btn btn-success">
                                 <i class="fas fa-save"></i> Mettre à jour
                             </button>
-                            <a href="{{ route('admin.categories.show', $category) }}" class="btn btn-secondary">
+                            <a href="{{ route('admin.categories.show', $category->id) }}" class="btn btn-secondary">
                                 <i class="fas fa-times"></i> Annuler
                             </a>
                         </div>

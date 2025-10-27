@@ -65,8 +65,23 @@
                                         <tr>
                                             <td><strong>Statut:</strong></td>
                                             <td>
-                                                <span class="badge badge-{{ $user->status == 'active' ? 'success' : ($user->status == 'pending' ? 'warning' : 'danger') }}">
-                                                    {{ $user->status == 'active' ? 'Actif' : ($user->status == 'pending' ? 'En attente' : ucfirst(is_object($user->status) ? $user->status->value : $user->status)) }}
+                                                @php
+                                                    $status = is_object($user->status) ? $user->status->value : $user->status;
+                                                    $statusTranslations = [
+                                                        'active' => 'Actif',
+                                                        'inactive' => 'Inactif',
+                                                        'pending' => 'En attente',
+                                                        'suspended' => 'Suspendu'
+                                                    ];
+                                                    $statusColors = [
+                                                        'active' => 'success',
+                                                        'inactive' => 'secondary',
+                                                        'pending' => 'warning',
+                                                        'suspended' => 'danger'
+                                                    ];
+                                                @endphp
+                                                <span class="badge badge-{{ $statusColors[$status] ?? 'secondary' }}">
+                                                    {{ $statusTranslations[$status] ?? ucfirst($status) }}
                                                 </span>
                                             </td>
                                         </tr>

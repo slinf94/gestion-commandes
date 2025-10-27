@@ -31,13 +31,12 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
     Route::get('/auth/quartiers', [AuthController::class, 'getQuartiers']); // Liste des quartiers
 
-    // Produits et catégories (lecture seule) - Nouvelle API améliorée
-    Route::get('/products', [ProductApiController::class, 'index']);
-    Route::get('/products/featured', [ProductApiController::class, 'featured']);
-    Route::get('/products/search', [ProductApiController::class, 'search']);
-    Route::get('/products/{id}', [ProductApiController::class, 'show']);
-    Route::get('/products/category/{category}', [ProductApiController::class, 'byCategory']);
-    Route::get('/products/type/{productType}', [ProductApiController::class, 'byType']);
+// Produits et catégories (lecture seule) - API simplifiée
+Route::get('/products', [ProductApiController::class, 'index']);
+Route::get('/products/search', [ProductApiController::class, 'search']);
+Route::get('/products/{id}', [ProductApiController::class, 'show']);
+Route::get('/products/category/{category}', [ProductApiController::class, 'byCategory']);
+Route::get('/products/type/{productType}', [ProductApiController::class, 'byType']);
 
     // Catégories et types
     Route::get('/categories', [ProductApiController::class, 'categories']);
@@ -104,6 +103,7 @@ Route::prefix('v1/admin')->middleware(['jwt.auth', 'admin'])->group(function () 
     Route::get('/users', [AdminController::class, 'users']);
     Route::get('/users/{id}', [AdminController::class, 'showUser']);
     Route::put('/users/{id}/status', [AdminController::class, 'updateUserStatus']);
+    Route::put('/users/{id}/toggle-status', [AdminController::class, 'toggleUserStatus']);
     Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
 
     // Gestion des produits

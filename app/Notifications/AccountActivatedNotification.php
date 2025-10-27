@@ -29,7 +29,7 @@ class AccountActivatedNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database'];
     }
 
     /**
@@ -38,8 +38,39 @@ class AccountActivatedNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('🎉 Votre compte Allo Mobile a été activé !')
-            ->view('emails.account-activated', ['user' => $this->user]);
+            ->subject('🎉 Bienvenue sur Allo Mobile - Votre compte est actif !')
+            ->greeting('Bonjour ' . $this->user->prenom . ',')
+            ->line('')
+            ->line('✅ **Excellente nouvelle ! Votre compte Allo Mobile a été activé.**')
+            ->line('')
+            ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+            ->line('🎊 BIENVENUE SUR ALLO MOBILE')
+            ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+            ->line('Vous pouvez maintenant profiter pleinement de nos services.')
+            ->line('')
+            ->line('📱 **Connectez-vous maintenant** pour découvrir :')
+            ->line('   🛒 Nos produits et promotions')
+            ->line('   📦 Le suivi de vos commandes')
+            ->line('   💳 Des moyens de paiement sécurisés')
+            ->line('   📞 Un support client réactif')
+            ->line('')
+            ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+            ->line('📋 VOS INFORMATIONS')
+            ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+            ->line('👤 Nom : ' . $this->user->full_name)
+            ->line('📧 Email : ' . $this->user->email)
+            ->line('📱 Téléphone : ' . $this->user->numero_telephone)
+            ->line('📍 Quartier : ' . ($this->user->quartier ?? 'Non défini'))
+            ->line('')
+            ->line('⚠️ **Sécurité :** Gardez vos identifiants confidentiels.')
+            ->line('')
+            ->action('🚀 Commencer mes achats', url('/'))
+            ->line('')
+            ->line('💬 Des questions ? Contactez notre équipe :')
+            ->line('   📧 support@allomobile.com')
+            ->line('   📱 Service client 24/7')
+            ->line('')
+            ->salutation('À très bientôt sur Allo Mobile !');
     }
 
     /**

@@ -41,47 +41,61 @@ class NewOrderNotification extends Notification
         $statusInfo = OrderStatusHelper::getStatusInfo($this->order->status);
 
         $mailMessage = (new MailMessage)
-            ->subject('🛒 Nouvelle commande reçue - #' . $this->order->order_number)
-            ->greeting('Nouvelle commande reçue !')
-            ->line('Une nouvelle commande vient d\'être passée sur votre plateforme Allo Mobile.')
+            ->subject('🛒 Nouvelle commande - Allo Mobile #' . $this->order->order_number)
+            ->greeting('🔔 Nouvelle commande reçue !')
+            ->line('Bonjour ' . $notifiable->prenom . ',')
             ->line('')
-            ->line('**Informations de la commande :**')
-            ->line('• Numéro de commande : #' . $this->order->order_number)
-            ->line('• Date de commande : ' . $this->order->created_at->format('d/m/Y à H:i'))
-            ->line('• Statut actuel : ' . $statusInfo['text'])
-            ->line('• Montant total : **' . number_format($this->order->total_amount, 0, ',', ' ') . ' FCFA**')
+            ->line('Une nouvelle commande vient d\'être passée sur Allo Mobile.')
             ->line('')
-            ->line('**Informations du client :**')
-            ->line('• Nom complet : ' . $this->order->user->full_name)
-            ->line('• Email : ' . $this->order->user->email)
-            ->line('• Téléphone : ' . $this->order->user->numero_telephone)
-            ->line('• Localisation : ' . $this->order->user->localisation . ', ' . $this->order->user->quartier)
+            ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+            ->line('📦 DÉTAILS DE LA COMMANDE')
+            ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+            ->line('🔢 Numéro : #' . $this->order->order_number)
+            ->line('📅 Date : ' . $this->order->created_at->format('d/m/Y à H:i'))
+            ->line('📍 Statut : ' . $statusInfo['text'])
+            ->line('💰 Montant : **' . number_format($this->order->total_amount, 0, ',', ' ') . ' FCFA**')
             ->line('')
-            ->line('**Articles commandés :**');
+            ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+            ->line('👤 INFORMATIONS CLIENT')
+            ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+            ->line('👨‍💼 Nom : ' . $this->order->user->full_name)
+            ->line('📧 Email : ' . $this->order->user->email)
+            ->line('📱 Téléphone : ' . $this->order->user->numero_telephone)
+            ->line('📍 Localisation : ' . $this->order->user->localisation . ', ' . $this->order->user->quartier)
+            ->line('')
+            ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+            ->line('🛍️ ARTICLES COMMANDÉS')
+            ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
         foreach ($this->order->items as $item) {
-            $mailMessage->line('• ' . $item->product->name . ' (x' . $item->quantity . ') - ' . number_format($item->total_price, 0, ',', ' ') . ' FCFA');
+            $mailMessage->line('• ' . $item->product->name . ' × ' . $item->quantity . ' → ' . number_format($item->total_price, 0, ',', ' ') . ' FCFA');
         }
 
         $mailMessage
             ->line('')
-            ->line('**Adresse de livraison :**')
+            ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+            ->line('🏠 ADRESSE DE LIVRAISON')
+            ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
             ->line($this->order->delivery_address['street'] ?? 'Non spécifiée')
             ->line($this->order->delivery_address['city'] ?? '')
             ->line($this->order->delivery_address['country'] ?? '')
             ->line('');
 
         if ($this->order->notes) {
-            $mailMessage->line('**Notes du client :**')
-                ->line($this->order->notes);
+            $mailMessage
+                ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+                ->line('📝 NOTES DU CLIENT')
+                ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+                ->line($this->order->notes)
+                ->line('');
         }
 
         $mailMessage
+            ->line('⚠️ **ACTION REQUISE** : Merci de traiter cette commande rapidement.')
             ->line('')
-            ->line('⚠️ **Action requise :** Veuillez traiter cette commande dans les plus brefs délais.')
+            ->action('✅ Gérer la commande', url('/admin/orders/' . $this->order->id))
             ->line('')
-            ->salutation('Système de notification Allo Mobile')
-            ->action('Gérer la commande', url('/admin/orders/' . $this->order->id));
+            ->salutation('L\'équipe Allo Mobile - Service Commandes');
 
         return $mailMessage;
     }
