@@ -136,9 +136,11 @@
         </div>
         @endif
 
+        <!-- Bouton masqué
         <div style="text-align: center;">
             <a href="{{ url('/orders/' . $order->id) }}" class="btn">Voir ma commande</a>
         </div>
+        -->
 
         <div class="footer">
             <p>Si vous avez des questions concernant votre commande, n'hésitez pas à nous contacter.</p>

@@ -107,10 +107,11 @@
             <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
         </div>
 
-        <!-- Bouton d'action -->
+        <!-- Bouton d'action masqué
         <div class="cta-button">
             <a href="{{ $resetUrl }}">🔑 Réinitialiser mon mot de passe</a>
         </div>
+        -->
 
         <!-- Avertissement -->
         <div class="warning-box">
@@ -133,6 +134,7 @@
     </div>
 </body>
 </html>
+
 
 
 

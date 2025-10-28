@@ -135,10 +135,11 @@
             <p>Téléphone : <strong>{{ $user->numero_telephone }}</strong></p>
         </div>
 
-        <!-- Bouton d'action -->
+        <!-- Bouton d'action masqué
         <div class="cta-button">
             <a href="{{ url('/') }}">🚀 Commencer mes achats</a>
         </div>
+        -->
 
         <!-- Message de remerciement -->
         <div class="content">
@@ -159,6 +160,7 @@
     </div>
 </body>
 </html>
+
 
 
 

@@ -3,6 +3,35 @@
 @section('title', 'Modifier le Produit')
 
 @section('content')
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show auto-dismiss" data-dismiss-time="3000" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+@if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Erreur:</strong>
+        <ul class="mb-0 mt-2">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
 <!-- Header moderne avec gradient vert -->
 <div class="card shadow-lg border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
     <div class="card-header text-white" style="background: linear-gradient(135deg, #38B04A, #4CAF50); padding: 20px;">
@@ -27,9 +56,9 @@
         <div class="col-12">
             <div class="card shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
                 <div class="card-body" style="padding: 30px;">
-                    <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data" id="productEditForm">
                         @csrf
-                        @method('PUT')
+                        <input type="hidden" name="_method" value="PUT">
                         <div class="row">
                             <div class="col-md-8">
                                 <div class="form-group">
@@ -300,7 +329,7 @@
                         <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary" style="border-radius: 8px;">
                             <i class="fas fa-times me-2"></i>Annuler
                         </a>
-                        <button type="submit" class="btn btn-success" style="border-radius: 8px; background: linear-gradient(135deg, #38B04A, #4CAF50); border: none; padding: 10px 30px;">
+                        <button type="submit" id="updateButton" class="btn btn-success" style="border-radius: 8px; background: linear-gradient(135deg, #38B04A, #4CAF50); border: none; padding: 10px 30px;">
                             <i class="fas fa-save me-2"></i>Mettre à jour
                         </button>
                     </div>
@@ -312,30 +341,31 @@
 </div>
 @endsection
 
-@push('scripts')
+@section('scripts')
 <script>
-    // Gérer les clics sur les boutons de suppression d'images
+    // Version SIMPLE - Pas de JavaScript complexe, juste la soumission du formulaire
     document.addEventListener('DOMContentLoaded', function() {
-        // Boutons de suppression d'images avec data-* attributes
-        const deleteImageButtons = document.querySelectorAll('.delete-image-btn');
+        console.log('✅ Page chargée');
 
-        deleteImageButtons.forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                const url = this.getAttribute('data-url');
-                const message = this.getAttribute('data-message');
+        const form = document.getElementById('productEditForm');
+        const submitBtn = document.getElementById('updateButton');
 
-                console.log('Clic sur bouton de suppression d\'image');
-                console.log('URL:', url);
-                console.log('Message:', message);
+        if (form && submitBtn) {
+            // Quand on clique sur le bouton
+            submitBtn.addEventListener('click', function(e) {
+                console.log('🖱️ Bouton cliqué');
+                e.preventDefault();
 
-                if (typeof deleteWithConfirmation === 'function') {
-                    deleteWithConfirmation(url, message, 'DELETE');
-                } else {
-                    console.error('deleteWithConfirmation n\'est pas défini');
-                    alert(message || 'Êtes-vous sûr de vouloir supprimer cette image ?');
-                }
+                // Désactiver le bouton
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Mise à jour en cours...';
+                submitBtn.style.pointerEvents = 'none';
+
+                // Soumettre le formulaire
+                console.log('✅ Soumission du formulaire');
+                form.submit();
             });
-        });
+        }
     });
 </script>
-@endpush
+@endsection

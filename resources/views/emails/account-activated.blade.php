@@ -136,10 +136,11 @@
             </div>
         </div>
 
-        <!-- Bouton d'action -->
+        <!-- Bouton d'action masqué
         <div class="cta-button">
             <a href="{{ route('mobile.app') }}">📱 Télécharger l'application mobile</a>
         </div>
+        -->
 
         <!-- Message de remerciement -->
         <div class="content">

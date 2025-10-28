@@ -30,3 +30,4 @@ ALTER TABLE products AUTO_INCREMENT = 1;
 -- 6. Nettoyer
 DROP TABLE products_backup;
 
+

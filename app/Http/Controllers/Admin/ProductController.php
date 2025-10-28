@@ -22,11 +22,8 @@ class ProductController extends Controller
     {
         try {
             // Construction de la requête avec filtres dynamiques
-            $query = DB::table('products')
-                ->select('id', 'name', 'price', 'status', 'created_at', 'category_id', 'product_type_id');
-
-            // Temporairement: afficher TOUS les produits pour vérifier (commenté)
-            // ->whereNull('deleted_at');
+            // Utiliser DB::table pour éviter l'épuisement de mémoire
+            $query = DB::table('products')->select('*');
 
             // Filtres dynamiques
             if ($request->filled('search')) {
@@ -66,7 +63,7 @@ class ProductController extends Controller
                 $query->whereDate('created_at', '<=', $request->date_to);
             }
 
-            // Tri dynamique - Par défaut par ID croissant (du plus ancien au plus récent)
+            // Tri dynamique - Par défaut par ID croissant
             $sortBy = $request->get('sort_by', 'id');
             $sortOrder = $request->get('sort_order', 'asc');
             $query->orderBy($sortBy, $sortOrder);
@@ -75,7 +72,21 @@ class ProductController extends Controller
             $perPage = $request->get('per_page', 10);
             $products = $query->paginate($perPage)->appends($request->query());
 
-            // Données pour les filtres
+            // Précharger toutes les images des produits en une seule requête
+            if ($products->count() > 0) {
+                $productIds = $products->pluck('id')->toArray();
+                $allImages = DB::table('product_images')
+                    ->whereIn('product_id', $productIds)
+                    ->get()
+                    ->groupBy('product_id');
+
+                // Ajouter les images à chaque produit
+                foreach ($products as $product) {
+                    $product->images = $allImages->get($product->id) ?? collect();
+                }
+            }
+
+            // Charger les catégories et types pour les filtres
             $categories = DB::table('categories')
                 ->select('id', 'name')
                 ->where('is_active', true)
@@ -324,8 +335,19 @@ class ProductController extends Controller
         ]);
 
                 try {
+            // Prétraiter les données avant validation
+            $data = $request->all();
+
+            // Convertir les prix (virgule en point)
+            if (isset($data['price'])) {
+                $data['price'] = str_replace(',', '.', $data['price']);
+            }
+            if (isset($data['cost_price'])) {
+                $data['cost_price'] = str_replace(',', '.', $data['cost_price']);
+            }
+
             // Validation
-            $validated = $request->validate([
+            $validated = validator($data, [
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'price' => 'required|numeric|min:0',
@@ -348,22 +370,41 @@ class ProductController extends Controller
                 'stock_quantity.required' => 'La quantité en stock est obligatoire.',
                 'category_id.required' => 'La catégorie est obligatoire.',
                 'status.required' => 'Le statut est obligatoire.',
-            ]);
+            ])->validate();
 
             \Log::info('Validation OK, données validées:', $validated);
 
-            // Conversion des virgules en points pour les prix
-            $validated['price'] = str_replace(',', '.', $validated['price']);
-            if (!empty($validated['cost_price'])) {
-                $validated['cost_price'] = str_replace(',', '.', $validated['cost_price']);
+            // Nettoyer les données pour la mise à jour (ne garder que les colonnes de la table)
+            $updateData = [
+                'name' => $validated['name'],
+                'description' => $validated['description'] ?? null,
+                'price' => floatval($validated['price']),
+                'stock_quantity' => intval($validated['stock_quantity']),
+                'category_id' => intval($validated['category_id']),
+                'status' => $validated['status'],
+                'sku' => $validated['sku'] ?? null,
+                'cost_price' => isset($validated['cost_price']) && !empty($validated['cost_price']) ? floatval($validated['cost_price']) : null,
+                'min_stock_alert' => isset($validated['min_stock_alert']) ? intval($validated['min_stock_alert']) : null,
+                'barcode' => $validated['barcode'] ?? null,
+                'meta_title' => $validated['meta_title'] ?? null,
+                'meta_description' => $validated['meta_description'] ?? null,
+                'tags' => $validated['tags'] ?? null,
+                'updated_at' => now(),
+            ];
+
+            // Si product_type_id existe dans les données validées, l'ajouter
+            if (isset($validated['product_type_id']) && !empty($validated['product_type_id'])) {
+                $updateData['product_type_id'] = intval($validated['product_type_id']);
             }
 
-            // Mise à jour avec DB::table pour éviter les problèmes de mémoire
-            DB::table('products')
-                ->where('id', $id)
-                ->update(array_merge($validated, ['updated_at' => now()]));
+            \Log::info('Données à mettre à jour:', $updateData);
 
-            \Log::info('Produit mis à jour:', ['id' => $id, 'name' => $validated['name']]);
+            // Mise à jour avec DB::table
+            $updated = DB::table('products')
+                ->where('id', $id)
+                ->update($updateData);
+
+            \Log::info('Produit mis à jour:', ['id' => $id, 'name' => $validated['name'], 'rows_affected' => $updated]);
 
             // Gestion des images
             if ($request->hasFile('images')) {
@@ -421,7 +462,21 @@ class ProductController extends Controller
     public function destroy($id)
     {
         try {
-            // Suppression ultra-simple (soft delete)
+            // Vérifier si le produit existe
+            $product = DB::table('products')->where('id', $id)->first();
+
+            if (!$product) {
+                return redirect()->route('admin.products.index')
+                    ->with('error', 'Produit introuvable.');
+            }
+
+            // Supprimer les images associées
+            DB::table('product_images')->where('product_id', $id)->delete();
+
+            // Supprimer les variantes associées
+            DB::table('product_variants')->where('product_id', $id)->delete();
+
+            // Suppression du produit (soft delete)
             DB::table('products')
                 ->where('id', $id)
                 ->update(['deleted_at' => now()]);

@@ -47,8 +47,9 @@ Route::prefix('admin')->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
         Route::post('/logout', [DashboardController::class, 'logout'])->name('admin.logout');
 
-        // Gestion des utilisateurs
-        Route::get('/users', [UserController::class, 'index'])->name('admin.users.index');
+        // Gestion des utilisateurs - Uniquement pour Super Admin et Admin
+        Route::middleware(['role:super-admin,admin'])->group(function () {
+            Route::get('/users', [UserController::class, 'index'])->name('admin.users.index');
         Route::get('/users/by-quartier', [UserController::class, 'byQuartier'])->name('admin.users.by-quartier');
         Route::get('/users/create', [UserController::class, 'create'])->name('admin.users.create');
         Route::post('/users', [UserController::class, 'store'])->name('admin.users.store');
@@ -66,25 +67,32 @@ Route::prefix('admin')->group(function () {
 
         // API pour basculer le statut utilisateur (pour AJAX)
         Route::put('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('admin.users.toggle-status');
+        });
 
-        // Gestion des produits
-        Route::get('/products', [ProductController::class, 'index'])->name('admin.products.index');
-        Route::get('/products/create', [ProductController::class, 'create'])->name('admin.products.create');
-        Route::post('/products', [ProductController::class, 'store'])->name('admin.products.store');
+        // Gestion des produits - Super Admin, Admin, Gestionnaire et Vendeur peuvent voir
+        Route::middleware(['role:super-admin,admin,gestionnaire,vendeur'])->group(function () {
+            Route::get('/products', [ProductController::class, 'index'])->name('admin.products.index');
+            Route::get('/products/{id}', [ProductController::class, 'show'])->name('admin.products.show');
+        });
 
-        // Import/Export des produits (DOIT être avant /products/{product})
-        Route::get('/products/import-export', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'index'])->name('admin.products.import-export');
-        Route::get('/products/export/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'exportCsv'])->name('admin.products.export.csv');
-        Route::post('/products/import/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'importCsv'])->name('admin.products.import.csv');
-        Route::get('/products/template/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'downloadTemplate'])->name('admin.products.template.csv');
-        Route::post('/products/bulk-update', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'bulkUpdate'])->name('admin.products.bulk-update');
-        Route::get('/products/statistics/export', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'exportStatistics'])->name('admin.products.statistics.export');
+        // Création, modification et suppression - Super Admin, Admin et Gestionnaire uniquement
+        Route::middleware(['role:super-admin,admin,gestionnaire'])->group(function () {
+            Route::get('/products/create', [ProductController::class, 'create'])->name('admin.products.create');
+            Route::post('/products', [ProductController::class, 'store'])->name('admin.products.store');
 
-        Route::get('/products/{id}', [ProductController::class, 'show'])->name('admin.products.show');
-        Route::get('/products/{id}/edit', [ProductController::class, 'edit'])->name('admin.products.edit');
-        Route::put('/products/{id}', [ProductController::class, 'update'])->name('admin.products.update');
-        Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('admin.products.destroy');
-        Route::post('/products/{id}/restore', [ProductController::class, 'restore'])->name('admin.products.restore');
+            // Import/Export des produits
+            Route::get('/products/import-export', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'index'])->name('admin.products.import-export');
+            Route::get('/products/export/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'exportCsv'])->name('admin.products.export.csv');
+            Route::post('/products/import/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'importCsv'])->name('admin.products.import.csv');
+            Route::get('/products/template/csv', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'downloadTemplate'])->name('admin.products.template.csv');
+            Route::post('/products/bulk-update', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'bulkUpdate'])->name('admin.products.bulk-update');
+            Route::get('/products/statistics/export', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'exportStatistics'])->name('admin.products.statistics.export');
+
+            Route::get('/products/{id}/edit', [ProductController::class, 'edit'])->name('admin.products.edit');
+            Route::put('/products/{id}', [ProductController::class, 'update'])->name('admin.products.update');
+            Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('admin.products.destroy');
+            Route::post('/products/{id}/restore', [ProductController::class, 'restore'])->name('admin.products.restore');
+        });
 
     // Gestion des images de produits
     Route::post('/products/{product}/images', [ProductController::class, 'uploadImages'])->name('admin.products.upload-images');
@@ -102,31 +110,39 @@ Route::prefix('admin')->group(function () {
     Route::post('/products/{product}/variants/{variant}/toggle-status', [ProductVariantController::class, 'toggleStatus'])->name('admin.products.variants.toggle-status');
     Route::delete('/products/{product}/variants/{variant}/images/{imageIndex}', [ProductVariantController::class, 'deleteImage'])->name('admin.products.variants.delete-image');
 
-        // Gestion des commandes
+        // Gestion des commandes - Tous les rôles peuvent voir
         Route::get('/orders', [OrderController::class, 'index'])->name('admin.orders.index');
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('admin.orders.show');
-        Route::put('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('admin.orders.cancel');
-        Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('admin.orders.destroy');
         Route::post('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('admin.orders.status');
 
-        // Gestion des clients CRM
-        Route::get('/clients', [ClientController::class, 'index'])->name('admin.clients.index');
-        Route::get('/clients/search', [ClientController::class, 'search'])->name('admin.clients.search');
-        Route::get('/clients/{client}', [ClientController::class, 'show'])->name('admin.clients.show');
-        Route::get('/clients/{client}/orders/filter', [ClientController::class, 'filterOrders'])->name('admin.clients.orders.filter');
+        // Suppression de commandes - Admin et Super Admin uniquement
+        Route::middleware(['role:super-admin,admin'])->group(function () {
+            Route::put('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('admin.orders.cancel');
+            Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('admin.orders.destroy');
+        });
 
-        // Gestion des quartiers
-        Route::get('/quartiers', [QuartierController::class, 'index'])->name('admin.quartiers.index');
-        Route::get('/quartiers/create', [QuartierController::class, 'create'])->name('admin.quartiers.create');
-        Route::post('/quartiers', [QuartierController::class, 'store'])->name('admin.quartiers.store');
-        Route::get('/quartiers/{quartier}', [QuartierController::class, 'show'])->name('admin.quartiers.show');
-        Route::get('/quartiers/{quartier}/edit', [QuartierController::class, 'edit'])->name('admin.quartiers.edit');
-        Route::put('/quartiers/{quartier}', [QuartierController::class, 'update'])->name('admin.quartiers.update');
-        Route::delete('/quartiers/{quartier}', [QuartierController::class, 'destroy'])->name('admin.quartiers.destroy');
-        Route::get('/quartiers/{quartier}/clients', [QuartierController::class, 'clients'])->name('admin.quartiers.clients');
-        Route::post('/users/{user}/reassign-quartier', [QuartierController::class, 'reassignClient'])->name('admin.users.reassign-quartier');
-        Route::get('/quartiers/statistics', [QuartierController::class, 'statistics'])->name('admin.quartiers.statistics');
-        Route::get('/quartiers/{quartier}/export-clients', [QuartierController::class, 'exportClients'])->name('admin.quartiers.export-clients');
+        // Gestion des clients CRM - Super Admin, Admin et Gestionnaire uniquement
+        Route::middleware(['role:super-admin,admin,gestionnaire'])->group(function () {
+            Route::get('/clients', [ClientController::class, 'index'])->name('admin.clients.index');
+            Route::get('/clients/search', [ClientController::class, 'search'])->name('admin.clients.search');
+            Route::get('/clients/{client}', [ClientController::class, 'show'])->name('admin.clients.show');
+            Route::get('/clients/{client}/orders/filter', [ClientController::class, 'filterOrders'])->name('admin.clients.orders.filter');
+        });
+
+        // Gestion des quartiers - Super Admin, Admin et Gestionnaire
+        Route::middleware(['role:super-admin,admin,gestionnaire'])->group(function () {
+            Route::get('/quartiers', [QuartierController::class, 'index'])->name('admin.quartiers.index');
+            Route::get('/quartiers/create', [QuartierController::class, 'create'])->name('admin.quartiers.create');
+            Route::post('/quartiers', [QuartierController::class, 'store'])->name('admin.quartiers.store');
+            Route::get('/quartiers/{quartier}', [QuartierController::class, 'show'])->name('admin.quartiers.show');
+            Route::get('/quartiers/{quartier}/edit', [QuartierController::class, 'edit'])->name('admin.quartiers.edit');
+            Route::put('/quartiers/{quartier}', [QuartierController::class, 'update'])->name('admin.quartiers.update');
+            Route::delete('/quartiers/{quartier}', [QuartierController::class, 'destroy'])->name('admin.quartiers.destroy');
+            Route::get('/quartiers/{quartier}/clients', [QuartierController::class, 'clients'])->name('admin.quartiers.clients');
+            Route::post('/users/{user}/reassign-quartier', [QuartierController::class, 'reassignClient'])->name('admin.users.reassign-quartier');
+            Route::get('/quartiers/statistics', [QuartierController::class, 'statistics'])->name('admin.quartiers.statistics');
+            Route::get('/quartiers/{quartier}/export-clients', [QuartierController::class, 'exportClients'])->name('admin.quartiers.export-clients');
+        });
 
         // Gestion du profil admin
         Route::get('/profile', [ProfileController::class, 'show'])->name('admin.profile.show');
@@ -135,62 +151,72 @@ Route::prefix('admin')->group(function () {
         Route::get('/profile/password', [ProfileController::class, 'editPassword'])->name('admin.profile.password');
         Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('admin.profile.password.update');
 
-                // Journal des activités
-                Route::get('/activity-logs', [AdminActivityController::class, 'index'])->name('admin.activity-logs.index');
-                Route::get('/activity-logs/{activityLog}', [AdminActivityController::class, 'show'])->name('admin.activity-logs.show');
-                Route::get('/activity-logs-ajax', [AdminActivityController::class, 'getLogs'])->name('admin.activity-logs.get-logs');
-                Route::get('/activity-logs-statistics', [AdminActivityController::class, 'statistics'])->name('admin.activity-logs.statistics');
-                Route::post('/activity-logs-cleanup', [AdminActivityController::class, 'cleanup'])->name('admin.activity-logs.cleanup');
-                Route::get('/activity-logs-export', [AdminActivityController::class, 'exportCsv'])->name('admin.activity-logs.export');
+                // Journal des activités - Super Admin et Admin uniquement
+                Route::middleware(['role:super-admin,admin'])->group(function () {
+                    Route::get('/activity-logs', [AdminActivityController::class, 'index'])->name('admin.activity-logs.index');
+                    Route::get('/activity-logs/{activityLog}', [AdminActivityController::class, 'show'])->name('admin.activity-logs.show');
+                    Route::get('/activity-logs-ajax', [AdminActivityController::class, 'getLogs'])->name('admin.activity-logs.get-logs');
+                    Route::get('/activity-logs-statistics', [AdminActivityController::class, 'statistics'])->name('admin.activity-logs.statistics');
+                    Route::post('/activity-logs-cleanup', [AdminActivityController::class, 'cleanup'])->name('admin.activity-logs.cleanup');
+                    Route::get('/activity-logs-export', [AdminActivityController::class, 'exportCsv'])->name('admin.activity-logs.export');
+                });
 
-                // Gestion des catégories
-                Route::get('/categories', [\App\Http\Controllers\Admin\CategoryController::class, 'index'])->name('admin.categories.index');
-                Route::get('/categories/create', [\App\Http\Controllers\Admin\CategoryController::class, 'create'])->name('admin.categories.create');
-                Route::post('/categories', [\App\Http\Controllers\Admin\CategoryController::class, 'store'])->name('admin.categories.store');
-                Route::get('/categories/{id}', [\App\Http\Controllers\Admin\CategoryController::class, 'show'])->name('admin.categories.show');
-                Route::get('/categories/{id}/edit', [\App\Http\Controllers\Admin\CategoryController::class, 'edit'])->name('admin.categories.edit');
-                Route::put('/categories/{id}', [\App\Http\Controllers\Admin\CategoryController::class, 'update'])->name('admin.categories.update');
-                Route::delete('/categories/{id}', [\App\Http\Controllers\Admin\CategoryController::class, 'destroy'])->name('admin.categories.destroy');
-                Route::post('/categories/{id}/toggle-status', [\App\Http\Controllers\Admin\CategoryController::class, 'toggleStatus'])->name('admin.categories.toggle-status');
-                Route::post('/categories/reorder', [\App\Http\Controllers\Admin\CategoryController::class, 'reorder'])->name('admin.categories.reorder');
+                // Gestion des catégories - Super Admin, Admin et Gestionnaire
+                Route::middleware(['role:super-admin,admin,gestionnaire'])->group(function () {
+                    Route::get('/categories', [\App\Http\Controllers\Admin\CategoryController::class, 'index'])->name('admin.categories.index');
+                    Route::get('/categories/create', [\App\Http\Controllers\Admin\CategoryController::class, 'create'])->name('admin.categories.create');
+                    Route::post('/categories', [\App\Http\Controllers\Admin\CategoryController::class, 'store'])->name('admin.categories.store');
+                    Route::get('/categories/{id}', [\App\Http\Controllers\Admin\CategoryController::class, 'show'])->name('admin.categories.show');
+                    Route::get('/categories/{id}/edit', [\App\Http\Controllers\Admin\CategoryController::class, 'edit'])->name('admin.categories.edit');
+                    Route::put('/categories/{id}', [\App\Http\Controllers\Admin\CategoryController::class, 'update'])->name('admin.categories.update');
+                    Route::delete('/categories/{id}', [\App\Http\Controllers\Admin\CategoryController::class, 'destroy'])->name('admin.categories.destroy');
+                    Route::post('/categories/{id}/toggle-status', [\App\Http\Controllers\Admin\CategoryController::class, 'toggleStatus'])->name('admin.categories.toggle-status');
+                    Route::post('/categories/reorder', [\App\Http\Controllers\Admin\CategoryController::class, 'reorder'])->name('admin.categories.reorder');
+                });
 
-                // Gestion des attributs
-                Route::resource('attributes', \App\Http\Controllers\Admin\AttributeController::class)->names([
-                    'index' => 'admin.attributes.index',
-                    'create' => 'admin.attributes.create',
-                    'store' => 'admin.attributes.store',
-                    'show' => 'admin.attributes.show',
-                    'edit' => 'admin.attributes.edit',
-                    'update' => 'admin.attributes.update',
-                    'destroy' => 'admin.attributes.destroy',
-                ]);
-                Route::post('/attributes/{attribute}/toggle-status', [\App\Http\Controllers\Admin\AttributeController::class, 'toggleStatus'])->name('admin.attributes.toggle-status');
-                Route::get('/attributes/{attribute}/options', [\App\Http\Controllers\Admin\AttributeController::class, 'getOptions'])->name('admin.attributes.options');
+                // Gestion des attributs - Super Admin, Admin et Gestionnaire
+                Route::middleware(['role:super-admin,admin,gestionnaire'])->group(function () {
+                    Route::resource('attributes', \App\Http\Controllers\Admin\AttributeController::class)->names([
+                        'index' => 'admin.attributes.index',
+                        'create' => 'admin.attributes.create',
+                        'store' => 'admin.attributes.store',
+                        'show' => 'admin.attributes.show',
+                        'edit' => 'admin.attributes.edit',
+                        'update' => 'admin.attributes.update',
+                        'destroy' => 'admin.attributes.destroy',
+                    ]);
+                    Route::post('/attributes/{attribute}/toggle-status', [\App\Http\Controllers\Admin\AttributeController::class, 'toggleStatus'])->name('admin.attributes.toggle-status');
+                    Route::get('/attributes/{attribute}/options', [\App\Http\Controllers\Admin\AttributeController::class, 'getOptions'])->name('admin.attributes.options');
+                });
 
-                // Gestion des types de produits
-                Route::resource('product-types', \App\Http\Controllers\Admin\ProductTypeController::class)->names([
-                    'index' => 'admin.product-types.index',
-                    'create' => 'admin.product-types.create',
-                    'store' => 'admin.product-types.store',
-                    'show' => 'admin.product-types.show',
-                    'edit' => 'admin.product-types.edit',
-                    'update' => 'admin.product-types.update',
-                    'destroy' => 'admin.product-types.destroy',
-                ]);
-                Route::post('/product-types/{productType}/toggle-status', [\App\Http\Controllers\Admin\ProductTypeController::class, 'toggleStatus'])->name('admin.product-types.toggle-status');
+                // Gestion des types de produits - Super Admin, Admin et Gestionnaire
+                Route::middleware(['role:super-admin,admin,gestionnaire'])->group(function () {
+                    Route::resource('product-types', \App\Http\Controllers\Admin\ProductTypeController::class)->names([
+                        'index' => 'admin.product-types.index',
+                        'create' => 'admin.product-types.create',
+                        'store' => 'admin.product-types.store',
+                        'show' => 'admin.product-types.show',
+                        'edit' => 'admin.product-types.edit',
+                        'update' => 'admin.product-types.update',
+                        'destroy' => 'admin.product-types.destroy',
+                    ]);
+                    Route::post('/product-types/{productType}/toggle-status', [\App\Http\Controllers\Admin\ProductTypeController::class, 'toggleStatus'])->name('admin.product-types.toggle-status');
+                });
 
                 // Gestion des variantes de produits
+                // Route déjà définie plus haut, à voir si protection nécessaire
 
-
-                // Paramètres admin
-                Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings.index');
-                Route::get('/settings/general', [SettingsController::class, 'general'])->name('admin.settings.general');
-                Route::put('/settings/general', [SettingsController::class, 'updateGeneral'])->name('admin.settings.general.update');
-                Route::get('/settings/security', [SettingsController::class, 'security'])->name('admin.settings.security');
-                Route::get('/settings/notifications', [SettingsController::class, 'notifications'])->name('admin.settings.notifications');
-                Route::put('/settings/notifications', [SettingsController::class, 'updateNotifications'])->name('admin.settings.notifications.update');
-                Route::get('/settings/system', [SettingsController::class, 'system'])->name('admin.settings.system');
-                Route::post('/settings/clear-cache', [SettingsController::class, 'clearCache'])->name('admin.settings.clear-cache');
+                // Paramètres admin - Super Admin uniquement
+                Route::middleware(['role:super-admin'])->group(function () {
+                    Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings.index');
+                    Route::get('/settings/general', [SettingsController::class, 'general'])->name('admin.settings.general');
+                    Route::put('/settings/general', [SettingsController::class, 'updateGeneral'])->name('admin.settings.general.update');
+                    Route::get('/settings/security', [SettingsController::class, 'security'])->name('admin.settings.security');
+                    Route::get('/settings/notifications', [SettingsController::class, 'notifications'])->name('admin.settings.notifications');
+                    Route::put('/settings/notifications', [SettingsController::class, 'updateNotifications'])->name('admin.settings.notifications.update');
+                    Route::get('/settings/system', [SettingsController::class, 'system'])->name('admin.settings.system');
+                    Route::post('/settings/clear-cache', [SettingsController::class, 'clearCache'])->name('admin.settings.clear-cache');
+                });
     });
 });
 

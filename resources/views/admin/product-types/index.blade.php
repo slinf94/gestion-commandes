@@ -106,10 +106,10 @@
                                             <a href="{{ route('admin.product-types.edit', $productType) }}" class="btn btn-sm btn-warning">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form action="{{ route('admin.product-types.destroy', $productType) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce type de produit ?')">
+                                            <form action="{{ route('admin.product-types.destroy', $productType) }}" method="POST" class="d-inline" id="delete-product-type-{{ $productType->id }}">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-danger">
+                                                <button type="button" class="btn btn-sm btn-danger delete-product-type-btn" data-form-id="delete-product-type-{{ $productType->id }}" data-product-type-name="{{ $productType->name }}">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
@@ -150,6 +150,32 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gestion de la suppression des types de produits avec confirmation personnalisée
+    document.querySelectorAll('.delete-product-type-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const formId = this.getAttribute('data-form-id');
+            const productTypeName = this.getAttribute('data-product-type-name');
+            const deleteForm = document.getElementById(formId);
+
+            if (!deleteForm) return;
+
+            customConfirm(
+                `Êtes-vous sûr de vouloir supprimer le type de produit <strong>"${productTypeName}"</strong> ? Cette action est irréversible.`,
+                function() {
+                    deleteForm.submit();
+                }
+            );
+        });
+    });
+});
+</script>
+@endpush
 @endsection
 
 <style>

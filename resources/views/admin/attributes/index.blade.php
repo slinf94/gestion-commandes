@@ -471,11 +471,17 @@ function bulkAction(action) {
             break;
     }
 
-    if (confirm(confirmMessage)) {
-        // Ici vous pouvez ajouter la logique pour les actions en lot
-        console.log('Action:', action, 'IDs:', ids);
-        alert('Fonctionnalité d\'actions en lot à implémenter.');
-    }
+    // Utiliser la modal de confirmation personnalisée
+    customConfirm(
+        confirmMessage,
+        function() {
+            // Ici vous pouvez ajouter la logique pour les actions en lot
+            console.log('Action:', action, 'IDs:', ids);
+            showAlert('Fonctionnalité d\'actions en lot à implémenter.', 'info');
+        },
+        null,
+        'Action en lot'
+    );
 }
 
 // Filtrage dynamique

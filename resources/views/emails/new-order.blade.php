@@ -160,9 +160,11 @@
             <p>Veuillez traiter cette commande dans les plus brefs délais pour assurer une expérience client optimale.</p>
         </div>
 
+        <!-- Bouton masqué
         <div style="text-align: center;">
             <a href="{{ url('/admin/orders/' . $order->id) }}" class="btn">Gérer la commande</a>
         </div>
+        -->
 
         <div class="footer">
             <p><strong>Système de notification Allo Mobile</strong></p>

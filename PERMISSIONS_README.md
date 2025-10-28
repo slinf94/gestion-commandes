@@ -203,3 +203,4 @@ $user->attachRole('super-admin');
 - Les rôles inactifs sont masqués par défaut
 - Le système utilise SoftDeletes pour les rôles
 
+

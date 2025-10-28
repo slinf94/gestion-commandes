@@ -393,10 +393,20 @@ async function toggleUserStatus(userId) {
 
     // Confirmation avant changement
     const newStatusText = currentStatus === 'active' ? 'Inactif' : 'Actif';
-    if (!confirm(`Êtes-vous sûr de vouloir ${currentStatus === 'active' ? 'désactiver' : 'activer'} ce compte ?`)) {
-        return;
-    }
+    const confirmMessage = `Êtes-vous sûr de vouloir ${currentStatus === 'active' ? 'désactiver' : 'activer'} ce compte ?`;
 
+    customConfirm(
+        confirmMessage,
+        function() {
+            performStatusChange(userId, badge);
+        },
+        null,
+        'Changement de statut'
+    );
+}
+
+// Fonction pour effectuer le changement de statut
+async function performStatusChange(userId, badge) {
     // Désactiver le badge pendant la requête
     badge.style.opacity = '0.6';
     badge.style.pointerEvents = 'none';

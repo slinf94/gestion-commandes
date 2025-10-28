@@ -3,7 +3,27 @@
 @section('title', 'Gestion des Produits - Allo Mobile Admin')
 @section('page-title', 'Gestion des Produits')
 
+@php
+use Illuminate\Support\Facades\Storage;
+@endphp
+
 @section('content')
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show auto-dismiss" data-dismiss-time="5000" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
 <div class="card shadow-lg border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
     <div class="card-header text-white" style="background: linear-gradient(135deg, #38B04A, #4CAF50); padding: 20px;">
         <div class="d-flex justify-content-between align-items-center">
@@ -141,17 +161,39 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Nom</th>
-                            <th>Prix</th>
-                            <th>Statut</th>
-                            <th>Date de création</th>
-                            <th>Actions</th>
+                            <th width="8%">Image</th>
+                            <th width="8%">ID</th>
+                            <th width="20%">Nom</th>
+                            <th width="10%">Prix</th>
+                            <th width="10%">Statut</th>
+                            <th width="15%">Date de création</th>
+                            <th width="25%">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($products as $product)
                         <tr>
+                            <td>
+                                @php
+                                    // Utiliser les images préchargées
+                                    $productImages = $product->images ?? collect();
+                                    $mainImage = $productImages->where('type', 'principale')->first()
+                                        ?? $productImages->sortBy('order')->first();
+                                @endphp
+                                @if($mainImage && isset($mainImage->url))
+                                    <img src="{{ Storage::url($mainImage->url) }}"
+                                         alt="{{ $product->name }}"
+                                         class="img-thumbnail"
+                                         style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #dee2e6;"
+                                         loading="lazy"
+                                         onerror="this.parentElement.innerHTML='<div class=\'bg-light d-flex align-items-center justify-content-center\' style=\'width: 60px; height: 60px; border-radius: 6px;\'><i class=\'fas fa-image text-muted\'></i></div>';">
+                                @else
+                                    <div class="bg-light d-flex align-items-center justify-content-center"
+                                         style="width: 60px; height: 60px; border-radius: 6px; border: 1px solid #dee2e6;">
+                                        <i class="fas fa-image text-muted" style="font-size: 24px;"></i>
+                                    </div>
+                                @endif
+                            </td>
                             <td>{{ $product->id }}</td>
                             <td>
                                 <strong>{{ $product->name }}</strong>
@@ -340,6 +382,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setupProductDeleteButtons();
     console.log('✅ Initialisation terminée');
+});
+
+// Auto-dismiss des alertes de succès
+document.addEventListener('DOMContentLoaded', function() {
+    const alerts = document.querySelectorAll('.auto-dismiss');
+    alerts.forEach(function(alert) {
+        const dismissTime = parseInt(alert.getAttribute('data-dismiss-time')) || 5000;
+        setTimeout(function() {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }, dismissTime);
+    });
 });
 
 // Fonction pour mettre à jour le tri

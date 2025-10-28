@@ -100,3 +100,4 @@ $user->attachRole('super-admin');
 - Les permissions sont héritées des rôles
 - Vérifiez toujours avec `$user->hasPermission('permission.slug')`
 
+

@@ -282,3 +282,4 @@ php artisan db:seed --class=RolePermissionSeeder
 
 ⚠️ **Attention:** Cela supprime toutes les données existantes !
 
+
