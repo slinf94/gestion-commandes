@@ -129,13 +129,15 @@
                     </a>
 
                     <form method="POST" action="{{ route('admin.products.variants.destroy', [$product, $variant]) }}"
-                          onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette variante ?');" class="d-grid">
+                          id="delete-variant-{{ $variant->id }}"
+                          class="d-grid delete-variant-form">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn btn-danger">
-                            <i class="fas fa-trash me-2"></i>Supprimer
-                        </button>
                     </form>
+                    <button type="button" class="btn btn-danger delete-variant-btn"
+                            data-form-id="delete-variant-{{ $variant->id }}">
+                        <i class="fas fa-trash me-2"></i>Supprimer
+                    </button>
 
                     <form method="POST" action="{{ route('admin.products.variants.toggle-status', [$product, $variant]) }}" class="d-grid">
                         @csrf
@@ -153,6 +155,35 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gérer les boutons de suppression de variantes
+    const deleteButtons = document.querySelectorAll('.delete-variant-btn');
+
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const formId = this.getAttribute('data-form-id');
+            const form = document.getElementById(formId);
+
+            if (!form) return;
+
+            customConfirm(
+                'Êtes-vous sûr de vouloir supprimer cette variante ? Cette action est irréversible.',
+                function() {
+                    form.submit();
+                },
+                null,
+                'Suppression de variante',
+                'Oui, supprimer',
+                'Annuler'
+            );
+        });
+    });
+});
+</script>
+@endpush
 @endsection
 
 

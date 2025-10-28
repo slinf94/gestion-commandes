@@ -14,11 +14,11 @@
                     <small class="text-muted">Gérez les attributs de vos produits (ex: Couleur, Taille, Marque)</small>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('admin.attributes.create') }}" class="btn btn-primary">
+                    <a href="{{ route('admin.attributes.create') }}" class="btn btn-secondary">
                         <i class="fas fa-plus me-2"></i>Nouvel Attribut
                     </a>
                     <button class="btn btn-outline-secondary" onclick="toggleFilters()">
-                        <i class="fas fa-filter me-2"></i>Filtres
+                        <i class="fas fa-filter me-2"></i>Masquer Filtres
                     </button>
                 </div>
             </div>
@@ -61,8 +61,8 @@
         </div>
     </div>
 
-    <!-- Filtres (masqués par défaut) -->
-    <div class="row mb-4" id="filters-section" style="display: none;">
+    <!-- Filtres (TOUJOURS VISIBLES) -->
+    <div class="row mb-4" id="filters-section">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
@@ -264,13 +264,16 @@
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             <form action="{{ route('admin.attributes.destroy', $attribute) }}" method="POST"
-                                                  class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet attribut ?')">
+                                                  id="delete-attribute-{{ $attribute->id }}"
+                                                  class="d-inline delete-attribute-form">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
                                             </form>
+                                            <button type="button" class="btn btn-sm btn-outline-danger delete-attribute-btn" title="Supprimer"
+                                                    data-form-id="delete-attribute-{{ $attribute->id }}"
+                                                    data-attribute-name="{{ $attribute->name }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -291,6 +294,21 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Pagination -->
+                    @if($attributes->hasPages())
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <div>
+                                <small class="text-muted">
+                                    Affichage de {{ $attributes->firstItem() ?? 0 }} à {{ $attributes->lastItem() ?? 0 }}
+                                    sur {{ $attributes->total() }} attributs
+                                </small>
+                            </div>
+                            <div>
+                                {{ $attributes->links() }}
+                            </div>
+                        </div>
+                    @endif
 
                     <!-- Actions en lot (masquées par défaut) -->
                     <div id="bulk-actions" class="mt-3" style="display: none;">
@@ -481,6 +499,29 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Gérer les boutons de suppression d'attributs
+    const deleteButtons = document.querySelectorAll('.delete-attribute-btn');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const formId = this.getAttribute('data-form-id');
+            const attributeName = this.getAttribute('data-attribute-name');
+            const form = document.getElementById(formId);
+
+            if (!form) return;
+
+            customConfirm(
+                `Êtes-vous sûr de vouloir supprimer l'attribut <strong>"${attributeName}"</strong> ? Cette action est irréversible.`,
+                function() {
+                    form.submit();
+                },
+                null,
+                'Suppression d\'attribut',
+                'Oui, supprimer',
+                'Annuler'
+            );
+        });
+    });
 });
 </script>
 @endsection

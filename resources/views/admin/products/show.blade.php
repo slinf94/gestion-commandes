@@ -4,26 +4,38 @@
 @section('page-title', 'Détails du Produit')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4 class="mb-0">{{ $product->name }}</h4>
-        <small class="text-muted">Informations complètes et gestion des images</small>
-    </div>
-    <div>
-        <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-primary me-2">
-            <i class="fas fa-edit me-2"></i>Modifier
-        </a>
-        <a href="{{ route('admin.products.index') }}" class="btn btn-outline-primary">
-            <i class="fas fa-arrow-left me-2"></i>Retour à la liste
-        </a>
+<!-- Header moderne avec gradient vert -->
+<div class="card shadow-lg border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
+    <div class="card-header text-white" style="background: linear-gradient(135deg, #38B04A, #4CAF50); padding: 20px;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-1" style="font-weight: 600; font-size: 1.5rem;">
+                    <i class="fas fa-box-open me-2"></i>{{ $product->name }}
+                </h3>
+                <small class="opacity-75">Informations complètes et gestion des images</small>
+            </div>
+            <div>
+                <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-light me-2" style="border-radius: 8px;">
+                    <i class="fas fa-edit me-2"></i>Modifier
+                </a>
+                <a href="{{ route('admin.products.index') }}" class="btn btn-outline-light" style="border-radius: 8px;">
+                    <i class="fas fa-arrow-left me-2"></i>Retour
+                </a>
+            </div>
+        </div>
     </div>
 </div>
-                    <div class="row">
-                        <div class="col-md-8">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h5>Informations Générales</h5>
-                                    <table class="table table-borderless">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4 shadow-sm border-0" style="border-radius: 10px;">
+                <div class="card-header bg-light" style="border-bottom: 2px solid #38B04A; border-radius: 10px 10px 0 0;">
+                    <h5 class="mb-0" style="color: #38B04A; font-weight: 600;">
+                        <i class="fas fa-info-circle me-2"></i>Informations Générales
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
                                         <tr>
                                             <td><strong>Nom:</strong></td>
                                             <td>{{ $product->name }}</td>
@@ -41,6 +53,10 @@
                                             <td>{{ $product->category->name ?? 'Non définie' }}</td>
                                         </tr>
                                         <tr>
+                                            <td><strong>Type de Produit:</strong></td>
+                                            <td>{{ $product->productType->name ?? 'Non défini' }}</td>
+                                        </tr>
+                                        <tr>
                                             <td><strong>Statut:</strong></td>
                                             <td>
                                                 <span class="badge badge-{{ $product->status == 'active' ? 'success' : ($product->status == 'inactive' ? 'danger' : 'warning') }}">
@@ -54,11 +70,18 @@
                                                 <span class="badge badge-secondary">Non disponible</span>
                                             </td>
                                         </tr>
-                                    </table>
-                                </div>
-                                <div class="col-md-6">
-                                    <h5>Prix et Stock</h5>
-                                    <table class="table table-borderless">
+                    </table>
+                </div>
+            </div>
+
+            <div class="card mb-4 shadow-sm border-0" style="border-radius: 10px;">
+                <div class="card-header bg-light" style="border-bottom: 2px solid #38B04A; border-radius: 10px 10px 0 0;">
+                    <h5 class="mb-0" style="color: #38B04A; font-weight: 600;">
+                        <i class="fas fa-dollar-sign me-2"></i>Prix et Stock
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
                                         <tr>
                                             <td><strong>Prix de vente:</strong></td>
                                             <td>{{ number_format($product->price, 0, ',', ' ') }} FCFA</td>
@@ -89,39 +112,49 @@
                                                 @endif
                                             </td>
                                         </tr>
-                                    </table>
-                                </div>
-                            </div>
+                    </table>
+                </div>
+            </div>
 
-                            @if($product->description)
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <h5>Description</h5>
-                                    <div class="border p-3 rounded">
-                                        {!! nl2br(e($product->description)) !!}
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
+            @if($product->description)
+            <div class="card mb-4 shadow-sm border-0" style="border-radius: 10px;">
+                <div class="card-header bg-light" style="border-bottom: 2px solid #38B04A; border-radius: 10px 10px 0 0;">
+                    <h5 class="mb-0" style="color: #38B04A; font-weight: 600;">
+                        <i class="fas fa-align-left me-2"></i>Description
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {!! nl2br(e($product->description)) !!}
+                </div>
+            </div>
+            @endif
 
-                            @if($product->tags && is_array($product->tags) && count($product->tags) > 0)
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <h5>Tags</h5>
+            @if($product->tags && is_array($product->tags) && count($product->tags) > 0)
+            <div class="card mb-4 shadow-sm border-0" style="border-radius: 10px;">
+                <div class="card-header bg-light" style="border-bottom: 2px solid #38B04A; border-radius: 10px 10px 0 0;">
+                    <h5 class="mb-0" style="color: #38B04A; font-weight: 600;">
+                        <i class="fas fa-tags me-2"></i>Tags
+                    </h5>
+                </div>
+                <div class="card-body">
                                     <div>
                                         @foreach($product->tags as $tag)
                                             <span class="badge badge-info mr-1">{{ $tag }}</span>
                                         @endforeach
                                     </div>
-                                </div>
-                            </div>
-                            @endif
+                </div>
+            </div>
+            @endif
 
-                            @if($product->meta_title || $product->meta_description)
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <h5>SEO</h5>
-                                    <table class="table table-borderless">
+            @if($product->meta_title || $product->meta_description)
+            <div class="card mb-4 shadow-sm border-0" style="border-radius: 10px;">
+                <div class="card-header bg-light" style="border-bottom: 2px solid #38B04A; border-radius: 10px 10px 0 0;">
+                    <h5 class="mb-0" style="color: #38B04A; font-weight: 600;">
+                        <i class="fas fa-search me-2"></i>SEO
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
                                         @if($product->meta_title)
                                         <tr>
                                             <td><strong>Titre SEO:</strong></td>
@@ -134,54 +167,111 @@
                                             <td>{{ $product->meta_description }}</td>
                                         </tr>
                                         @endif
-                                    </table>
-                                </div>
-                            </div>
-                            @endif
+                    </table>
+                </div>
+            </div>
+            @endif
 
-                            @if($product->attributeValues && $product->attributeValues->count() > 0)
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <h5>Attributs du Produit</h5>
+            @if($product->attributeValues && is_countable($product->attributeValues) && count($product->attributeValues) > 0)
+            <div class="card mb-4 shadow-sm border-0" style="border-radius: 10px;">
+                <div class="card-header bg-light" style="border-bottom: 2px solid #38B04A; border-radius: 10px 10px 0 0;">
+                    <h5 class="mb-0" style="color: #38B04A; font-weight: 600;">
+                        <i class="fas fa-list-ul me-2"></i>Attributs du Produit
+                    </h5>
+                </div>
+                <div class="card-body">
                                     <div class="table-responsive">
-                                        <table class="table table-striped">
-                                            <thead>
+                                        <table class="table table-striped table-hover">
+                                            <thead class="table-light">
                                                 <tr>
-                                                    <th>Attribut</th>
-                                                    <th>Valeur</th>
-                                                    <th>Type</th>
+                                                    <th><i class="fas fa-tag me-1"></i>Attribut</th>
+                                                    <th><i class="fas fa-info-circle me-1"></i>Valeur</th>
+                                                    <th><i class="fas fa-cog me-1"></i>Type</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 @foreach($product->attributeValues as $attributeValue)
                                                 <tr>
-                                                    <td><strong>{{ $attributeValue->attribute_name ?? 'Attribut inconnu' }}</strong></td>
+                                                    <td>
+                                                        <strong><i class="fas fa-tag text-muted me-1"></i>{{ $attributeValue->attribute_name ?? 'Attribut inconnu' }}</strong>
+                                                    </td>
                                                     <td>
                                                         @if($attributeValue->attribute_type === 'boolean')
-                                                            <span class="badge badge-{{ $attributeValue->attribute_value == '1' ? 'success' : 'secondary' }}">
-                                                                {{ $attributeValue->attribute_value == '1' ? 'Oui' : 'Non' }}
+                                                            @php
+                                                                $boolValue = is_string($attributeValue->attribute_value) ? filter_var($attributeValue->attribute_value, FILTER_VALIDATE_BOOLEAN) : (bool)$attributeValue->attribute_value;
+                                                            @endphp
+                                                            <span class="badge badge-{{ $boolValue ? 'success' : 'secondary' }}">
+                                                                <i class="fas fa-{{ $boolValue ? 'check' : 'times' }}"></i>
+                                                                {{ $boolValue ? 'Oui' : 'Non' }}
                                                             </span>
+                                                        @elseif($attributeValue->attribute_type === 'select' || $attributeValue->attribute_type === 'multiselect')
+                                                            @php
+                                                                $options = json_decode($attributeValue->options ?? '[]', true);
+                                                                $values = is_string($attributeValue->attribute_value) ? json_decode($attributeValue->attribute_value, true) : $attributeValue->attribute_value;
+
+                                                                if (is_array($values) && is_array($options)) {
+                                                                    $displayValues = array_map(function($val) use ($options) {
+                                                                        return isset($options[$val]) ? $options[$val] : $val;
+                                                                    }, $values);
+                                                                    $displayText = implode(', ', $displayValues);
+                                                                } elseif (is_array($options)) {
+                                                                    $displayText = isset($options[$attributeValue->attribute_value]) ? $options[$attributeValue->attribute_value] : $attributeValue->attribute_value;
+                                                                } else {
+                                                                    $displayText = is_array($values) ? implode(', ', $values) : $attributeValue->attribute_value;
+                                                                }
+                                                            @endphp
+                                                            <span class="badge badge-primary">
+                                                                <i class="fas fa-list"></i> {{ $displayText }}
+                                                            </span>
+                                                        @elseif($attributeValue->attribute_type === 'number' || $attributeValue->attribute_type === 'decimal')
+                                                            <span class="text-primary"><strong>{{ number_format((float)$attributeValue->attribute_value, 2, ',', ' ') }}</strong></span>
                                                         @else
-                                                            {{ $attributeValue->attribute_value }}
+                                                            <span class="text-dark">{{ $attributeValue->attribute_value }}</span>
                                                         @endif
                                                     </td>
                                                     <td>
+                                                        @php
+                                                            $typeIcons = [
+                                                                'text' => 'fa-font',
+                                                                'number' => 'fa-hashtag',
+                                                                'decimal' => 'fa-hashtag',
+                                                                'boolean' => 'fa-toggle-on',
+                                                                'select' => 'fa-list',
+                                                                'multiselect' => 'fa-tasks',
+                                                                'date' => 'fa-calendar',
+                                                                'json' => 'fa-code'
+                                                            ];
+                                                            $icon = $typeIcons[$attributeValue->attribute_type ?? 'text'] ?? 'fa-tag';
+                                                        @endphp
                                                         <span class="badge badge-info">
-                                                            {{ ucfirst($attributeValue->attribute_type ?? 'text') }}
+                                                            <i class="fas {{ $icon }}"></i> {{ ucfirst($attributeValue->attribute_type ?? 'text') }}
                                                         </span>
                                                     </td>
                                                 </tr>
                                                 @endforeach
                                             </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
-                        </div>
+                    </table>
+                </div>
+            </div>
+            @else
+            <div class="card mb-4 shadow-sm border-0" style="border-radius: 10px;">
+                <div class="card-body">
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Ce produit n'a pas encore d'attributs définis.
+                    </div>
+                </div>
+            </div>
+            @endif
+        </div>
 
-                        <div class="col-md-4">
-                            <h5>Images</h5>
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm border-0" style="border-radius: 10px;">
+                <div class="card-header bg-light" style="border-bottom: 2px solid #38B04A; border-radius: 10px 10px 0 0;">
+                    <h5 class="mb-0" style="color: #38B04A; font-weight: 600;">
+                        <i class="fas fa-image me-2"></i>Images
+                    </h5>
+                </div>
+                <div class="card-body">
 
                             <!-- Formulaire d'upload d'images supplémentaires -->
                             <div class="mb-3">
@@ -238,11 +328,13 @@
                                                         </span>
                                                     @endif
 
-                                                    <form method="POST" action="{{ route('admin.products.delete-image', [$product->id, $image->id]) }}" class="d-inline">
+                                                    <form method="POST" action="{{ route('admin.products.delete-image', [$product->id, $image->id]) }}"
+                                                          class="d-inline delete-image-form"
+                                                          onsubmit="return false;">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="btn btn-sm btn-danger"
-                                                                onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette image ?')"
+                                                        <button type="button" class="btn btn-sm btn-danger"
+                                                                onclick="deleteWithConfirmation('{{ route('admin.products.delete-image', [$product->id, $image->id]) }}', 'Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible.', 'DELETE')"
                                                                 title="Supprimer l'image">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
@@ -289,8 +381,18 @@
                                 </div>
                             @endif
 
-                            <h5 class="mt-4">Statistiques</h5>
-                            <table class="table table-borderless">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4 shadow-sm border-0" style="border-radius: 10px;">
+                <div class="card-header bg-light" style="border-bottom: 2px solid #38B04A; border-radius: 10px 10px 0 0;">
+                    <h5 class="mb-0" style="color: #38B04A; font-weight: 600;">
+                        <i class="fas fa-chart-line me-2"></i>Statistiques
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
                                 <tr>
                                     <td><strong>Créé le:</strong></td>
                                     <td>{{ $product->created_at ? \Carbon\Carbon::parse($product->created_at)->format('d/m/Y H:i') : 'N/A' }}</td>
@@ -299,9 +401,12 @@
                                     <td><strong>Modifié le:</strong></td>
                                     <td>{{ $product->updated_at ? \Carbon\Carbon::parse($product->updated_at)->format('d/m/Y H:i') : 'N/A' }}</td>
                                 </tr>
-                            </table>
-                        </div>
-                    </div>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('scripts')

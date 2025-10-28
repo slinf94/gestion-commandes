@@ -130,10 +130,12 @@
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col-md-6 col-lg-3 mb-3">
-                                            <form action="{{ route('admin.settings.clear-cache') }}" method="POST" class="d-inline">
+                                            <form action="{{ route('admin.settings.clear-cache') }}" method="POST"
+                                                  class="d-inline"
+                                                  onsubmit="return false;">
                                                 @csrf
-                                                <button type="submit" class="btn btn-warning btn-block"
-                                                        onclick="return confirm('Êtes-vous sûr de vouloir vider le cache ?')">
+                                                <button type="button" class="btn btn-warning btn-block"
+                                                        onclick="submitWithConfirmation(this.closest('form'), 'Êtes-vous sûr de vouloir vider le cache ? Cette action va nettoyer tous les fichiers de cache de l\\'application.')">
                                                     <i class="fas fa-trash me-2"></i>
                                                     Vider le Cache
                                                 </button>
@@ -173,6 +175,7 @@
     </div>
 </div>
 @endsection
+
 
 
 

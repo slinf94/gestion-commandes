@@ -14,7 +14,7 @@
                             <small class="text-muted">Gérez les différentes variantes de ce produit</small>
                         </div>
                         <div>
-                            <a href="{{ route('admin.products.variants.create', $product) }}" class="btn btn-primary">
+                            <a href="{{ route('admin.products.variants.create', $product) }}" class="btn btn-secondary">
                                 <i class="fas fa-plus"></i> Nouvelle Variante
                             </a>
                             <a href="{{ route('admin.products.index') }}" class="btn btn-secondary">
@@ -115,13 +115,17 @@
                                                 <a href="{{ route('admin.products.variants.edit', [$product, $variant]) }}" class="btn btn-sm btn-warning">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <form action="{{ route('admin.products.variants.destroy', [$product, $variant]) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette variante ?')">
+                                                <form action="{{ route('admin.products.variants.destroy', [$product, $variant]) }}" method="POST"
+                                                      id="delete-variant-{{ $variant->id }}"
+                                                      class="d-inline delete-variant-form">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-danger">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
                                                 </form>
+                                                <button type="button" class="btn btn-sm btn-danger delete-variant-btn"
+                                                        data-form-id="delete-variant-{{ $variant->id }}"
+                                                        title="Supprimer">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -152,6 +156,35 @@
     margin-left: 0.25rem;
 }
 </style>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gérer les boutons de suppression de variantes
+    const deleteButtons = document.querySelectorAll('.delete-variant-btn');
+
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const formId = this.getAttribute('data-form-id');
+            const form = document.getElementById(formId);
+
+            if (!form) return;
+
+            customConfirm(
+                'Êtes-vous sûr de vouloir supprimer cette variante ? Cette action est irréversible.',
+                function() {
+                    form.submit();
+                },
+                null,
+                'Suppression de variante',
+                'Oui, supprimer',
+                'Annuler'
+            );
+        });
+    });
+});
+</script>
+@endpush
 @endsection
 
 

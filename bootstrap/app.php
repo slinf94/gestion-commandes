@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'jwt.auth' => \App\Http\Middleware\JwtMiddleware::class,
             'cors' => \App\Http\Middleware\CorsMiddleware::class,
             'api.security' => \App\Http\Middleware\ApiSecurityMiddleware::class,
+            'permission' => \App\Http\Middleware\CheckPermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

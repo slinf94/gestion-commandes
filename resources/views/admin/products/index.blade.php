@@ -4,15 +4,21 @@
 @section('page-title', 'Gestion des Produits')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4 class="mb-0">Liste des Produits</h4>
-        <small class="text-muted">Gérez votre catalogue de produits</small>
-    </div>
-    <div>
-        <a href="{{ route('admin.products.create') }}" class="btn btn-secondary">
-            <i class="fas fa-plus me-2"></i>Nouveau Produit
-        </a>
+<div class="card shadow-lg border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
+    <div class="card-header text-white" style="background: linear-gradient(135deg, #38B04A, #4CAF50); padding: 20px;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-1" style="font-weight: 600; font-size: 1.5rem;">
+                    <i class="fas fa-box me-2"></i>Liste des Produits
+                </h3>
+                <small class="opacity-75">Gérez votre catalogue de produits</small>
+            </div>
+            <div>
+                <a href="{{ route('admin.products.create') }}" class="btn btn-light" style="border-radius: 8px;">
+                    <i class="fas fa-plus me-2"></i>+ Nouveau Produit
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -25,9 +31,11 @@
 @endif
 
 <!-- Filtres avancés -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtres et Recherche</h5>
+<div class="card mb-4 border-0 shadow-sm" style="border-radius: 10px;">
+    <div class="card-header bg-light" style="border-bottom: 2px solid #38B04A;">
+        <h5 class="mb-0" style="color: #38B04A; font-weight: 600;">
+            <i class="fas fa-filter me-2"></i>Filtres et Recherche
+        </h5>
     </div>
     <div class="card-body">
         <form method="GET" action="{{ route('admin.products.index') }}" id="filterForm">
@@ -88,50 +96,37 @@
                 </div>
             </div>
 
-            <!-- Filtres avancés -->
-            <div class="row g-3 mt-2" id="advancedFilters" style="display: none;">
-                <div class="col-md-3">
-                    <label for="price_min" class="form-label">Prix min (FCFA)</label>
-                    <input type="number" class="form-control" id="price_min" name="price_min"
-                           value="{{ request('price_min') }}" placeholder="0">
-                </div>
-                <div class="col-md-3">
-                    <label for="price_max" class="form-label">Prix max (FCFA)</label>
-                    <input type="number" class="form-control" id="price_max" name="price_max"
-                           value="{{ request('price_max') }}" placeholder="1000000">
-                </div>
-                <div class="col-md-3">
-                    <label for="date_from" class="form-label">Date début</label>
-                    <input type="date" class="form-control" id="date_from" name="date_from"
-                           value="{{ request('date_from') }}">
-                </div>
-                <div class="col-md-3">
-                    <label for="date_to" class="form-label">Date fin</label>
-                    <input type="date" class="form-control" id="date_to" name="date_to"
-                           value="{{ request('date_to') }}">
-                </div>
-            </div>
-
             <!-- Boutons d'action -->
-            <div class="row mt-3">
+            <div class="row mt-3 align-items-center">
                 <div class="col-md-6">
-                    <button type="submit" class="btn btn-primary me-2">
-                        <i class="fas fa-search me-1"></i>Filtrer
-                    </button>
-                    <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary me-2">
-                        <i class="fas fa-times me-1"></i>Effacer
-                    </a>
-                    <button type="button" class="btn btn-outline-info" onclick="toggleAdvancedFilters()">
-                        <i class="fas fa-cog me-1"></i>Filtres avancés
-                    </button>
+                    <div class="btn-group" role="group">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-search me-1"></i>Filtrer
+                        </button>
+                        <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-undo me-1"></i>Réinitialiser
+                        </a>
+                    </div>
                 </div>
                 <div class="col-md-6 text-end">
-                    <small class="text-muted">
-                        Total: {{ $stats['total'] }} |
-                        Actifs: {{ $stats['active'] }} |
-                        Inactifs: {{ $stats['inactive'] }} |
-                        Brouillons: {{ $stats['draft'] }}
-                    </small>
+                    <div class="d-flex align-items-center justify-content-end">
+                        <div class="me-3">
+                            <span class="badge bg-primary">{{ $stats['total'] }}</span>
+                            <small class="text-muted ms-1">Total</small>
+                        </div>
+                        <div class="me-3">
+                            <span class="badge bg-success">{{ $stats['active'] }}</span>
+                            <small class="text-muted ms-1">Actifs</small>
+                        </div>
+                        <div class="me-3">
+                            <span class="badge bg-warning">{{ $stats['inactive'] }}</span>
+                            <small class="text-muted ms-1">Inactifs</small>
+                        </div>
+                        <div>
+                            <span class="badge bg-secondary">{{ $stats['draft'] }}</span>
+                            <small class="text-muted ms-1">Brouillons</small>
+                        </div>
+                    </div>
                 </div>
             </div>
         </form>
@@ -194,15 +189,22 @@
                                        class="btn btn-sm btn-outline-warning" title="Modifier">
                                         <i class="fas fa-edit"></i>
                                     </a>
+                                    <a href="{{ route('admin.products.variants.index', ['product' => $product->id]) }}"
+                                       class="btn btn-sm btn-success" title="Gérer les variantes" style="border-radius: 6px;">
+                                        <i class="fas fa-cubes me-1"></i>Variantes
+                                    </a>
                                     <form action="{{ route('admin.products.destroy', $product->id) }}"
-                                          method="POST" class="d-inline"
-                                          onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')">
+                                          id="delete-product-{{ $product->id }}"
+                                          method="POST" class="d-inline delete-product-form">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
                                     </form>
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-product-btn"
+                                            data-form-id="delete-product-{{ $product->id }}"
+                                            data-product-name="{{ $product->name }}"
+                                            title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -223,16 +225,17 @@
                     <!-- Tri dynamique -->
                     <div class="me-3">
                         <select class="form-select form-select-sm" id="sortBy" name="sort_by" onchange="updateSorting()">
-                            <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>Date de création</option>
+                            <option value="id" {{ request('sort_by', 'id') == 'id' ? 'selected' : '' }}>ID</option>
                             <option value="name" {{ request('sort_by') == 'name' ? 'selected' : '' }}>Nom</option>
                             <option value="price" {{ request('sort_by') == 'price' ? 'selected' : '' }}>Prix</option>
+                            <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>Date de création</option>
                             <option value="status" {{ request('sort_by') == 'status' ? 'selected' : '' }}>Statut</option>
                         </select>
                     </div>
                     <div class="me-3">
                         <select class="form-select form-select-sm" id="sortOrder" name="sort_order" onchange="updateSorting()">
+                            <option value="asc" {{ request('sort_order', 'asc') == 'asc' ? 'selected' : '' }}>Croissant</option>
                             <option value="desc" {{ request('sort_order') == 'desc' ? 'selected' : '' }}>Décroissant</option>
-                            <option value="asc" {{ request('sort_order') == 'asc' ? 'selected' : '' }}>Croissant</option>
                         </select>
                     </div>
                     <!-- Pagination -->
@@ -257,47 +260,87 @@
 
 @section('scripts')
 <script>
-// Filtres dynamiques
+// Système de recherche et filtrage dynamique - FONCTIONNEL
+console.log('🚀 Initialisation du système de filtrage produits...');
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-submit du formulaire de filtre
-    const filterForm = document.getElementById('filterForm');
-    const filterInputs = filterForm.querySelectorAll('select, input[type="text"], input[type="number"], input[type="date"]');
+    console.log('✅ DOM chargé');
+
+    let filterTimeout = null;
+
+    // Récupérer le formulaire
+    const form = document.getElementById('filterForm');
+
+    if (!form) {
+        console.error('❌ Formulaire filterForm introuvable');
+        return;
+    }
+
+    console.log('✅ Formulaire trouvé');
+
+    // 1. RECHERCHE AVEC AUTO-SUBMIT (debounce)
+    const searchInput = document.getElementById('search');
+    if (searchInput) {
+        console.log('✅ Champ de recherche trouvé');
+        searchInput.addEventListener('input', function() {
+            clearTimeout(filterTimeout);
+            const delay = this.value.length > 2 ? 300 : 600;
+            filterTimeout = setTimeout(() => {
+                console.log('🔄 Recherche:', this.value);
+                form.submit();
+            }, delay);
+        });
+    }
+
+    // 2. FILTRES AVEC AUTO-SUBMIT
+    const filterInputs = form.querySelectorAll('select, input[type="number"], input[type="date"]');
+    console.log('📋 Filtres trouvés:', filterInputs.length);
 
     filterInputs.forEach(input => {
         input.addEventListener('change', function() {
-            // Délai pour éviter trop de requêtes
-            clearTimeout(window.filterTimeout);
-            window.filterTimeout = setTimeout(() => {
-                filterForm.submit();
-            }, 500);
+            console.log('🔄 Filtre changé:', this.name, '=', this.value);
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => {
+                console.log('✅ Soumission du formulaire');
+                form.submit();
+            }, 300);
         });
     });
 
-    // Recherche en temps réel
-    const searchInput = document.getElementById('search');
-    let searchTimeout;
+    // 3. BOUTONS DE SUPPRESSION AVEC MODAL
+    function setupProductDeleteButtons() {
+        const deleteButtons = document.querySelectorAll('.delete-product-btn');
+        console.log('🗑️ Boutons de suppression:', deleteButtons.length);
 
-    searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            filterForm.submit();
-        }, 1000);
-    });
-});
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const formId = this.getAttribute('data-form-id');
+                const productName = this.getAttribute('data-product-name');
+                const deleteForm = document.getElementById(formId);
 
-// Fonction pour basculer les filtres avancés
-function toggleAdvancedFilters() {
-    const advancedFilters = document.getElementById('advancedFilters');
-    const button = event.target;
+                if (!deleteForm) {
+                    console.error('Formulaire de suppression introuvable');
+                    return;
+                }
 
-    if (advancedFilters.style.display === 'none') {
-        advancedFilters.style.display = 'block';
-        button.innerHTML = '<i class="fas fa-cog me-1"></i>Masquer filtres avancés';
-    } else {
-        advancedFilters.style.display = 'none';
-        button.innerHTML = '<i class="fas fa-cog me-1"></i>Filtres avancés';
+                customConfirm(
+                    `Êtes-vous sûr de vouloir supprimer le produit <strong>"${productName}"</strong> ? Cette action est irréversible.`,
+                    function() {
+                        deleteForm.submit();
+                    },
+                    null,
+                    'Suppression de produit',
+                    'Oui, supprimer',
+                    'Annuler'
+                );
+            });
+        });
     }
-}
+
+    setupProductDeleteButtons();
+    console.log('✅ Initialisation terminée');
+});
 
 // Fonction pour mettre à jour le tri
 function updateSorting() {

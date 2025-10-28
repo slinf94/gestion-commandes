@@ -59,8 +59,10 @@ class UserController extends Controller
         return view('admin.users.index', compact('users', 'quartiers', 'stats'));
     }
 
-    public function show(User $user)
+    public function show($user)
     {
+        // Récupérer l'utilisateur même s'il est soft deleted
+        $user = User::withTrashed()->findOrFail($user);
         $user->load(['orders']);
         return view('admin.users.show', compact('user'));
     }
@@ -141,16 +143,22 @@ class UserController extends Controller
             ->with('success', 'Utilisateur créé avec succès');
     }
 
-    public function edit(User $user)
+    public function edit($user)
     {
+        // Récupérer l'utilisateur même s'il est soft deleted
+        $user = User::withTrashed()->findOrFail($user);
+
         // Récupérer la liste des quartiers pour le formulaire
         $quartiers = \App\Models\Quartier::getQuartiers();
 
         return view('admin.users.edit', compact('user', 'quartiers'));
     }
 
-    public function update(Request $request, User $user)
+    public function update(Request $request, $user)
     {
+        // Récupérer l'utilisateur même s'il est soft deleted
+        $user = User::withTrashed()->findOrFail($user);
+
         $request->validate([
             'nom' => 'required|string|max:100',
             'prenom' => 'required|string|max:100',
@@ -230,8 +238,11 @@ class UserController extends Controller
     /**
      * Activation rapide d'un compte client
      */
-    public function quickActivate(Request $request, User $user)
+    public function quickActivate(Request $request, $user)
     {
+        // Récupérer l'utilisateur même s'il est soft deleted
+        $user = User::withTrashed()->findOrFail($user);
+
         // Vérifier que c'est un client en attente
         if ($user->role !== 'client' || $user->status !== 'pending') {
             return redirect()->back()
@@ -338,8 +349,9 @@ class UserController extends Controller
         }
     }
 
-    public function destroy(User $user)
+    public function destroy($user)
     {
+        $user = User::withTrashed()->findOrFail($user);
         $user->delete();
         return redirect()->route('admin.users.index')
             ->with('success', 'Utilisateur supprimé avec succès');

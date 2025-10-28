@@ -144,14 +144,16 @@
                                                     </a>
                                                     @if($quartier->clients_count == 0)
                                                         <form action="{{ route('admin.quartiers.destroy', $quartier) }}"
-                                                              method="POST" class="d-inline"
-                                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce quartier ?')">
+                                                              id="delete-quartier-{{ $quartier->id }}"
+                                                              method="POST" class="d-inline delete-quartier-form">
                                                             @csrf
                                                             @method('DELETE')
-                                                            <button type="submit" class="btn btn-sm btn-danger" title="Supprimer">
-                                                                <i class="fas fa-trash"></i>
-                                                            </button>
                                                         </form>
+                                                        <button type="button" class="btn btn-sm btn-danger delete-quartier-btn" title="Supprimer"
+                                                                data-form-id="delete-quartier-{{ $quartier->id }}"
+                                                                data-quartier-name="{{ $quartier->name }}">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
                                                     @endif
                                                 </div>
                                             </td>
@@ -175,6 +177,36 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gérer les boutons de suppression de quartiers
+    const deleteButtons = document.querySelectorAll('.delete-quartier-btn');
+
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const formId = this.getAttribute('data-form-id');
+            const quartierName = this.getAttribute('data-quartier-name');
+            const form = document.getElementById(formId);
+
+            if (!form) return;
+
+            customConfirm(
+                `Êtes-vous sûr de vouloir supprimer le quartier <strong>"${quartierName}"</strong> ? Cette action est irréversible.`,
+                function() {
+                    form.submit();
+                },
+                null,
+                'Suppression de quartier',
+                'Oui, supprimer',
+                'Annuler'
+            );
+        });
+    });
+});
+</script>
+@endpush
 @endsection
 
 

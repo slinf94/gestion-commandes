@@ -79,16 +79,6 @@
                                         </div>
 
                                         <div class="mb-3">
-                                            <label for="icon" class="form-label">Icône (FontAwesome)</label>
-                                            <input type="text" class="form-control @error('icon') is-invalid @enderror"
-                                                   id="icon" name="icon" value="{{ old('icon') }}"
-                                                   placeholder="fas fa-folder">
-                                            @error('icon')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-
-                                        <div class="mb-3">
                                             <label for="color" class="form-label">Couleur</label>
                                             <input type="color" class="form-control @error('color') is-invalid @enderror"
                                                    id="color" name="color" value="{{ old('color', '#007bff') }}">

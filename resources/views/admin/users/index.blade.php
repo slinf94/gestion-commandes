@@ -84,7 +84,7 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-3 mb-2">
-                        <a href="{{ route('admin.users.create') }}" class="btn btn-primary w-100">
+                        <a href="{{ route('admin.users.create') }}" class="btn btn-secondary w-100">
                             <i class="fas fa-plus me-2"></i>
                             Nouvel Utilisateur
                         </a>
@@ -116,10 +116,10 @@
                         </div>
                     </div>
                     <div class="col-md-3 mb-2">
-                        <button class="btn btn-info w-100" onclick="toggleFilters()">
-                            <i class="fas fa-filter me-2"></i>
-                            Filtres
-                        </button>
+                        <a href="{{ route('admin.products.index') }}" class="btn btn-info w-100">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Statistiques
+                        </a>
                     </div>
                 </div>
             </div>
@@ -127,8 +127,8 @@
     </div>
 </div>
 
-<!-- Filtres (masqués par défaut) -->
-<div class="row mb-4" id="filters-section" style="display: none;">
+<!-- Filtres (toujours visibles) -->
+<div class="row mb-4" id="filters-section">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
@@ -138,7 +138,7 @@
                 </h5>
             </div>
             <div class="card-body">
-                <form method="GET" action="{{ route('admin.users.index') }}">
+                <form method="GET" action="{{ route('admin.users.index') }}" id="filterForm">
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label for="quartier" class="form-label">Quartier</label>
@@ -280,25 +280,30 @@
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             @if($user->role === 'client' && $user->status === 'pending')
-                                                <form method="POST" action="{{ route('admin.users.quick-activate', $user) }}" class="d-inline">
+                                                <form method="POST" action="{{ route('admin.users.quick-activate', $user) }}"
+                                                      class="d-inline"
+                                                      onsubmit="return false;">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-outline-success"
+                                                    <button type="button" class="btn btn-sm btn-outline-success"
                                                             title="Activer rapidement"
-                                                            onclick="return confirm('Activer le compte de {{ $user->nom }} {{ $user->prenom }} ?')">
+                                                            onclick="submitWithConfirmation(this.closest('form'), 'Êtes-vous sûr de vouloir activer le compte de {{ $user->nom }} {{ $user->prenom }} ?')">
                                                         <i class="fas fa-check"></i>
                                                     </button>
                                                 </form>
                                             @endif
                                             @if($user->id != auth()->id())
-                                                <form method="POST" action="{{ route('admin.users.destroy', $user) }}" class="d-inline">
+                                                <form method="POST" action="{{ route('admin.users.destroy', $user) }}"
+                                                      id="delete-form-{{ $user->id }}"
+                                                      class="d-inline delete-user-form">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                            title="Supprimer"
-                                                            onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
                                                 </form>
+                                                <button type="button" class="btn btn-sm btn-outline-danger delete-user-btn"
+                                                        data-form-id="delete-form-{{ $user->id }}"
+                                                        data-user-name="{{ $user->nom }} {{ $user->prenom }}"
+                                                        title="Supprimer">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
                                             @endif
                                         </div>
                                     </td>
@@ -479,49 +484,206 @@ function showAlert(message, type) {
 }
 
 
-function toggleFilters() {
-    const filtersSection = document.getElementById('filters-section');
-    if (filtersSection.style.display === 'none') {
-        filtersSection.style.display = 'block';
-    } else {
-        filtersSection.style.display = 'none';
+// Système de recherche et filtrage dynamique AJAX
+(function() {
+    let filterTimeout = null;
+    let isFiltering = false;
+
+    function performFilter() {
+        if (isFiltering) return;
+
+        isFiltering = true;
+        const form = document.querySelector('form[method="GET"]');
+        if (!form) {
+            isFiltering = false;
+            return;
+        }
+
+        const formData = new FormData(form);
+        const params = new URLSearchParams(formData);
+
+        // Afficher l'indicateur de chargement
+        const loadingIndicator = document.getElementById('loading-indicator');
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'flex';
+        }
+
+        // Faire la requête AJAX
+        fetch(window.location.pathname + '?' + params, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erreur réseau');
+            }
+            return response.text();
+        })
+        .then(html => {
+            console.log('Réponse reçue pour utilisateurs');
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+
+            // Trouver le tbody du tableau
+            const newTableBody = tempDiv.querySelector('table tbody');
+            const currentTableBody = document.querySelector('table tbody');
+
+            if (newTableBody && currentTableBody) {
+                currentTableBody.innerHTML = newTableBody.innerHTML;
+                console.log('Tableau utilisateurs mis à jour');
+            }
+
+            // Mettre à jour la pagination
+            const newPagination = tempDiv.querySelector('.pagination');
+            const currentPagination = document.querySelector('.pagination');
+
+            if (newPagination && currentPagination) {
+                currentPagination.outerHTML = newPagination.outerHTML;
+            }
+
+            // Mettre à jour l'URL sans recharger la page
+            window.history.pushState({}, '', window.location.pathname + '?' + params);
+
+            // Réinitialiser les boutons après la mise à jour AJAX
+            setupDeleteButtons();
+
+            isFiltering = false;
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du filtrage:', error);
+            isFiltering = false;
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
+
+            // En cas d'erreur, soumettre le formulaire normalement
+            form.submit();
+        });
     }
-}
 
-function searchUsers() {
-    const searchInput = document.getElementById('search');
-    const form = searchInput.closest('form');
-
-    // Délai pour éviter trop de requêtes
-    clearTimeout(searchUsers.timeout);
-    searchUsers.timeout = setTimeout(() => {
-        form.submit();
-    }, 500);
-}
-
-// Filtrage automatique des sélecteurs
+// Système de filtrage automatique
 document.addEventListener('DOMContentLoaded', function() {
-    const quartierSelect = document.getElementById('quartier');
-    const roleSelect = document.getElementById('role');
-    const statusSelect = document.getElementById('status');
+    console.log('🚀 Initialisation du système de filtrage...');
 
-    if (quartierSelect) {
-        quartierSelect.addEventListener('change', function() {
-            this.closest('form').submit();
+    const form = document.getElementById('filterForm');
+
+    if (!form) {
+        console.error('❌ Formulaire filterForm introuvable');
+        return;
+    }
+
+    console.log('✅ Formulaire trouvé');
+
+    // 1. RECHERCHE AVEC AUTO-SUBMIT (debounce)
+    const searchInput = document.getElementById('search');
+    if (searchInput) {
+        console.log('✅ Champ de recherche trouvé');
+        searchInput.addEventListener('input', function() {
+            clearTimeout(filterTimeout);
+            const delay = this.value.length > 2 ? 400 : 800;
+            filterTimeout = setTimeout(() => {
+                console.log('🔄 Recherche:', this.value);
+                form.submit();
+            }, delay);
         });
     }
 
-    if (roleSelect) {
-        roleSelect.addEventListener('change', function() {
-            this.closest('form').submit();
+    // 2. FILTRES SELECT AVEC AUTO-SUBMIT
+    const selects = form.querySelectorAll('select');
+    console.log('📋 Filtres select trouvés:', selects.length);
+
+    selects.forEach(select => {
+        select.addEventListener('change', function() {
+            console.log('🔄 Filtre changé:', this.name, '=', this.value);
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => {
+                console.log('✅ Soumission du formulaire');
+                form.submit();
+            }, 200);
+        });
+    });
+
+    // 3. BOUTONS DE SUPPRESSION AVEC MODAL
+    function setupDeleteButtons() {
+        const deleteButtons = document.querySelectorAll('.delete-user-btn');
+
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const formId = this.getAttribute('data-form-id');
+                const userName = this.getAttribute('data-user-name');
+                const form = document.getElementById(formId);
+
+                if (!form) {
+                    console.error('Formulaire non trouvé');
+                    return;
+                }
+
+                // Afficher la modal de confirmation
+                customConfirm(
+                    `Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>${userName}</strong> ? Cette action est irréversible.`,
+                    function() {
+                        // Soumettre le formulaire
+                        form.submit();
+                    },
+                    null,
+                    'Suppression d\'utilisateur',
+                    'Oui, supprimer',
+                    'Annuler'
+                );
+            });
         });
     }
 
-    if (statusSelect) {
-        statusSelect.addEventListener('change', function() {
-            this.closest('form').submit();
-        });
-    }
+    // Initialiser les boutons de suppression
+    setupDeleteButtons();
+    console.log('✅ Initialisation terminée');
 });
+
+// Code AJAX pour pagination (à garder en place)
+document.addEventListener('DOMContentLoaded', function() {
+    // Gérer les boutons de pagination AJAX
+    document.addEventListener('click', function(e) {
+            if (e.target.closest('.pagination a')) {
+                e.preventDefault();
+                const href = e.target.closest('a').href;
+
+                fetch(href, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = html;
+
+                    const newTableBody = tempDiv.querySelector('tbody');
+                    const currentTableBody = document.querySelector('table tbody');
+                    if (newTableBody && currentTableBody) {
+                        currentTableBody.innerHTML = newTableBody.innerHTML;
+                    }
+
+                    const newPagination = tempDiv.querySelector('.pagination');
+                    const currentPagination = document.querySelector('.pagination');
+                    if (newPagination && currentPagination) {
+                        currentPagination.outerHTML = newPagination.outerHTML;
+                    }
+
+                    window.history.pushState({}, '', href);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                    // Réinitialiser les boutons après la pagination
+                    setupDeleteButtons();
+                });
+            }
+        });
+    });
+})();
 </script>
 @endsection

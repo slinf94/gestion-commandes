@@ -23,8 +23,10 @@ class ProductController extends Controller
         try {
             // Construction de la requête avec filtres dynamiques
             $query = DB::table('products')
-                ->select('id', 'name', 'price', 'status', 'created_at', 'category_id', 'product_type_id')
-                ->whereNull('deleted_at');
+                ->select('id', 'name', 'price', 'status', 'created_at', 'category_id', 'product_type_id');
+
+            // Temporairement: afficher TOUS les produits pour vérifier (commenté)
+            // ->whereNull('deleted_at');
 
             // Filtres dynamiques
             if ($request->filled('search')) {
@@ -64,9 +66,9 @@ class ProductController extends Controller
                 $query->whereDate('created_at', '<=', $request->date_to);
             }
 
-            // Tri dynamique
-            $sortBy = $request->get('sort_by', 'created_at');
-            $sortOrder = $request->get('sort_order', 'desc');
+            // Tri dynamique - Par défaut par ID croissant (du plus ancien au plus récent)
+            $sortBy = $request->get('sort_by', 'id');
+            $sortOrder = $request->get('sort_order', 'asc');
             $query->orderBy($sortBy, $sortOrder);
 
             // Pagination configurable
@@ -88,10 +90,10 @@ class ProductController extends Controller
 
             // Statistiques pour les filtres
             $stats = [
-                'total' => DB::table('products')->whereNull('deleted_at')->count(),
-                'active' => DB::table('products')->where('status', 'active')->whereNull('deleted_at')->count(),
-                'inactive' => DB::table('products')->where('status', 'inactive')->whereNull('deleted_at')->count(),
-                'draft' => DB::table('products')->where('status', 'draft')->whereNull('deleted_at')->count(),
+                'total' => DB::table('products')->count(),
+                'active' => DB::table('products')->where('status', 'active')->count(),
+                'inactive' => DB::table('products')->where('status', 'inactive')->count(),
+                'draft' => DB::table('products')->where('status', 'draft')->count(),
             ];
 
             return view('admin.products.index', compact('products', 'categories', 'productTypes', 'stats'));
@@ -143,9 +145,13 @@ class ProductController extends Controller
 
             // Chargement des attributs du produit
             $attributeValues = DB::table('product_attribute_values')
-                ->join('attributes', 'product_attribute_values.attribute_id', '=', 'attributes.id')
-                ->select('product_attribute_values.*', 'attributes.name as attribute_name', 'attributes.type as attribute_type')
+                ->join('product_type_attributes', 'product_attribute_values.product_type_attribute_id', '=', 'product_type_attributes.id')
+                ->select('product_attribute_values.*',
+                         'product_type_attributes.attribute_name',
+                         'product_type_attributes.attribute_type',
+                         'product_type_attributes.options')
                 ->where('product_attribute_values.product_id', $id)
+                ->orderBy('product_type_attributes.sort_order')
                 ->get();
 
             // Chargement des images du produit

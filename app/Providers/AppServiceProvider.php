@@ -19,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Configurer les textes de pagination en français
+        \Illuminate\Pagination\Paginator::defaultView('pagination::bootstrap-4');
+
+        // Personnaliser les textes de pagination
+        \Illuminate\Pagination\Paginator::$defaultView = 'pagination::bootstrap-4';
     }
 }

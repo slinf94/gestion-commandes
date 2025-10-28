@@ -58,8 +58,11 @@ class AdminActivityController extends Controller
 
         $activities = $query->paginate(20);
 
-        // Données pour les filtres
-        $users = collect(); // Temporairement désactivé pour éviter les problèmes
+        // Charger tous les utilisateurs pour le filtre
+        $users = User::select('id', 'nom', 'prenom', 'email')
+            ->orderBy('nom')
+            ->orderBy('prenom')
+            ->get();
         $subjectTypes = ActivityLog::select('subject_type')
             ->distinct()
             ->whereNotNull('subject_type')

@@ -10,7 +10,7 @@
                 <div class="card-header">
                     <h3 class="card-title">Gestion des Types de Produits</h3>
                     <div class="card-tools">
-                        <a href="{{ route('admin.product-types.create') }}" class="btn btn-primary">
+                        <a href="{{ route('admin.product-types.create') }}" class="btn btn-secondary">
                             <i class="fas fa-plus"></i> Nouveau Type de Produit
                         </a>
                     </div>
@@ -29,81 +29,6 @@
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     @endif
-
-                    <!-- Statistiques -->
-                    @if(isset($stats))
-                    <div class="row mb-3">
-                        <div class="col-md-3">
-                            <div class="card bg-primary text-white">
-                                <div class="card-body text-center">
-                                    <h3>{{ $stats['total'] }}</h3>
-                                    <p class="mb-0">Total</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card bg-success text-white">
-                                <div class="card-body text-center">
-                                    <h3>{{ $stats['active'] }}</h3>
-                                    <p class="mb-0">Actifs</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card bg-warning text-white">
-                                <div class="card-body text-center">
-                                    <h3>{{ $stats['inactive'] }}</h3>
-                                    <p class="mb-0">Inactifs</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    @endif
-
-                    <!-- Filtres -->
-                    <form method="GET" action="{{ route('admin.product-types.index') }}" class="mb-3">
-                        <div class="row">
-                            <div class="col-md-3">
-                                <input type="text" name="search" class="form-control" placeholder="Rechercher..." value="{{ request('search') }}">
-                            </div>
-                            <div class="col-md-2">
-                                <select name="category_id" class="form-control">
-                                    <option value="">Toutes catégories</option>
-                                    @foreach($categories ?? [] as $category)
-                                        <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
-                                            {{ $category->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <select name="status" class="form-control">
-                                    <option value="">Tous les statuts</option>
-                                    <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Actif</option>
-                                    <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactif</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <select name="sort_by" class="form-control">
-                                    <option value="name" {{ request('sort_by') == 'name' ? 'selected' : '' }}>Nom</option>
-                                    <option value="sort_order" {{ request('sort_by') == 'sort_order' ? 'selected' : '' }}>Ordre</option>
-                                    <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>Date</option>
-                                </select>
-                            </div>
-                            <div class="col-md-1">
-                                <select name="per_page" class="form-control">
-                                    <option value="15" {{ request('per_page') == 15 ? 'selected' : '' }}>15</option>
-                                    <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
-                                    <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="fas fa-search"></i> Filtrer
-                                </button>
-                            </div>
-                        </div>
-                    </form>
 
                     <div class="table-responsive">
                         <table class="table table-hover">
@@ -196,7 +121,7 @@
                                     <td colspan="8" class="text-center text-muted">
                                         <i class="fas fa-cube fa-3x mb-3"></i>
                                         <p>Aucun type de produit trouvé</p>
-                                        <a href="{{ route('admin.product-types.create') }}" class="btn btn-primary">
+                                        <a href="{{ route('admin.product-types.create') }}" class="btn btn-secondary">
                                             <i class="fas fa-plus"></i> Créer le premier type de produit
                                         </a>
                                     </td>
@@ -208,28 +133,27 @@
 
                     <!-- Pagination -->
                     @if(isset($productTypes) && $productTypes->hasPages())
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <div class="text-muted">
-                            Affichage de {{ $productTypes->firstItem() }} à {{ $productTypes->lastItem() }} sur {{ $productTypes->total() }} résultats
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <div>
+                                <small class="text-muted">
+                                    Affichage de {{ $productTypes->firstItem() ?? 0 }} à {{ $productTypes->lastItem() ?? 0 }}
+                                    sur {{ $productTypes->total() }} types de produits
+                                </small>
+                            </div>
+                            <div>
+                                {{ $productTypes->links() }}
+                            </div>
                         </div>
-                        <div>
-                            {{ $productTypes->links() }}
-                        </div>
-                    </div>
                     @endif
                 </div>
             </div>
         </div>
     </div>
 </div>
+@endsection
 
 <style>
 .gap-1 > * + * {
     margin-left: 0.25rem;
 }
 </style>
-@endsection
-
-
-
-

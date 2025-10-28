@@ -69,7 +69,7 @@ class AttributeController extends Controller
 
         // Pagination
         $perPage = $request->get('per_page', 15);
-        $attributes = $query->paginate($perPage);
+        $attributes = $query->paginate($perPage)->appends($request->query());
 
         return view('admin.attributes.index', compact('attributes', 'stats'));
     }

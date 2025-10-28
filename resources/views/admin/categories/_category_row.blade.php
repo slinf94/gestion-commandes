@@ -47,13 +47,17 @@
             <a href="{{ route('admin.categories.edit', $category) }}" class="btn btn-sm btn-outline-warning" title="Modifier">
                 <i class="fas fa-edit"></i>
             </a>
-            <form action="{{ route('admin.categories.destroy', $category) }}" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?');" style="display:inline-block;">
+            <form action="{{ route('admin.categories.destroy', $category) }}" method="POST"
+                  id="delete-category-{{ $category->id }}"
+                  style="display:inline-block;">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
-                    <i class="fas fa-trash"></i>
-                </button>
             </form>
+            <button type="button" class="btn btn-sm btn-outline-danger delete-category-btn" title="Supprimer"
+                    data-form-id="delete-category-{{ $category->id }}"
+                    data-category-name="{{ $category->name }}">
+                <i class="fas fa-trash"></i>
+            </button>
             <button type="button" class="btn btn-sm btn-outline-info toggle-status-btn"
                     data-id="{{ $category->id }}"
                     title="{{ $category->is_active ? 'Désactiver' : 'Activer' }}">

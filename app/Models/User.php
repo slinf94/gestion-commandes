@@ -8,6 +8,8 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use App\Traits\LogsActivity;
+use App\Models\Role;
+use App\Models\Permission;
 
 class User extends Authenticatable implements JWTSubject
 {
@@ -69,7 +71,7 @@ class User extends Authenticatable implements JWTSubject
      */
     protected $logAttributes = [
         'nom',
-        'prenom', 
+        'prenom',
         'email',
         'numero_telephone',
         'numero_whatsapp',
@@ -108,6 +110,96 @@ class User extends Authenticatable implements JWTSubject
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Relation avec les rôles
+     */
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'user_role');
+    }
+
+    /**
+     * Vérifier si l'utilisateur a un rôle
+     */
+    public function hasRole($role)
+    {
+        if (is_string($role)) {
+            return $this->roles()->where('slug', $role)->exists();
+        }
+
+        return $this->roles()->where('id', $role)->exists();
+    }
+
+    /**
+     * Vérifier si l'utilisateur a une permission
+     */
+    public function hasPermission($permission)
+    {
+        foreach ($this->roles as $role) {
+            if ($role->hasPermission($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Vérifier si l'utilisateur a au moins l'un des rôles
+     */
+    public function hasAnyRole($roles)
+    {
+        foreach ($roles as $role) {
+            if ($this->hasRole($role)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Vérifier si l'utilisateur a toutes les permissions
+     */
+    public function hasAllPermissions($permissions)
+    {
+        foreach ($permissions as $permission) {
+            if (!$this->hasPermission($permission)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Attacher un rôle à l'utilisateur
+     */
+    public function attachRole($role)
+    {
+        if (is_string($role)) {
+            $role = Role::where('slug', $role)->first();
+        }
+
+        if ($role) {
+            $this->roles()->syncWithoutDetaching([$role->id]);
+        }
+    }
+
+    /**
+     * Détacher un rôle de l'utilisateur
+     */
+    public function detachRole($role)
+    {
+        if (is_string($role)) {
+            $role = Role::where('slug', $role)->first();
+        }
+
+        if ($role) {
+            $this->roles()->detach($role->id);
+        }
     }
 
 

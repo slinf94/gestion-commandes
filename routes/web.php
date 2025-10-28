@@ -180,15 +180,6 @@ Route::prefix('admin')->group(function () {
                 Route::post('/product-types/{productType}/toggle-status', [\App\Http\Controllers\Admin\ProductTypeController::class, 'toggleStatus'])->name('admin.product-types.toggle-status');
 
                 // Gestion des variantes de produits
-                Route::get('/products/{product}/variants', [\App\Http\Controllers\Admin\ProductVariantController::class, 'index'])->name('admin.products.variants.index');
-                Route::get('/products/{product}/variants/create', [\App\Http\Controllers\Admin\ProductVariantController::class, 'create'])->name('admin.products.variants.create');
-                Route::post('/products/{product}/variants', [\App\Http\Controllers\Admin\ProductVariantController::class, 'store'])->name('admin.products.variants.store');
-                Route::get('/products/{product}/variants/{variant}', [\App\Http\Controllers\Admin\ProductVariantController::class, 'show'])->name('admin.products.variants.show');
-                Route::get('/products/{product}/variants/{variant}/edit', [\App\Http\Controllers\Admin\ProductVariantController::class, 'edit'])->name('admin.products.variants.edit');
-                Route::put('/products/{product}/variants/{variant}', [\App\Http\Controllers\Admin\ProductVariantController::class, 'update'])->name('admin.products.variants.update');
-                Route::delete('/products/{product}/variants/{variant}', [\App\Http\Controllers\Admin\ProductVariantController::class, 'destroy'])->name('admin.products.variants.destroy');
-                Route::post('/products/{product}/variants/{variant}/toggle-status', [\App\Http\Controllers\Admin\ProductVariantController::class, 'toggleStatus'])->name('admin.products.variants.toggle-status');
-                Route::post('/products/{product}/variants/generate', [\App\Http\Controllers\Admin\ProductVariantController::class, 'generateVariants'])->name('admin.products.variants.generate');
 
 
                 // Paramètres admin

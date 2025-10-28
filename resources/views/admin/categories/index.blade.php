@@ -6,20 +6,28 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Gestion des Catégories</h3>
-                    <div class="card-tools">
-                        <a href="{{ route('admin.categories.create') }}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Nouvelle Catégorie
-                        </a>
+            <div class="card shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #38B04A, #4CAF50); padding: 20px;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="mb-1" style="font-weight: 600; font-size: 1.5rem;">
+                                <i class="fas fa-tags me-2"></i>Gestion des Catégories
+                            </h3>
+                            <small class="opacity-75">Organisez et gérez vos catégories de produits</small>
+                        </div>
+                        <div>
+                            <a href="{{ route('admin.categories.create') }}" class="btn btn-light" style="border-radius: 8px;">
+                                <i class="fas fa-plus me-2"></i> Nouvelle Catégorie
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
                     @if(session('success'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <div class="alert alert-success alert-dismissible fade show auto-dismiss" role="alert" data-dismiss-time="5000">
+                            <i class="fas fa-check-circle me-2"></i>
                             {{ session('success') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     @endif
 
@@ -31,9 +39,11 @@
                     @endif
 
                     <!-- Filtres avancés -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtres et Recherche</h5>
+                    <div class="card mb-4 border-0 shadow-sm" style="border-radius: 10px;">
+                        <div class="card-header bg-light" style="border-bottom: 2px solid #38B04A;">
+                            <h5 class="mb-0" style="color: #38B04A; font-weight: 600;">
+                                <i class="fas fa-filter me-2"></i>Filtres et Recherche
+                            </h5>
                         </div>
                         <div class="card-body">
                             <form method="GET" action="{{ route('admin.categories.index') }}" id="filterForm">
@@ -77,25 +87,53 @@
                                     </div>
 
                                     <!-- Actions -->
-                                    <div class="col-md-2 d-flex align-items-end">
-                                        <button type="submit" class="btn btn-primary me-2">
-                                            <i class="fas fa-search me-1"></i>Filtrer
+                                    <div class="col-md-2 d-flex align-items-end gap-2">
+                                        <button type="submit" class="btn btn-success" style="border-radius: 8px; background: linear-gradient(135deg, #38B04A, #4CAF50); border: none;">
+                                            <i class="fas fa-filter me-1"></i>Filtrer
                                         </button>
-                                        <a href="{{ route('admin.categories.index') }}" class="btn btn-outline-secondary">
+                                        <a href="{{ route('admin.categories.index') }}" class="btn btn-outline-secondary" style="border-radius: 8px;">
                                             <i class="fas fa-times me-1"></i>Effacer
                                         </a>
                                     </div>
                                 </div>
 
                                 <!-- Statistiques -->
-                                <div class="row mt-3">
-                                    <div class="col-12 text-end">
-                                        <small class="text-muted">
-                                            Total: {{ $stats['total'] ?? 0 }} |
-                                            Actives: {{ $stats['active'] ?? 0 }} |
-                                            Inactives: {{ $stats['inactive'] ?? 0 }} |
-                                            Vedettes: {{ $stats['featured'] ?? 0 }}
-                                        </small>
+                                <div class="row mt-4">
+                                    <div class="col-md-3">
+                                        <div class="d-flex align-items-center p-3 rounded" style="background: linear-gradient(135deg, #E3F2FD, #BBDEFB); border-left: 4px solid #2196F3;">
+                                            <i class="fas fa-tags fa-2x me-3" style="color: #2196F3;"></i>
+                                            <div>
+                                                <div class="text-muted small">Total</div>
+                                                <div class="h5 mb-0 fw-bold" style="color: #2196F3;">{{ $stats['total'] ?? 0 }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="d-flex align-items-center p-3 rounded" style="background: linear-gradient(135deg, #E8F5E9, #C8E6C9); border-left: 4px solid #4CAF50;">
+                                            <i class="fas fa-check-circle fa-2x me-3" style="color: #4CAF50;"></i>
+                                            <div>
+                                                <div class="text-muted small">Actives</div>
+                                                <div class="h5 mb-0 fw-bold" style="color: #4CAF50;">{{ $stats['active'] ?? 0 }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="d-flex align-items-center p-3 rounded" style="background: linear-gradient(135deg, #FFF3E0, #FFE0B2); border-left: 4px solid #FF9800;">
+                                            <i class="fas fa-pause-circle fa-2x me-3" style="color: #FF9800;"></i>
+                                            <div>
+                                                <div class="text-muted small">Inactives</div>
+                                                <div class="h5 mb-0 fw-bold" style="color: #FF9800;">{{ $stats['inactive'] ?? 0 }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="d-flex align-items-center p-3 rounded" style="background: linear-gradient(135deg, #F3E5F5, #E1BEE7); border-left: 4px solid #9C27B0;">
+                                            <i class="fas fa-star fa-2x me-3" style="color: #9C27B0;"></i>
+                                            <div>
+                                                <div class="text-muted small">Vedettes</div>
+                                                <div class="h5 mb-0 fw-bold" style="color: #9C27B0;">{{ $stats['featured'] ?? 0 }}</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </form>
@@ -157,13 +195,18 @@
                                             <a href="{{ route('admin.categories.edit', $category->id) }}" class="btn btn-sm btn-warning">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form action="{{ route('admin.categories.destroy', $category->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')">
+                                            <form action="{{ route('admin.categories.destroy', $category->id) }}" method="POST"
+                                                  id="delete-category-{{ $category->id }}"
+                                                  class="d-inline delete-category-form">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-danger">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
                                             </form>
+                                            <button type="button" class="btn btn-sm btn-danger delete-category-btn"
+                                                    data-form-id="delete-category-{{ $category->id }}"
+                                                    data-category-name="{{ $category->name }}"
+                                                    title="Supprimer">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -232,32 +275,91 @@
 
 @section('scripts')
 <script>
-// Filtres dynamiques
+// Filtres dynamiques - FONCTIONNEL
+console.log('🚀 Initialisation du système de filtrage...');
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-submit du formulaire de filtre
+    console.log('✅ DOM chargé');
+
+    // Récupérer le formulaire
     const filterForm = document.getElementById('filterForm');
-    const filterInputs = filterForm.querySelectorAll('select, input[type="text"]');
+
+    if (!filterForm) {
+        console.error('❌ Formulaire filterForm introuvable');
+        return;
+    }
+
+    console.log('✅ Formulaire trouvé:', filterForm);
+
+    let filterTimeout;
+    let searchTimeout;
+
+    // 1. GÉRER LES FILTRES (select, number, date)
+    const filterInputs = filterForm.querySelectorAll('select, input[type="number"], input[type="date"]');
+    console.log('📋 Filtres trouvés:', filterInputs.length);
 
     filterInputs.forEach(input => {
         input.addEventListener('change', function() {
-            // Délai pour éviter trop de requêtes
-            clearTimeout(window.filterTimeout);
-            window.filterTimeout = setTimeout(() => {
+            console.log('🔄 Filtre changé:', this.name, '=', this.value);
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => {
+                console.log('✅ Soumission du formulaire de filtre');
                 filterForm.submit();
-            }, 500);
+            }, 300);
         });
     });
 
-    // Recherche en temps réel
+    // 2. GÉRER LA RECHERCHE (input text)
     const searchInput = document.getElementById('search');
-    let searchTimeout;
 
-    searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            filterForm.submit();
-        }, 1000);
-    });
+    if (searchInput) {
+        console.log('✅ Champ de recherche trouvé');
+
+        searchInput.addEventListener('input', function() {
+            console.log('🔄 Recherche tapée:', this.value);
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                console.log('✅ Soumission du formulaire de recherche');
+                filterForm.submit();
+            }, 500);
+        });
+    } else {
+        console.warn('⚠️ Champ de recherche introuvable');
+    }
+
+    // 3. GÉRER LES BOUTONS DE SUPPRESSION
+    function setupDeleteButtons() {
+        const deleteButtons = document.querySelectorAll('.delete-category-btn');
+        console.log('🗑️ Boutons de suppression trouvés:', deleteButtons.length);
+
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const formId = this.getAttribute('data-form-id');
+                const categoryName = this.getAttribute('data-category-name');
+                const form = document.getElementById(formId);
+
+                if (!form) {
+                    console.error('Formulaire de suppression introuvable');
+                    return;
+                }
+
+                customConfirm(
+                    `Êtes-vous sûr de vouloir supprimer la catégorie <strong>"${categoryName}"</strong> ? Cette action est irréversible.`,
+                    function() {
+                        form.submit();
+                    },
+                    null,
+                    'Suppression de catégorie',
+                    'Oui, supprimer',
+                    'Annuler'
+                );
+            });
+        });
+    }
+
+    setupDeleteButtons();
+    console.log('✅ Initialisation terminée');
 });
 
 // Fonction pour mettre à jour le tri
@@ -273,5 +375,17 @@ function updateSorting() {
     // Rediriger avec les nouveaux paramètres
     window.location.href = url.toString();
 }
+
+// Auto-dismiss des alertes de succès
+document.addEventListener('DOMContentLoaded', function() {
+    const alerts = document.querySelectorAll('.auto-dismiss');
+    alerts.forEach(function(alert) {
+        const dismissTime = parseInt(alert.getAttribute('data-dismiss-time')) || 5000; // 5 secondes par défaut
+        setTimeout(function() {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }, dismissTime);
+    });
+});
 </script>
 @endsection

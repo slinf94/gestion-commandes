@@ -4,67 +4,85 @@
 @section('page-title', 'Gestion des Commandes')
 
 @section('content')
-<div class="container-fluid">
-    <!-- En-tête avec statistiques -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h4 class="mb-0">Liste des Commandes</h4>
-                    <small class="text-muted">Suivez et gérez toutes les commandes</small>
-                </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-secondary" onclick="toggleFilters()">
-                        <i class="fas fa-filter me-2"></i>Filtres
-                    </button>
-                </div>
-            </div>
+<!-- Header moderne avec gradient vert -->
+<div class="card shadow-lg border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
+    <div class="card-header text-white" style="background: linear-gradient(135deg, #38B04A, #4CAF50); padding: 20px;">
+        <h3 class="mb-1" style="font-weight: 600; font-size: 1.5rem;">
+            <i class="fas fa-shopping-bag me-2"></i>Gestion des Commandes
+        </h3>
+        <small class="opacity-75">Liste des Commandes - Suivez et gérez toutes les commandes</small>
+    </div>
+</div>
 
-            <!-- Statistiques rapides -->
-            @if(isset($stats))
-            <div class="row mb-3">
-                <div class="col-md-3">
-                    <div class="card bg-primary text-white">
-                        <div class="card-body text-center">
-                            <h5 class="mb-0">{{ $stats['total'] }}</h5>
-                            <small>Total Commandes</small>
+<div class="container-fluid">
+    <!-- Statistiques modernes -->
+    @if(isset($stats))
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px; border-left: 4px solid #0066cc;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1" style="font-size: 0.75rem; text-transform: uppercase;">Total Commandes</h6>
+                            <h3 class="mb-0" style="font-weight: 700; color: #0066cc;">{{ $stats['total'] }}</h3>
                         </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-warning text-white">
-                        <div class="card-body text-center">
-                            <h5 class="mb-0">{{ $stats['pending'] ?? 0 }}</h5>
-                            <small>En Attente</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-info text-white">
-                        <div class="card-body text-center">
-                            <h5 class="mb-0">{{ $stats['delivered'] ?? 0 }}</h5>
-                            <small>Livrées</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-danger text-white">
-                        <div class="card-body text-center">
-                            <h5 class="mb-0">{{ $stats['cancelled'] ?? 0 }}</h5>
-                            <small>Annulées</small>
-                        </div>
+                        <i class="fas fa-chart-line fa-2x" style="color: #0066cc; opacity: 0.3;"></i>
                     </div>
                 </div>
             </div>
-            @endif
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px; border-left: 4px solid #ffc107;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1" style="font-size: 0.75rem; text-transform: uppercase;">En Attente</h6>
+                            <h3 class="mb-0" style="font-weight: 700; color: #ffc107;">{{ $stats['pending'] ?? 0 }}</h3>
+                        </div>
+                        <i class="fas fa-clock fa-2x" style="color: #ffc107; opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px; border-left: 4px solid #0dcaf0;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1" style="font-size: 0.75rem; text-transform: uppercase;">Livrées</h6>
+                            <h3 class="mb-0" style="font-weight: 700; color: #0dcaf0;">{{ $stats['delivered'] ?? 0 }}</h3>
+                        </div>
+                        <i class="fas fa-check-circle fa-2x" style="color: #0dcaf0; opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px; border-left: 4px solid #dc3545;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1" style="font-size: 0.75rem; text-transform: uppercase;">Annulées</h6>
+                            <h3 class="mb-0" style="font-weight: 700; color: #dc3545;">{{ $stats['cancelled'] ?? 0 }}</h3>
+                        </div>
+                        <i class="fas fa-times-circle fa-2x" style="color: #dc3545; opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+    @endif
 
-    <!-- Filtres (masqués par défaut) -->
-    <div class="row mb-4" id="filters-section" style="display: none;">
+    <!-- Filtres toujours visibles -->
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                <div class="card-header bg-light" style="border-bottom: 2px solid #38B04A; border-radius: 12px 12px 0 0;">
+                    <h5 class="mb-0" style="color: #38B04A; font-weight: 600;">
+                        <i class="fas fa-filter me-2"></i>Filtres et Recherche
+                    </h5>
+                </div>
+                <div class="card-body" style="padding: 20px;">
                     <form method="GET" action="{{ route('admin.orders.index') }}" id="filterForm">
                         <div class="row">
                             <div class="col-md-3">
@@ -99,10 +117,10 @@
                                 </select>
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary me-2">
-                                    <i class="fas fa-search"></i> Filtrer
+                                <button type="submit" class="btn btn-success me-2" style="background: linear-gradient(135deg, #38B04A, #4CAF50); border: none; border-radius: 8px;">
+                                    <i class="fas fa-search me-2"></i>Filtrer
                                 </button>
-                                <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary">
+                                <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary" style="border-radius: 8px;">
                                     <i class="fas fa-times"></i>
                                 </a>
                             </div>
@@ -115,7 +133,7 @@
 
     <!-- Messages de succès/erreur -->
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="alert alert-success alert-dismissible fade show auto-dismiss" data-dismiss-time="5000" role="alert">
             <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
@@ -131,7 +149,7 @@
     <!-- Tableau principal -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-sm">
+            <div class="card border-0 shadow-lg" style="border-radius: 12px;">
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
@@ -211,14 +229,18 @@
                                             <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-info" title="Voir">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            <form method="POST" action="{{ route('admin.orders.destroy', $order) }}" class="d-inline">
+                                            <form method="POST" action="{{ route('admin.orders.destroy', $order) }}"
+                                                  id="delete-order-{{ $order->id }}"
+                                                  class="d-inline delete-order-form">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer"
-                                                        onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette commande ?')">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
                                             </form>
+                                            <button type="button" class="btn btn-sm btn-outline-danger delete-order-btn"
+                                                    data-form-id="delete-order-{{ $order->id }}"
+                                                    data-order-id="{{ $order->id }}"
+                                                    title="Supprimer">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -306,24 +328,26 @@
 #filters-section .card {
     border: 1px solid #dee2e6;
 }
+
+.auto-dismiss {
+    border-radius: 8px;
+}
 </style>
 
 <script>
-function toggleFilters() {
-    const filtersSection = document.getElementById('filters-section');
-    const button = event.target;
-
-    if (filtersSection.style.display === 'none') {
-        filtersSection.style.display = 'block';
-        button.innerHTML = '<i class="fas fa-filter me-2"></i>Masquer Filtres';
-    } else {
-        filtersSection.style.display = 'none';
-        button.innerHTML = '<i class="fas fa-filter me-2"></i>Filtres';
-    }
-}
-
-// Filtrage dynamique
+// Auto-dismiss alertes
 document.addEventListener('DOMContentLoaded', function() {
+    // Fermer automatiquement les alertes avec la classe auto-dismiss
+    const autoDismissAlerts = document.querySelectorAll('.auto-dismiss');
+    autoDismissAlerts.forEach(alert => {
+        const dismissTime = alert.getAttribute('data-dismiss-time') || 5000;
+        setTimeout(() => {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }, parseInt(dismissTime));
+    });
+
+    // Filtrage dynamique
     const form = document.getElementById('filterForm');
     if (form) {
         const inputs = form.querySelectorAll('input, select');
@@ -343,6 +367,30 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Gérer les boutons de suppression de commandes
+    const deleteOrderButtons = document.querySelectorAll('.delete-order-btn');
+
+    deleteOrderButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const formId = this.getAttribute('data-form-id');
+            const orderId = this.getAttribute('data-order-id');
+            const form = document.getElementById(formId);
+
+            if (!form) return;
+
+            customConfirm(
+                `Êtes-vous sûr de vouloir supprimer la commande #${orderId} ? Cette action est irréversible.`,
+                function() {
+                    form.submit();
+                },
+                null,
+                'Suppression de commande',
+                'Oui, supprimer',
+                'Annuler'
+            );
+        });
+    });
 });
 </script>
 @endsection

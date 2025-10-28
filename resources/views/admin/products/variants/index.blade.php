@@ -80,13 +80,16 @@
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     <form method="POST" action="{{ route('admin.products.variants.destroy', [$product, $variant]) }}"
-                                          class="d-inline" onsubmit="return confirm('Supprimer cette variante ?')">
+                                          id="delete-variant-{{ $variant->id }}"
+                                          class="d-inline delete-variant-form">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
                                     </form>
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-variant-btn"
+                                            data-form-id="delete-variant-{{ $variant->id }}"
+                                            title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>

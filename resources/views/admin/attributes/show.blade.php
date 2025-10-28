@@ -144,13 +144,16 @@
                     </a>
 
                     <form action="{{ route('admin.attributes.destroy', $attribute) }}" method="POST"
-                          onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet attribut ?');" class="d-inline">
+                          id="delete-attribute-{{ $attribute->id }}"
+                          class="d-inline delete-attribute-form">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn btn-danger w-100">
-                            <i class="fas fa-trash me-2"></i>Supprimer
-                        </button>
                     </form>
+                    <button type="button" class="btn btn-danger w-100 delete-attribute-btn"
+                            data-form-id="delete-attribute-{{ $attribute->id }}"
+                            data-attribute-name="{{ $attribute->name }}">
+                        <i class="fas fa-trash me-2"></i>Supprimer
+                    </button>
                 </div>
             </div>
         </div>
@@ -200,4 +203,34 @@
         @endif
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gérer les boutons de suppression d'attributs
+    const deleteButtons = document.querySelectorAll('.delete-attribute-btn');
+
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const formId = this.getAttribute('data-form-id');
+            const attributeName = this.getAttribute('data-attribute-name');
+            const form = document.getElementById(formId);
+
+            if (!form) return;
+
+            customConfirm(
+                `Êtes-vous sûr de vouloir supprimer l'attribut <strong>"${attributeName}"</strong> ? Cette action est irréversible.`,
+                function() {
+                    form.submit();
+                },
+                null,
+                'Suppression d\'attribut',
+                'Oui, supprimer',
+                'Annuler'
+            );
+        });
+    });
+});
+</script>
+@endpush
 @endsection

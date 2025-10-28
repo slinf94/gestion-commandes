@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="card shadow-sm">
-    <div class="card-header bg-primary text-white">
+    <div class="card-header bg-success text-white">
         <h5 class="mb-0">
             <i class="fas fa-plus-circle me-2"></i>
             Créer une Variante pour : {{ $product->name }}

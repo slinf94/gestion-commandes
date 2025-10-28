@@ -78,10 +78,34 @@ class ProductSimple extends Model
         return $this->hasMany(ProductAttributeValue::class, 'product_id');
     }
 
-    // Méthode simplifiée pour les attributs de variantes
+    /**
+     * Check if product has variants.
+     */
+    public function hasVariants()
+    {
+        return $this->variants()->count() > 0;
+    }
+
+    /**
+     * Get available variants for this product.
+     */
+    public function getAvailableVariants()
+    {
+        return $this->variants()->where('is_active', true)->get();
+    }
+
+    // Méthode pour obtenir les attributs de variantes
     public function getVariantAttributes()
     {
-        return collect(); // Retourne une collection vide pour l'instant
+        if (!$this->productType) {
+            return collect();
+        }
+
+        // Récupérer les attributs du type de produit qui sont marqués comme variants
+        return $this->productType->attributes()
+            ->wherePivot('is_variant', true)
+            ->orderByPivot('sort_order')
+            ->get();
     }
 
     // Accessor pour les images

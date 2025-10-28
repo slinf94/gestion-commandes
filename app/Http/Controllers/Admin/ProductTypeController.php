@@ -59,7 +59,7 @@ class ProductTypeController extends Controller
         }
 
         // Pagination
-        $perPage = $request->get('per_page', 15);
+        $perPage = $request->get('per_page', 10);
         $productTypes = $query->paginate($perPage)->appends($request->query());
 
         // Données supplémentaires

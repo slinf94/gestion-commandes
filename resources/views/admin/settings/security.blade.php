@@ -144,7 +144,7 @@
                         </a>
 
                         <button type="button" class="btn btn-danger"
-                                onclick="if(confirm('Êtes-vous sûr de vouloir fermer toutes les sessions ?')) { alert('Fonctionnalité à venir'); }">
+                                onclick="customConfirm('Êtes-vous sûr de vouloir fermer toutes les sessions ? Cette action déconnectera tous les utilisateurs de leurs comptes.', function() { alert('Fonctionnalité à venir'); }, null, 'Fermeture de session', 'Confirmer', 'Annuler')">
                             <i class="fas fa-sign-out-alt me-2"></i>
                             Fermer Toutes les Sessions
                         </button>
@@ -182,6 +182,7 @@
     </div>
 </div>
 @endsection
+
 
 
 

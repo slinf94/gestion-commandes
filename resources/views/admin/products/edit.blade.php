@@ -3,19 +3,30 @@
 @section('title', 'Modifier le Produit')
 
 @section('content')
+<!-- Header moderne avec gradient vert -->
+<div class="card shadow-lg border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
+    <div class="card-header text-white" style="background: linear-gradient(135deg, #38B04A, #4CAF50); padding: 20px;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-1" style="font-weight: 600; font-size: 1.5rem;">
+                    <i class="fas fa-edit me-2"></i>Modifier: {{ $product->name }}
+                </h3>
+                <small class="opacity-75">Mettez à jour les informations du produit</small>
+            </div>
+            <div>
+                <a href="{{ route('admin.products.index') }}" class="btn btn-outline-light" style="border-radius: 8px;">
+                    <i class="fas fa-arrow-left me-2"></i>Retour
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Modifier le Produit: {{ $product->name }}</h3>
-                    <div class="card-tools">
-                        <a href="{{ route('admin.products.index') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Retour à la liste
-                        </a>
-                    </div>
-                </div>
-                <div class="card-body">
+            <div class="card shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
+                <div class="card-body" style="padding: 30px;">
                     <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
@@ -209,12 +220,15 @@
                                                     </div>
 
                                                     <div class="position-absolute bottom-0 end-0 p-1">
-                                                        <form method="POST" action="{{ route('admin.products.delete-image', [$product->id, $image->id]) }}" class="d-inline">
+                                                        <form method="POST" action="{{ route('admin.products.delete-image', [$product->id, $image->id]) }}"
+                                                              class="d-inline delete-image-form"
+                                                              onsubmit="return false;">
                                                             @csrf
                                                             @method('DELETE')
-                                                            <button type="submit" class="btn btn-sm btn-danger"
-                                                                    onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette image ?')"
-                                                                    title="Supprimer l'image">
+                                                            <button type="button" class="btn btn-sm btn-danger delete-image-btn"
+                                                                    data-url="{{ route('admin.products.delete-image', [$product->id, $image->id]) }}"
+                                                                    data-message="Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible."
+                                                                    title="Supprimer l&#39;image">
                                                                 <i class="fas fa-trash"></i>
                                                             </button>
                                                         </form>
@@ -282,14 +296,14 @@
                             </div>
                         </div>
 
-                        <div class="form-group mt-4">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Mettre à jour
-                            </button>
-                            <a href="{{ route('admin.products.index') }}" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> Annuler
-                            </a>
-                        </div>
+                    <div class="d-flex justify-content-between mt-4 pt-3" style="border-top: 1px solid #e9ecef;">
+                        <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary" style="border-radius: 8px;">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        <button type="submit" class="btn btn-success" style="border-radius: 8px; background: linear-gradient(135deg, #38B04A, #4CAF50); border: none; padding: 10px 30px;">
+                            <i class="fas fa-save me-2"></i>Mettre à jour
+                        </button>
+                    </div>
                     </form>
                 </div>
             </div>
@@ -299,4 +313,29 @@
 @endsection
 
 @push('scripts')
+<script>
+    // Gérer les clics sur les boutons de suppression d'images
+    document.addEventListener('DOMContentLoaded', function() {
+        // Boutons de suppression d'images avec data-* attributes
+        const deleteImageButtons = document.querySelectorAll('.delete-image-btn');
+
+        deleteImageButtons.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const url = this.getAttribute('data-url');
+                const message = this.getAttribute('data-message');
+
+                console.log('Clic sur bouton de suppression d\'image');
+                console.log('URL:', url);
+                console.log('Message:', message);
+
+                if (typeof deleteWithConfirmation === 'function') {
+                    deleteWithConfirmation(url, message, 'DELETE');
+                } else {
+                    console.error('deleteWithConfirmation n\'est pas défini');
+                    alert(message || 'Êtes-vous sûr de vouloir supprimer cette image ?');
+                }
+            });
+        });
+    });
+</script>
 @endpush

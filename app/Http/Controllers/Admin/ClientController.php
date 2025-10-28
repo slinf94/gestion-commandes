@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Order;
+use App\Models\Quartier;
 use Illuminate\Http\Request;
 
 class ClientController extends Controller
@@ -28,8 +29,8 @@ class ClientController extends Controller
         }
 
         // Filtre par quartier
-        if ($request->filled('quartier_id')) {
-            $query->where('quartier_id', $request->quartier_id);
+        if ($request->filled('quartier')) {
+            $query->where('quartier', $request->quartier);
         }
 
         // Filtre par date d'inscription
@@ -66,7 +67,10 @@ class ClientController extends Controller
             'new_this_month' => User::clients()->whereMonth('created_at', now()->month)->count(),
         ];
 
-        return view('admin.clients.index', compact('clients', 'stats'));
+        // Charger tous les quartiers pour le filtre (liste statique)
+        $quartiers = Quartier::getQuartiers();
+
+        return view('admin.clients.index', compact('clients', 'stats', 'quartiers'));
     }
 
     /**
@@ -74,15 +78,12 @@ class ClientController extends Controller
      */
     public function show($id)
     {
-        $client = User::clients()
-            ->with(['orders' => function($query) {
-                $query->with(['items.product.productImages'])->latest();
-            }])
-            ->findOrFail($id);
+        $client = User::clients()->findOrFail($id);
+
+        // Charger les commandes avec leurs relations (simplifié pour éviter les boucles infinies)
+        $ordersQuery = $client->orders()->latest();
 
         // Appliquer les filtres si présents
-        $ordersQuery = $client->orders();
-
         if (request('status')) {
             $ordersQuery->where('status', request('status'));
         }
@@ -95,20 +96,25 @@ class ClientController extends Controller
             $ordersQuery->whereDate('created_at', '<=', request('date_to'));
         }
 
+        // Paginer les commandes
         $orders = $ordersQuery->paginate(10);
+
+        // Charger TOUTES les commandes pour les statistiques (sans relations pour éviter les boucles)
+        $allOrdersQuery = $client->orders();
+        $allOrders = $allOrdersQuery->get();
 
         // Calculer les statistiques
         $stats = [
-            'total' => $client->orders->count(),
-            'livrees' => $client->orders->where('status', 'delivered')->count(),
-            'encours' => $client->orders->whereIn('status', ['pending', 'confirmed', 'processing', 'shipped'])->count(),
-            'annulees' => $client->orders->where('status', 'cancelled')->count(),
-            'montant_total' => $client->orders->sum('total_amount'),
-            'montant_moyen' => $client->orders->count() > 0 ? $client->orders->avg('total_amount') : 0,
+            'total' => $allOrders->count(),
+            'livrees' => $allOrders->where('status', 'delivered')->count(),
+            'encours' => $allOrders->whereIn('status', ['pending', 'confirmed', 'processing', 'shipped'])->count(),
+            'annulees' => $allOrders->where('status', 'cancelled')->count(),
+            'montant_total' => $allOrders->sum('total_amount'),
+            'montant_moyen' => $allOrders->count() > 0 ? $allOrders->avg('total_amount') : 0,
         ];
 
         // Dernière commande
-        $derniere_commande = $client->orders->first();
+        $derniere_commande = $allOrders->first();
 
         return view('admin.clients.show', compact('client', 'stats', 'derniere_commande', 'orders'));
     }
