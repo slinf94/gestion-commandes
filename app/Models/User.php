@@ -261,12 +261,38 @@ class User extends Authenticatable implements JWTSubject
     // Helper methods
     public function isAdmin()
     {
+        // Vérifier via les rôles attachés (nouveau système)
+        if ($this->hasRole('super-admin') || $this->hasRole('admin')) {
+            return true;
+        }
+        // Fallback sur l'ancien système (champ role)
         return $this->role === 'admin';
     }
 
     public function isGestionnaire()
     {
+        // Vérifier via les rôles attachés (nouveau système)
+        if ($this->hasRole('gestionnaire')) {
+            return true;
+        }
+        // Fallback sur l'ancien système (champ role)
         return $this->role === 'gestionnaire';
+    }
+
+    /**
+     * Vérifier si l'utilisateur est Super Admin
+     */
+    public function isSuperAdmin()
+    {
+        return $this->hasRole('super-admin');
+    }
+
+    /**
+     * Vérifier si l'utilisateur est Vendeur
+     */
+    public function isVendeur()
+    {
+        return $this->hasRole('vendeur');
     }
 
     public function isClient()

@@ -71,8 +71,23 @@ class DashboardController extends Controller
         if (auth()->attempt($credentials)) {
             $user = auth()->user();
 
-            // Vérifier si l'utilisateur est admin ou gestionnaire
-            if ($user->isAdmin() || $user->isGestionnaire()) {
+            // Vérifier si l'utilisateur a un rôle admin (super-admin, admin, gestionnaire, ou vendeur)
+            $allowedRoles = ['super-admin', 'admin', 'gestionnaire', 'vendeur'];
+            $hasAllowedRole = false;
+
+            foreach ($allowedRoles as $role) {
+                if ($user->hasRole($role)) {
+                    $hasAllowedRole = true;
+                    break;
+                }
+            }
+
+            // Fallback: vérifier le champ role (ancien système)
+            if (!$hasAllowedRole && in_array($user->role, ['admin', 'gestionnaire'])) {
+                $hasAllowedRole = true;
+            }
+
+            if ($hasAllowedRole) {
                 $request->session()->regenerate();
                 return redirect()->intended('/admin');
             } else {
@@ -90,9 +105,26 @@ class DashboardController extends Controller
 
     public function logout(Request $request)
     {
+        // Logger l'activité de déconnexion si possible
+        try {
+            if (auth()->check()) {
+                activity()
+                    ->causedBy(auth()->user())
+                    ->log('Déconnexion');
+            }
+        } catch (\Exception $e) {
+            // Ignorer les erreurs de logging
+        }
+
+        // Déconnexion propre
         auth()->logout();
+
+        // Invalider la session
         $request->session()->invalidate();
+
+        // Régénérer le token CSRF
         $request->session()->regenerateToken();
-        return redirect('/admin/login');
+
+        return redirect('/admin/login')->with('success', 'Vous avez été déconnecté avec succès.');
     }
 }
