@@ -173,7 +173,10 @@
                                     <th width="15%">
                                         <i class="fas fa-calendar me-1"></i>Date
                                     </th>
-                                    <th width="15%">
+                                    <th width="18%">
+                                        <i class="fas fa-bolt me-1"></i>Actions Statut
+                                    </th>
+                                    <th width="12%">
                                         <i class="fas fa-tools me-1"></i>Actions
                                     </th>
                                 </tr>
@@ -223,6 +226,46 @@
                                     </td>
                                     <td>
                                         <small>{{ $order->created_at ? $order->created_at->format('d/m/Y H:i') : 'N/A' }}</small>
+                                    </td>
+                                    <td>
+                                        @php
+                                            $status = is_string($order->status) ? $order->status : ($order->status->value ?? 'pending');
+                                            $isPending = $status === 'pending';
+                                            $isProcessing = $status === 'processing';
+                                            $isTerminal = in_array($status, ['cancelled','delivered']);
+                                        @endphp
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @if($isPending)
+                                                <button type="button"
+                                                        class="btn btn-sm btn-success order-quick-action"
+                                                        data-order-id="{{ $order->id }}"
+                                                        data-new-status="processing"
+                                                        title="Valider la commande">
+                                                    <i class="fas fa-check me-1"></i>Valider
+                                                </button>
+                                            @endif
+                                            @if($isProcessing)
+                                                <button type="button"
+                                                        class="btn btn-sm btn-primary order-quick-action"
+                                                        data-order-id="{{ $order->id }}"
+                                                        data-new-status="shipped"
+                                                        title="Finaliser la commande">
+                                                    <i class="fas fa-check-double me-1"></i>Finaliser
+                                                </button>
+                                            @endif
+                                            @if(!$isTerminal)
+                                                <button type="button"
+                                                        class="btn btn-sm btn-danger order-quick-cancel"
+                                                        data-order-id="{{ $order->id }}"
+                                                        data-new-status="cancelled"
+                                                        title="Annuler la commande">
+                                                    <i class="fas fa-times me-1"></i>Annuler
+                                                </button>
+                                            @endif
+                                            @if($isTerminal)
+                                                <span class="badge bg-secondary">Aucune action</span>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
@@ -388,6 +431,76 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Suppression de commande',
                 'Oui, supprimer',
                 'Annuler'
+            );
+        });
+    });
+
+    // Actions rapides statut
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    function postStatus(orderId, newStatus, comment = '') {
+        const url = `{{ url('admin/orders') }}/${orderId}/status`;
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ status: newStatus, comment })
+        }).then(async (res) => {
+            const isJson = (res.headers.get('content-type') || '').includes('application/json');
+            const data = isJson ? await res.json() : {};
+            if (!res.ok || (data && data.success === false)) {
+                const msg = (data && (data.message || data.error)) || `Erreur ${res.status}`;
+                throw new Error(msg);
+            }
+            return data;
+        });
+    }
+
+    document.querySelectorAll('.order-quick-action').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-order-id');
+            const newStatus = this.getAttribute('data-new-status');
+            this.disabled = true;
+            postStatus(orderId, newStatus)
+                .then(() => {
+                    showAlert('Statut mis à jour avec succès', 'success', 'Succès');
+                    setTimeout(() => window.location.reload(), 600);
+                })
+                .catch(err => {
+                    showAlert(err.message || 'Erreur lors de la mise à jour', 'error', 'Erreur');
+                })
+                .finally(() => { this.disabled = false; });
+        });
+    });
+
+    document.querySelectorAll('.order-quick-cancel').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-order-id');
+            const newStatus = this.getAttribute('data-new-status');
+            const that = this;
+            customConfirm(
+                `Voulez-vous vraiment annuler la commande #${orderId} ?<br><small>Vous pouvez saisir une raison d'annulation.</small>`,
+                function onConfirm() {
+                    // Demander une raison (prompt simple)
+                    const reason = prompt('Raison de l\'annulation (optionnel) :', 'Annulation par l\'administrateur');
+                    that.disabled = true;
+                    postStatus(orderId, newStatus, reason || '')
+                        .then(() => {
+                            showAlert('Commande annulée avec succès', 'success', 'Succès');
+                            setTimeout(() => window.location.reload(), 600);
+                        })
+                        .catch(err => {
+                            showAlert(err.message || 'Erreur lors de l\'annulation', 'error', 'Erreur');
+                        })
+                        .finally(() => { that.disabled = false; });
+                },
+                null,
+                'Confirmation d\'annulation',
+                'Oui, annuler',
+                'Non'
             );
         });
     });

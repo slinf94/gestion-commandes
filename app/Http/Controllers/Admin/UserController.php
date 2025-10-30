@@ -11,8 +11,28 @@ use App\Notifications\AccountActivatedNotification;
 
 class UserController extends Controller
 {
+    private function enforceRoles(array $allowedRoles): void
+    {
+        $user = auth()->user();
+        if (!$user) {
+            abort(403);
+        }
+        $ok = false;
+        // Nouveau système (table roles)
+        foreach ($allowedRoles as $r) {
+            if ($user->hasRole($r)) { $ok = true; break; }
+        }
+        // Ancien champ 'role' (fallback), comparer en minuscules
+        if (!$ok && isset($user->role)) {
+            $ok = in_array(strtolower($user->role), array_map('strtolower', $allowedRoles), true);
+        }
+        if (!$ok) {
+            abort(403, 'Accès non autorisé');
+        }
+    }
     public function index(Request $request)
     {
+        $this->enforceRoles(['super-admin', 'admin']);
         $query = User::withTrashed();
 
         // Filtrage par quartier
@@ -61,6 +81,7 @@ class UserController extends Controller
 
     public function show($user)
     {
+        $this->enforceRoles(['super-admin', 'admin']);
         // Récupérer l'utilisateur même s'il est soft deleted
         $user = User::withTrashed()->findOrFail($user);
         $user->load(['orders']);
@@ -69,6 +90,7 @@ class UserController extends Controller
 
     public function create()
     {
+        $this->enforceRoles(['super-admin', 'admin']);
         // Récupérer la liste des quartiers pour le formulaire
         $quartiers = \App\Models\Quartier::getQuartiers();
 
@@ -77,6 +99,7 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $this->enforceRoles(['super-admin', 'admin']);
         $request->validate([
             'nom' => 'required|string|max:100',
             'prenom' => 'required|string|max:100',
@@ -85,7 +108,7 @@ class UserController extends Controller
             'numero_whatsapp' => 'nullable|string|max:20',
             'quartier' => 'nullable|string|max:100',
             'localisation' => 'nullable|string|max:255',
-            'role' => 'required|in:client,admin,gestionnaire',
+            'role' => 'required|in:client,admin,gestionnaire,vendeur',
             'status' => 'required|in:pending,active,suspended,inactive',
             'password' => 'required|string|min:6',
         ], [
@@ -145,6 +168,7 @@ class UserController extends Controller
 
     public function edit($user)
     {
+        $this->enforceRoles(['super-admin', 'admin']);
         // Récupérer l'utilisateur même s'il est soft deleted
         $user = User::withTrashed()->findOrFail($user);
 
@@ -156,6 +180,7 @@ class UserController extends Controller
 
     public function update(Request $request, $user)
     {
+        $this->enforceRoles(['super-admin', 'admin']);
         // Récupérer l'utilisateur même s'il est soft deleted
         $user = User::withTrashed()->findOrFail($user);
 
@@ -167,7 +192,7 @@ class UserController extends Controller
             'numero_whatsapp' => 'nullable|string|max:20',
             'quartier' => 'nullable|string|max:100',
             'localisation' => 'nullable|string|max:255',
-            'role' => 'required|in:client,admin,gestionnaire',
+            'role' => 'required|in:client,admin,gestionnaire,vendeur',
             'status' => 'required|in:pending,active,suspended,inactive',
         ], [
             'nom.required' => 'Le nom est obligatoire.',
@@ -240,6 +265,7 @@ class UserController extends Controller
      */
     public function quickActivate(Request $request, $user)
     {
+        $this->enforceRoles(['super-admin', 'admin']);
         // Récupérer l'utilisateur même s'il est soft deleted
         $user = User::withTrashed()->findOrFail($user);
 
@@ -278,6 +304,7 @@ class UserController extends Controller
      */
     public function toggleStatus(Request $request, User $user)
     {
+        $this->enforceRoles(['super-admin', 'admin']);
         $oldStatus = $user->status;
 
         // Ne pas permettre de basculer le statut des comptes admin
@@ -349,8 +376,82 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Définir rapidement un statut précis (active/inactive/suspended) via AJAX
+     */
+    public function quickSetStatus(Request $request, User $user)
+    {
+        $this->enforceRoles(['super-admin', 'admin']);
+        $request->validate([
+            'status' => 'required|in:active,inactive,suspended'
+        ]);
+
+        if ($user->role === 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible de modifier le statut d\'un compte administrateur'
+            ], 403);
+        }
+
+        $oldStatus = $user->status;
+        $newStatus = $request->status;
+
+        // Un compte en attente ne peut être modifié qu'en "active"
+        if ($oldStatus === 'pending' && $newStatus !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Un compte en attente ne peut être changé qu\'en statut Actif'
+            ], 422);
+        }
+
+        try {
+            $user->update(['status' => $newStatus]);
+
+            if ($newStatus === 'active' && $oldStatus !== 'active') {
+                try {
+                    $user->notify(new AccountActivatedNotification($user));
+                } catch (\Exception $e) {
+                    \Log::warning('Notification activation échouée (non bloquant): ' . $e->getMessage());
+                }
+            }
+
+            $statusTranslations = [
+                'active' => 'Actif',
+                'inactive' => 'Inactif',
+                'pending' => 'En attente',
+                'suspended' => 'Suspendu'
+            ];
+
+            $statusColors = [
+                'active' => 'success',
+                'inactive' => 'secondary',
+                'pending' => 'warning',
+                'suspended' => 'danger'
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Statut mis à jour avec succès',
+                'data' => [
+                    'new_status' => $newStatus,
+                    'status_label' => $statusTranslations[$newStatus] ?? $newStatus,
+                    'status_color' => $statusColors[$newStatus] ?? 'secondary',
+                    'user' => $user->fresh()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur quickSetStatus: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la mise à jour du statut'
+            ], 500);
+        }
+    }
+
     public function destroy($user)
     {
+        $this->enforceRoles(['super-admin', 'admin']);
         $user = User::withTrashed()->findOrFail($user);
         $user->delete();
         return redirect()->route('admin.users.index')
@@ -359,6 +460,7 @@ class UserController extends Controller
 
     public function restore($id)
     {
+        $this->enforceRoles(['super-admin', 'admin']);
         $user = User::withTrashed()->findOrFail($id);
         $user->restore();
         return redirect()->route('admin.users.index')
@@ -367,6 +469,7 @@ class UserController extends Controller
 
     public function byQuartier()
     {
+        $this->enforceRoles(['super-admin', 'admin']);
         // Statistiques générales
         $totalClients = User::where('role', 'client')->count();
         $activeClients = User::where('role', 'client')->where('status', 'active')->count();
@@ -410,6 +513,7 @@ class UserController extends Controller
      */
     public function exportCsv(Request $request)
     {
+        $this->enforceRoles(['super-admin', 'admin']);
         $query = User::where('role', 'client');
 
         // Appliquer les mêmes filtres que dans index()
@@ -434,7 +538,7 @@ class UserController extends Controller
             });
         }
 
-        $clients = $query->orderBy('created_at', 'desc')->get();
+        $clients = $query->orderBy('nom')->orderBy('prenom')->orderBy('created_at', 'desc')->get();
 
         $filename = 'clients_' . date('Y-m-d_H-i-s') . '.csv';
 
@@ -445,6 +549,8 @@ class UserController extends Controller
 
         $callback = function() use ($clients) {
             $file = fopen('php://output', 'w');
+            // BOM UTF-8 pour Excel
+            fwrite($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
             // En-têtes CSV avec organisation améliorée
             fputcsv($file, [
@@ -477,11 +583,11 @@ class UserController extends Controller
                     $client->numero_whatsapp ?? 'Non renseigné',
                     $client->quartier ?? 'Non défini',
                     $client->localisation ?? 'Non renseignée',
-                    ucfirst($client->status),
-                    $client->created_at ? $client->created_at->format('d/m/Y H:i') : '',
-                    $client->updated_at ? $client->updated_at->format('d/m/Y H:i') : '',
+                    [ 'active' => 'Actif', 'inactive' => 'Inactif', 'pending' => 'En attente', 'suspended' => 'Suspendu' ][$client->status] ?? $client->status,
+                    ($client->created_at ? $client->created_at->format('Y-m-d H:i:s') : ''),
+                    ($client->updated_at ? $client->updated_at->format('Y-m-d H:i:s') : ''),
                     $totalOrders,
-                    number_format($totalSpent, 0, ',', ' ')
+                    number_format((float)$totalSpent, 2, '.', '')
                 ]);
             }
 
@@ -496,6 +602,7 @@ class UserController extends Controller
      */
     public function exportByQuartierCsv()
     {
+        $this->enforceRoles(['super-admin', 'admin']);
         $quartiers = \App\Models\Quartier::getQuartiers();
         $filename = 'clients_par_quartier_' . date('Y-m-d_H-i-s') . '.csv';
 
@@ -581,6 +688,7 @@ class UserController extends Controller
      */
     public function exportQuartierClientsCsv($quartier)
     {
+        $this->enforceRoles(['super-admin', 'admin']);
         $clients = User::where('role', 'client')
             ->where('quartier', $quartier)
             ->orderBy('created_at', 'desc')

@@ -57,6 +57,8 @@
                                     @enderror
                                 </div>
 
+                                {{-- Champ Icône masqué sur demande --}}
+                                {{--
                                 <div class="mb-3">
                                     <label for="icon" class="form-label">Icône (Font Awesome class)</label>
                                     <input type="text" class="form-control @error('icon') is-invalid @enderror"
@@ -66,6 +68,7 @@
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
+                                --}}
 
                                 <div class="mb-3">
                                     <label for="color" class="form-label">Couleur (Hex Code)</label>
@@ -103,6 +106,8 @@
                                     @enderror
                                 </div>
 
+                                {{-- Champ Meta Data masqué sur demande --}}
+                                {{--
                                 <div class="mb-3">
                                     <label for="meta_data" class="form-label">Meta Data (JSON)</label>
                                     <textarea class="form-control @error('meta_data') is-invalid @enderror"
@@ -112,6 +117,7 @@
                                     @enderror
                                     <small class="form-text text-muted">Format JSON valide, ex: `{"keywords": ["tech", "mobile"]}`</small>
                                 </div>
+                                --}}
                             </div>
 
                             <div class="col-md-4">

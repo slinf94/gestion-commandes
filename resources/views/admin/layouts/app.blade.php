@@ -248,19 +248,37 @@
                 Allo Mobile
             </div>
 
+            @php
+                use App\Helpers\AdminMenuHelper;
+                $u = auth()->user();
+                $canManageUsers = AdminMenuHelper::canSee($u, 'super-admin', 'admin');
+                $canManageProducts = AdminMenuHelper::canSee($u, 'super-admin', 'admin', 'gestionnaire', 'vendeur');
+                $canManageCategories = AdminMenuHelper::canSee($u, 'super-admin', 'admin', 'gestionnaire');
+                $canManageClients = AdminMenuHelper::canSee($u, 'super-admin', 'admin', 'gestionnaire');
+                $canViewActivityLogs = AdminMenuHelper::canSee($u, 'super-admin', 'admin');
+                $canManageSettings = AdminMenuHelper::canSee($u, 'super-admin');
+            @endphp
             <nav class="nav flex-column">
                 <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                     <i class="fas fa-tachometer-alt"></i>
                     <span>Tableau de Bord</span>
                 </a>
+
+                @if($canManageUsers)
                 <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
                     <i class="fas fa-users"></i>
                     <span>Utilisateurs</span>
                 </a>
+                @endif
+
+                @if($canManageProducts)
                 <a href="{{ route('admin.products.index') }}" class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}">
                     <i class="fas fa-box"></i>
                     <span>Produits</span>
                 </a>
+                @endif
+
+                @if($canManageCategories)
                 <a href="{{ route('admin.categories.index') }}" class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
                     <i class="fas fa-tags"></i>
                     <span>Catégories</span>
@@ -273,18 +291,33 @@
                     <i class="fas fa-layer-group"></i>
                     <span>Types de Produits</span>
                 </a>
+                @endif
+
                 <a href="{{ route('admin.orders.index') }}" class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
                     <i class="fas fa-shopping-bag"></i>
                     <span>Commandes</span>
                 </a>
+
+                @if($canManageClients)
                 <a href="{{ route('admin.clients.index') }}" class="nav-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}">
                     <i class="fas fa-user-friends"></i>
                     <span>Clients</span>
                 </a>
+                @endif
+
+                @if($canViewActivityLogs)
                 <a href="{{ route('admin.activity-logs.index') }}" class="nav-link {{ request()->routeIs('admin.activity-logs.*') ? 'active' : '' }}">
                     <i class="fas fa-history"></i>
                     <span>Journal des Activités</span>
                 </a>
+                @endif
+
+                @if($canManageSettings)
+                <a href="{{ route('admin.settings.index') }}" class="nav-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+                    <i class="fas fa-cog"></i>
+                    <span>Paramètres</span>
+                </a>
+                @endif
             </nav>
         </div>
 

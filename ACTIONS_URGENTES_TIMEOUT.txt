@@ -1,0 +1,102 @@
+═══════════════════════════════════════════════════════════════
+   🚨 ACTIONS URGENTES POUR RÉSOUDRE LE TIMEOUT
+═══════════════════════════════════════════════════════════════
+
+✅ PROBLÈME IDENTIFIÉ :
+   - Serveur écoute sur 127.0.0.1 (local uniquement)
+   - IP a changé : maintenant 10.152.173.8
+   - Config mobile mise à jour avec nouvelle IP
+
+═══════════════════════════════════════════════════════════════
+   ÉTAPE 1 : ARRÊTER L'ANCIEN SERVEUR
+═══════════════════════════════════════════════════════════════
+
+Dans le terminal où le serveur tourne, appuyez sur :
+   Ctrl + C
+
+═══════════════════════════════════════════════════════════════
+   ÉTAPE 2 : REDÉMARRER LE SERVEUR CORRECTEMENT
+═══════════════════════════════════════════════════════════════
+
+Option A - Script automatique (RECOMMANDÉ) :
+   cd gestion-commandes
+   REDEMARRER_SERVEUR.bat
+
+Option B - Commande manuelle :
+   php artisan serve --host=0.0.0.0 --port=8000
+
+⚠️ IMPORTANT : --host=0.0.0.0 est OBLIGATOIRE !
+
+═══════════════════════════════════════════════════════════════
+   ÉTAPE 3 : VÉRIFIER QUE LE SERVEUR ÉCOUTE CORRECTEMENT
+═══════════════════════════════════════════════════════════════
+
+Dans un nouveau terminal :
+   netstat -an | findstr :8000
+
+RÉSULTAT ATTENDU :
+   TCP    0.0.0.0:8000           0.0.0.0:0              LISTENING
+
+❌ Si vous voyez 127.0.0.1:8000, le serveur n'est PAS accessible !
+
+═══════════════════════════════════════════════════════════════
+   ÉTAPE 4 : TESTER DEPUIS LE NAVIGATEUR
+═══════════════════════════════════════════════════════════════
+
+Ouvrez dans votre navigateur :
+   http://10.152.173.8:8000/api/v1/products
+
+Si vous voyez une réponse JSON, le serveur fonctionne ✅
+
+═══════════════════════════════════════════════════════════════
+   ÉTAPE 5 : REDÉMARRER L'APPLICATION FLUTTER
+═══════════════════════════════════════════════════════════════
+
+1. Arrêtez complètement l'application Flutter
+2. Dans le terminal Flutter :
+   cd gestion_commandes_mobile
+   flutter clean
+   flutter pub get
+   flutter run
+
+⚠️ Important : Il faut un redémarrage complet, pas juste hot reload !
+
+═══════════════════════════════════════════════════════════════
+   ÉTAPE 6 : TESTER LA CONNEXION
+═══════════════════════════════════════════════════════════════
+
+Dans l'application mobile :
+   Email : dra@test.com
+   Mot de passe : password123
+
+═══════════════════════════════════════════════════════════════
+   RÉSUMÉ DES FICHIERS MIS À JOUR
+═══════════════════════════════════════════════════════════════
+
+✅ app_constants.dart → IP : 10.152.173.8
+✅ app_config.dart → IP : 10.152.173.8
+✅ start_server_mobile.bat → IP : 10.152.173.8
+✅ REDEMARRER_SERVEUR.bat → Script créé
+✅ SOLUTION_TIMEOUT_DEFINITIVE.md → Documentation créée
+
+═══════════════════════════════════════════════════════════════
+   SI LE TIMEOUT PERSISTE
+═══════════════════════════════════════════════════════════════
+
+1. Vérifier le Firewall Windows :
+   - Autoriser PHP dans le pare-feu
+   - OU créer une règle pour le port 8000
+
+2. Vérifier que PC et téléphone sont sur le MÊME WiFi
+
+3. Vérifier l'IP actuelle :
+   ipconfig | findstr /i "IPv4"
+
+4. Vérifier que le serveur écoute bien :
+   netstat -an | findstr :8000
+   (Doit afficher 0.0.0.0:8000)
+
+═══════════════════════════════════════════════════════════════
+
+Une fois ces étapes effectuées, le timeout devrait être résolu ! ✅
+

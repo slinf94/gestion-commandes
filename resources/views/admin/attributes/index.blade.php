@@ -152,9 +152,11 @@
                                     <th width="18%">
                                         <i class="fas fa-cogs me-1"></i>Propriétés
                                     </th>
+                                    {{-- Statut masqué sur demande
                                     <th width="10%">
                                         <i class="fas fa-toggle-on me-1"></i>Statut
                                     </th>
+                                    --}}
                                     <th width="8%">
                                         <i class="fas fa-sort-numeric-up me-1"></i>Ordre
                                         <a href="{{ request()->fullUrlWithQuery(['sort' => 'sort_order', 'order' => request('order') == 'asc' ? 'desc' : 'asc']) }}" class="text-decoration-none">
@@ -240,6 +242,7 @@
                                             @endif
                                         </div>
                                     </td>
+                                    {{-- Colonne Statut masquée
                                     <td>
                                         <form action="{{ route('admin.attributes.toggle-status', $attribute) }}" method="POST" class="d-inline">
                                             @csrf
@@ -250,6 +253,7 @@
                                             </button>
                                         </form>
                                     </td>
+                                    --}}
                                     <td>
                                         <span class="badge bg-light text-dark">{{ $attribute->sort_order }}</span>
                                     </td>
@@ -279,7 +283,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="8" class="text-center py-5">
+                                    <td colspan="7" class="text-center py-5">
                                         <div class="empty-state">
                                             <i class="fas fa-tags fa-3x text-muted mb-3"></i>
                                             <h5 class="text-muted">Aucun attribut trouvé</h5>

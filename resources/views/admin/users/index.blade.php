@@ -1,5 +1,9 @@
 @extends('admin.layouts.app')
 
+@php
+    use App\Helpers\AdminMenuHelper;
+@endphp
+
 @section('title', 'Gestion des Utilisateurs - Allo Mobile Admin')
 @section('page-title', 'Gestion des Utilisateurs')
 
@@ -168,6 +172,7 @@
                                 <option value="client" {{ request('role') == 'client' ? 'selected' : '' }}>Client</option>
                                 <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                                 <option value="gestionnaire" {{ request('role') == 'gestionnaire' ? 'selected' : '' }}>Gestionnaire</option>
+                                <option value="vendeur" {{ request('role') == 'vendeur' ? 'selected' : '' }}>Vendeur</option>
                             </select>
                         </div>
                     </div>
@@ -224,6 +229,7 @@
                                     <th>Quartier</th>
                                     <th>Statut</th>
                                     <th>Date d'inscription</th>
+                                    <th>Actions Statut</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -238,8 +244,32 @@
                                             </div>
                                             <div>
                                                 <strong>{{ $user->nom }} {{ $user->prenom }}</strong>
-                                                @if($user->role == 'admin')
-                                                    <span class="badge bg-danger ms-1">Admin</span>
+                                                @php
+                                                    // Vérifier les rôles RBAC en priorité
+                                                    $userRolesRbac = $user->roles->pluck('slug')->toArray();
+
+                                                    // Déterminer le badge à afficher selon la priorité
+                                                    $roleToShow = null;
+                                                    if (in_array('super-admin', $userRolesRbac)) {
+                                                        $roleToShow = ['text' => 'Super Admin', 'color' => 'danger'];
+                                                    } elseif (in_array('admin', $userRolesRbac)) {
+                                                        $roleToShow = ['text' => 'Admin', 'color' => 'danger'];
+                                                    } elseif (in_array('gestionnaire', $userRolesRbac)) {
+                                                        $roleToShow = ['text' => 'Gestionnaire', 'color' => 'info'];
+                                                    } elseif (in_array('vendeur', $userRolesRbac)) {
+                                                        $roleToShow = ['text' => 'Vendeur', 'color' => 'warning'];
+                                                    } elseif ($user->role == 'admin' || $user->role == 'gestionnaire' || $user->role == 'vendeur') {
+                                                        // Fallback pour l'ancien système (role legacy)
+                                                        $roleMapping = [
+                                                            'admin' => ['text' => 'Admin', 'color' => 'danger'],
+                                                            'gestionnaire' => ['text' => 'Gestionnaire', 'color' => 'info'],
+                                                            'vendeur' => ['text' => 'Vendeur', 'color' => 'warning']
+                                                        ];
+                                                        $roleToShow = $roleMapping[$user->role] ?? null;
+                                                    }
+                                                @endphp
+                                                @if($roleToShow)
+                                                    <span class="badge bg-{{ $roleToShow['color'] }} ms-1">{{ $roleToShow['text'] }}</span>
                                                 @endif
                                             </div>
                                         </div>
@@ -271,6 +301,41 @@
                                         </span>
                                     </td>
                                     <td>{{ $user->created_at->format('d/m/Y') }}</td>
+                                    <td>
+                                        @php
+                                            $isAdmin = $user->role === 'admin';
+                                        @endphp
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @if(!$isAdmin && $user->status === 'pending')
+                                                <button type="button" class="btn btn-sm btn-success user-set-status"
+                                                        data-user-id="{{ $user->id }}" data-status="active">
+                                                    <i class="fas fa-check me-1"></i>Activer
+                                                </button>
+                                            @endif
+                                            @if(!$isAdmin && $user->status === 'active')
+                                                <button type="button" class="btn btn-sm btn-outline-secondary user-set-status"
+                                                        data-user-id="{{ $user->id }}" data-status="inactive">
+                                                    <i class="fas fa-user-slash me-1"></i>Désactiver
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger user-set-status"
+                                                        data-user-id="{{ $user->id }}" data-status="suspended">
+                                                    <i class="fas fa-ban me-1"></i>Suspendre
+                                                </button>
+                                            @endif
+                                            @if(!$isAdmin && $user->status === 'inactive')
+                                                <button type="button" class="btn btn-sm btn-success user-set-status"
+                                                        data-user-id="{{ $user->id }}" data-status="active">
+                                                    <i class="fas fa-user-check me-1"></i>Réactiver
+                                                </button>
+                                            @endif
+                                            @if(!$isAdmin && $user->status === 'suspended')
+                                                <button type="button" class="btn btn-sm btn-success user-set-status"
+                                                        data-user-id="{{ $user->id }}" data-status="active">
+                                                    <i class="fas fa-user-check me-1"></i>Réactiver
+                                                </button>
+                                            @endif
+                                        </div>
+                                    </td>
                                     <td>
                                         <div class="btn-group" role="group">
                                             <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-outline-primary" title="Voir">
@@ -653,6 +718,41 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialiser les boutons de suppression
     setupDeleteButtons();
     console.log('✅ Initialisation terminée');
+
+    // Actions statut utilisateur
+    document.querySelectorAll('.user-set-status').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const newStatus = this.getAttribute('data-status');
+            const requiresConfirm = newStatus !== 'active';
+            const action = newStatus === 'inactive' ? 'désactiver' : (newStatus === 'suspended' ? 'suspendre' : 'activer');
+
+            const doRequest = () => {
+                fetch(`/admin/users/${userId}/set-status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) throw new Error(data.message || 'Erreur lors de la mise à jour');
+                    showAlert(data.message || 'Statut mis à jour', 'success');
+                    setTimeout(() => window.location.reload(), 600);
+                })
+                .catch(err => showAlert(err.message, 'error'));
+            };
+
+            if (requiresConfirm) {
+                customConfirm(`Voulez-vous vraiment ${action} cet utilisateur ?`, () => doRequest(), null, 'Changement de statut');
+            } else {
+                doRequest();
+            }
+        });
+    });
 });
 
 // Code AJAX pour pagination (à garder en place)

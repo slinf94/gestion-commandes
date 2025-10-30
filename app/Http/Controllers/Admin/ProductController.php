@@ -231,6 +231,8 @@ class ProductController extends Controller
             'product_type_id' => 'nullable|exists:product_types,id',
             'status' => 'required|in:active,inactive,draft',
             'sku' => 'nullable|string|max:255|unique:products,sku',
+            'images' => 'nullable',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:4096',
         ]);
 
         try {
@@ -248,6 +250,11 @@ class ProductController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            // Upload des images si fournies
+            if ($request->hasFile('images')) {
+                $this->handleImageUpload($request->file('images'), $productId);
+            }
 
             DB::commit();
 
@@ -487,6 +494,73 @@ class ProductController extends Controller
             \Log::error('Erreur lors de la suppression du produit: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Erreur lors de la suppression du produit.');
+        }
+    }
+
+    /**
+     * Activer/Désactiver rapidement un produit (AJAX)
+     */
+    public function toggleStatus(Request $request, $id)
+    {
+        try {
+            $product = DB::table('products')
+                ->select('id', 'status')
+                ->where('id', $id)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Produit non trouvé'
+                ], 404);
+            }
+
+            // Ne basculer qu'entre active/inactive
+            if ($product->status === 'draft') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le produit est en brouillon. Veuillez le compléter avant activation.'
+                ], 422);
+            }
+
+            $newStatus = $product->status === 'active' ? 'inactive' : 'active';
+
+            $updated = DB::table('products')
+                ->where('id', $id)
+                ->update([
+                    'status' => $newStatus,
+                    'updated_at' => now()
+                ]);
+
+            if (!$updated) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La mise à jour a échoué'
+                ], 500);
+            }
+
+            $label = $newStatus === 'active' ? 'Actif' : 'Inactif';
+            $color = $newStatus === 'active' ? 'success' : 'secondary';
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Statut du produit mis à jour',
+                'data' => [
+                    'status' => $newStatus,
+                    'label' => $label,
+                    'color' => $color,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur toggleStatus produit: ' . $e->getMessage(), [
+                'product_id' => $id
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la mise à jour du statut'
+            ], 500);
         }
     }
 }

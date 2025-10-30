@@ -55,12 +55,15 @@ class ProductImportExportController extends Controller
             $query->where('is_featured', $request->is_featured);
         }
 
-        $products = $query->get();
+        // Ordonner pour un export lisible
+        $products = $query->orderBy('name')->orderBy('id')->get();
 
         // Créer le fichier CSV
         $filename = 'products_export_' . date('Y-m-d_H-i-s') . '.csv';
         $tempFile = tempnam(sys_get_temp_dir(), 'csv_export');
         $file = fopen($tempFile, 'w');
+        // Ajouter BOM UTF-8 pour Excel
+        fwrite($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
         // En-têtes CSV
         fputcsv($file, [
@@ -71,16 +74,27 @@ class ProductImportExportController extends Controller
             'Date de création', 'Date de mise à jour'
         ]);
 
-        // Données des produits
+        // Données des produits (nettoyées et ordonnées)
         foreach ($products as $product) {
+            $statusLabels = [
+                'active' => 'Actif',
+                'inactive' => 'Inactif',
+                'draft' => 'Brouillon',
+            ];
+            $price = is_numeric($product->price) ? number_format((float)$product->price, 2, '.', '') : '';
+            $costPrice = is_numeric($product->cost_price) ? number_format((float)$product->cost_price, 2, '.', '') : '';
+            $wholesalePrice = is_numeric($product->wholesale_price) ? number_format((float)$product->wholesale_price, 2, '.', '') : '';
+            $retailPrice = is_numeric($product->retail_price) ? number_format((float)$product->retail_price, 2, '.', '') : '';
+            $createdAt = $product->created_at ? $product->created_at->format('Y-m-d H:i:s') : '';
+            $updatedAt = $product->updated_at ? $product->updated_at->format('Y-m-d H:i:s') : '';
             fputcsv($file, [
                 $product->id,
                 $product->name,
-                $product->description,
-                $product->price,
-                $product->cost_price,
-                $product->wholesale_price,
-                $product->retail_price,
+                trim(preg_replace('/\s+/', ' ', (string)$product->description)),
+                $price,
+                $costPrice,
+                $wholesalePrice,
+                $retailPrice,
                 $product->min_wholesale_quantity,
                 $product->stock_quantity,
                 $product->min_stock_alert,
@@ -88,14 +102,14 @@ class ProductImportExportController extends Controller
                 $product->productType ? $product->productType->name : '',
                 $product->sku,
                 $product->barcode,
-                $product->status,
+                $statusLabels[$product->status] ?? $product->status,
                 $product->is_featured ? 'Oui' : 'Non',
                 $product->meta_title,
                 $product->meta_description,
                 is_array($product->tags) ? implode(', ', $product->tags) : $product->tags,
                 is_array($product->images) ? implode(', ', $product->images) : $product->images,
-                $product->created_at->format('Y-m-d H:i:s'),
-                $product->updated_at->format('Y-m-d H:i:s')
+                $createdAt,
+                $updatedAt
             ]);
         }
 

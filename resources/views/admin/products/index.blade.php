@@ -203,20 +203,22 @@ use Illuminate\Support\Facades\Storage;
                             </td>
                             <td>
                                 @php
-                                    $statusColors = [
-                                        'active' => 'success',
-                                        'inactive' => 'secondary',
-                                        'draft' => 'warning'
-                                    ];
-                                    $statusLabels = [
-                                        'active' => 'Actif',
-                                        'inactive' => 'Inactif',
-                                        'draft' => 'Brouillon'
-                                    ];
+                                    $isActive = $product->status === 'active';
                                 @endphp
-                                <span class="badge bg-{{ $statusColors[$product->status] ?? 'secondary' }}">
-                                    {{ $statusLabels[$product->status] ?? ucfirst($product->status) }}
-                                </span>
+                                @if($product->status === 'draft')
+                                    <span class="badge bg-warning">Brouillon</span>
+                                @else
+                                    <button type="button"
+                                            class="btn btn-sm product-toggle-btn {{ $isActive ? 'btn-outline-secondary' : 'btn-success' }}"
+                                            data-product-id="{{ $product->id }}"
+                                            data-current-status="{{ $product->status }}">
+                                        @if($isActive)
+                                            <i class="fas fa-user-slash me-1"></i>Désactiver
+                                        @else
+                                            <i class="fas fa-check me-1"></i>Activer
+                                        @endif
+                                    </button>
+                                @endif
                             </td>
                             <td>
                                 <small class="text-muted">{{ \Carbon\Carbon::parse($product->created_at)->format('d/m/Y H:i') }}</small>
@@ -227,26 +229,29 @@ use Illuminate\Support\Facades\Storage;
                                        class="btn btn-sm btn-outline-primary" title="Voir">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{{ route('admin.products.edit', $product->id) }}"
-                                       class="btn btn-sm btn-outline-warning" title="Modifier">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a href="{{ route('admin.products.variants.index', ['product' => $product->id]) }}"
-                                       class="btn btn-sm btn-success" title="Gérer les variantes" style="border-radius: 6px;">
-                                        <i class="fas fa-cubes me-1"></i>Variantes
-                                    </a>
-                                    <form action="{{ route('admin.products.destroy', $product->id) }}"
-                                          id="delete-product-{{ $product->id }}"
-                                          method="POST" class="d-inline delete-product-form">
-                                        @csrf
-                                        @method('DELETE')
-                                    </form>
-                                    <button type="button" class="btn btn-sm btn-outline-danger delete-product-btn"
-                                            data-form-id="delete-product-{{ $product->id }}"
-                                            data-product-name="{{ $product->name }}"
-                                            title="Supprimer">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    @php $canEdit = auth()->user() && (auth()->user()->hasRole('super-admin') || auth()->user()->hasRole('admin') || in_array(auth()->user()->role,['super-admin','admin'])); @endphp
+                                    @if($canEdit)
+                                        <a href="{{ route('admin.products.edit', $product->id) }}"
+                                           class="btn btn-sm btn-outline-warning" title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{{ route('admin.products.variants.index', ['product' => $product->id]) }}"
+                                           class="btn btn-sm btn-success" title="Gérer les variantes" style="border-radius: 6px;">
+                                            <i class="fas fa-cubes me-1"></i>Variantes
+                                        </a>
+                                        <form action="{{ route('admin.products.destroy', $product->id) }}"
+                                              id="delete-product-{{ $product->id }}"
+                                              method="POST" class="d-inline delete-product-form">
+                                            @csrf
+                                            @method('DELETE')
+                                        </form>
+                                        <button type="button" class="btn btn-sm btn-outline-danger delete-product-btn"
+                                                data-form-id="delete-product-{{ $product->id }}"
+                                                data-product-name="{{ $product->name }}"
+                                                title="Supprimer">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -436,5 +441,53 @@ function resetFilters() {
     form.reset();
     form.submit();
 }
+
+// Toggle statut produit (AJAX)
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    document.querySelectorAll('.product-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const productId = this.getAttribute('data-product-id');
+            const current = this.getAttribute('data-current-status');
+            const actionText = current === 'active' ? 'désactiver' : 'activer';
+            const that = this;
+
+            const doRequest = () => {
+                that.disabled = true;
+                fetch(`/admin/products/${productId}/toggle-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(async res => {
+                    const isJson = (res.headers.get('content-type') || '').includes('application/json');
+                    const data = isJson ? await res.json() : {};
+                    if (!res.ok || (data && data.success === false)) {
+                        throw new Error((data && data.message) || `Erreur ${res.status}`);
+                    }
+                    return data;
+                })
+                .then(() => {
+                    showAlert(`Produit ${actionText} avec succès`, 'success');
+                    setTimeout(() => window.location.reload(), 600);
+                })
+                .catch(err => {
+                    showAlert(err.message || 'Erreur lors de la mise à jour', 'error');
+                })
+                .finally(() => { that.disabled = false; });
+            };
+
+            if (current === 'active') {
+                customConfirm(`Voulez-vous vraiment désactiver ce produit ?`, () => doRequest(), null, 'Confirmation');
+            } else {
+                doRequest();
+            }
+        });
+    });
+});
 </script>
 @endsection
