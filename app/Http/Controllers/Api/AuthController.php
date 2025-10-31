@@ -87,12 +87,22 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
+        // Augmenter le timeout pour cette requête spécifique
+        set_time_limit(60);
+        
+        \Log::info('Login attempt started', [
+            'email' => $request->email,
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent()
+        ]);
+        
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
             'password' => 'required|string|min:6',
         ]);
 
         if ($validator->fails()) {
+            \Log::warning('Login validation failed', ['errors' => $validator->errors()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
@@ -114,12 +124,15 @@ class AuthController extends Controller
 
             // Vérifier si le compte est actif
             if (!$user->isActive()) {
+                \Log::warning('Login attempt with inactive account', ['email' => $request->email]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Votre compte n\'est pas encore activé. Veuillez contacter un administrateur.'
                 ], 403);
             }
 
+            \Log::info('Login successful', ['user_id' => $user->id, 'email' => $user->email]);
+            
             return response()->json([
                 'success' => true,
                 'message' => 'Connexion réussie',
@@ -132,9 +145,23 @@ class AuthController extends Controller
             ]);
 
         } catch (JWTException $e) {
+            \Log::error('JWT Exception during login', [
+                'email' => $request->email,
+                'error' => $e->getMessage()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Impossible de créer le token'
+            ], 500);
+        } catch (\Exception $e) {
+            \Log::error('Unexpected error during login', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Une erreur est survenue lors de la connexion'
             ], 500);
         }
     }

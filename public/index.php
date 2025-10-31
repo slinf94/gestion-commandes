@@ -1,5 +1,9 @@
 <?php
 
+// Augmenter les timeouts pour éviter les problèmes avec l'application mobile
+ini_set('max_execution_time', 300); // 5 minutes max
+ini_set('memory_limit', '512M');
+
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 

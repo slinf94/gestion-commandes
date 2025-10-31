@@ -180,7 +180,7 @@
                         <div class="col-md-6 mb-3">
                             <label for="search" class="form-label">Recherche</label>
                             <input type="text" class="form-control" id="search" name="search"
-                                   value="{{ request('search') }}" placeholder="Nom, email, téléphone..." onkeyup="searchUsers()">
+                                   value="{{ request('search') }}" placeholder="Nom, email, téléphone...">
                         </div>
                         <div class="col-md-2 mb-3">
                             <label for="per_page" class="form-label">Par page</label>
@@ -564,6 +564,23 @@ function showAlert(message, type) {
     let filterTimeout = null;
     let isFiltering = false;
 
+    // Fonction pour réinitialiser les event listeners après AJAX
+    function reinitializeEventListeners() {
+        // L'input search ne devrait pas être recréé, mais on vérifie quand même
+        const searchInput = document.getElementById('search');
+        if (searchInput && !searchInput.hasAttribute('data-listener-attached')) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(filterTimeout);
+                const delay = this.value.length > 2 ? 400 : 800;
+                filterTimeout = setTimeout(() => {
+                    console.log('🔄 Recherche:', this.value);
+                    performFilter();
+                }, delay);
+            });
+            searchInput.setAttribute('data-listener-attached', 'true');
+        }
+    }
+
     function performFilter() {
         if (isFiltering) return;
 
@@ -582,6 +599,9 @@ function showAlert(message, type) {
         if (loadingIndicator) {
             loadingIndicator.style.display = 'flex';
         }
+
+        // Sauvegarder le focus du champ de recherche avant la requête
+        const restoreFocus = saveSearchFocus('search');
 
         // Faire la requête AJAX
         fetch(window.location.pathname + '?' + params, {
@@ -625,6 +645,9 @@ function showAlert(message, type) {
             // Réinitialiser les boutons après la mise à jour AJAX
             setupDeleteButtons();
 
+            // Restaurer le focus et la position du curseur
+            restoreFocus();
+
             isFiltering = false;
             if (loadingIndicator) {
                 loadingIndicator.style.display = 'none';
@@ -655,7 +678,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('✅ Formulaire trouvé');
 
-    // 1. RECHERCHE AVEC AUTO-SUBMIT (debounce)
+    // 1. RECHERCHE AVEC AUTO-SUBMIT (debounce) - AVEC RESTAURATION DU FOCUS
     const searchInput = document.getElementById('search');
     if (searchInput) {
         console.log('✅ Champ de recherche trouvé');
@@ -664,12 +687,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const delay = this.value.length > 2 ? 400 : 800;
             filterTimeout = setTimeout(() => {
                 console.log('🔄 Recherche:', this.value);
-                form.submit();
+                // Utiliser performFilter() au lieu de form.submit() pour conserver le focus
+                performFilter();
             }, delay);
         });
     }
 
-    // 2. FILTRES SELECT AVEC AUTO-SUBMIT
+    // 2. FILTRES SELECT AVEC AUTO-SUBMIT - AVEC RESTAURATION DU FOCUS
     const selects = form.querySelectorAll('select');
     console.log('📋 Filtres select trouvés:', selects.length);
 
@@ -679,7 +703,8 @@ document.addEventListener('DOMContentLoaded', function() {
             clearTimeout(filterTimeout);
             filterTimeout = setTimeout(() => {
                 console.log('✅ Soumission du formulaire');
-                form.submit();
+                // Utiliser performFilter() au lieu de form.submit() pour conserver le focus
+                performFilter();
             }, 200);
         });
     });
@@ -717,7 +742,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialiser les boutons de suppression
     setupDeleteButtons();
+
     console.log('✅ Initialisation terminée');
+
+    // Exposer la fonction pour qu'elle soit accessible depuis performFilter
+    window.reinitializeEventListeners = reinitializeEventListeners;
 
     // Actions statut utilisateur
     document.querySelectorAll('.user-set-status').forEach(btn => {

@@ -415,6 +415,52 @@
     </div>
 
     <script>
+        /**
+         * Fonction utilitaire pour sauvegarder et restaurer le focus dans les champs de recherche
+         * Utilisation:
+         *   const restoreFocus = saveSearchFocus('search-input-id');
+         *   // ... faire l'AJAX ...
+         *   restoreFocus();
+         */
+        function saveSearchFocus(inputId) {
+            const activeElement = document.activeElement;
+            const input = document.getElementById(inputId);
+
+            // Vérifier si l'input est actuellement focusé
+            if (!input || activeElement !== input) {
+                return () => {}; // Retourner une fonction vide si pas d'input ou pas focusé
+            }
+
+            // Sauvegarder la position du curseur
+            const cursorPosition = input.selectionStart;
+            const value = input.value;
+
+            console.log(`Focus sauvegardé pour ${inputId} à la position ${cursorPosition}`);
+
+            // Retourner une fonction pour restaurer le focus
+            return function() {
+                const inputElement = document.getElementById(inputId);
+                if (inputElement) {
+                    // Utiliser requestAnimationFrame pour s'assurer que le DOM est mis à jour
+                    requestAnimationFrame(() => {
+                        inputElement.focus();
+                        // S'assurer que la valeur est la même (si elle a changé, restaurer)
+                        if (inputElement.value !== value) {
+                            inputElement.value = value;
+                        }
+                        // Restaurer la position du curseur
+                        try {
+                            inputElement.setSelectionRange(cursorPosition, cursorPosition);
+                        } catch (e) {
+                            // Si setSelectionRange échoue, placer le curseur à la fin
+                            inputElement.setSelectionRange(value.length, value.length);
+                        }
+                        console.log(`Focus restauré pour ${inputId} à la position ${cursorPosition}`);
+                    });
+                }
+            };
+        }
+
         // Fonction de confirmation personnalisée
         function customConfirm(message, onConfirm, onCancel = null, title = 'Confirmation', okText = 'Confirmer', cancelText = 'Annuler') {
             const modal = new bootstrap.Modal(document.getElementById('customConfirmModal'));

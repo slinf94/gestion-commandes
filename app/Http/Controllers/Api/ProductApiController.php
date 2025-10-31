@@ -388,19 +388,19 @@ class ProductApiController extends Controller
                         return null;
                     }
                     // Sinon, traiter comme un chemin relatif
-                    return 'http://192.168.100.73:8000/storage/' . $image;
+                    return url('storage/' . ltrim($image, '/'));
                 }, $images);
 
                 // Filtrer les images null et récupérer la première image valide
                 $validImages = array_filter($productData['images'], function($img) { return $img !== null; });
-                $productData['main_image'] = !empty($validImages) ? reset($validImages) : 'http://192.168.100.73:8000/images/placeholder.jpg';
+                $productData['main_image'] = !empty($validImages) ? reset($validImages) : url('images/placeholder.jpg');
             } else {
                 $productData['images'] = [];
-                $productData['main_image'] = 'http://192.168.100.73:8000/images/placeholder.jpg';
+                $productData['main_image'] = url('images/placeholder.jpg');
             }
         } else {
             $productData['images'] = [];
-            $productData['main_image'] = 'http://192.168.100.73:8000/images/placeholder.jpg';
+            $productData['main_image'] = url('images/placeholder.jpg');
         }
 
         // Formater les tags
