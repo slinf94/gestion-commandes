@@ -86,7 +86,9 @@ class Product extends Model
     // Relation avec les images
     public function productImages(): HasMany
     {
-        return $this->hasMany(ProductImage::class)->orderBy('order');
+        // Ne pas utiliser orderBy('order') directement car la colonne peut ne pas exister
+        // L'ordre sera géré dans les requêtes si nécessaire
+        return $this->hasMany(ProductImage::class);
     }
 
     // Récupérer l'image principale (temporairement désactivé)

@@ -1,13 +1,7 @@
 # 🔐 Guide d'Accès à l'Interface Admin
-
 ## 📍 URL de Connexion
-
 L'interface d'administration est accessible à l'adresse suivante :
-
-```
 http://localhost:8000/admin/login
-```
-
 OU si vous utilisez un serveur configuré :
 
 ```
