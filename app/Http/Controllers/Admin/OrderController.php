@@ -132,10 +132,21 @@ class OrderController extends Controller
 
     public function updateStatus(Request $request, Order $order)
     {
-        $request->validate([
-            'status' => 'required|string|in:' . implode(',', array_column(OrderStatus::cases(), 'value')),
-            'comment' => 'nullable|string|max:500',
-        ]);
+        try {
+            $request->validate([
+                'status' => 'required|string|in:' . implode(',', array_column(OrderStatus::cases(), 'value')),
+                'comment' => 'nullable|string|max:500',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->ajax() || $request->wantsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Statut invalide: ' . $request->status,
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            throw $e;
+        }
 
         try {
             $newStatus = OrderStatus::from($request->status);
@@ -215,9 +226,50 @@ class OrderController extends Controller
 
     public function destroy(Order $order)
     {
-        $order->delete();
-        return redirect()->route('admin.orders.index')
-            ->with('success', 'Commande supprimée avec succès');
+        try {
+            // Vérifier que la commande est annulée avant de permettre la suppression
+            $status = is_string($order->status) ? $order->status : ($order->status->value ?? $order->status);
+            
+            if ($status !== 'cancelled') {
+                if (request()->ajax() || request()->wantsJson() || request()->header('X-Requested-With') === 'XMLHttpRequest') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Impossible de supprimer une commande qui n\'est pas annulée. Veuillez d\'abord annuler la commande.'
+                    ], 422);
+                }
+                
+                return redirect()->back()
+                    ->with('error', 'Impossible de supprimer une commande qui n\'est pas annulée. Veuillez d\'abord annuler la commande.');
+            }
+
+            $orderId = $order->id;
+            $order->delete();
+            
+            if (request()->ajax() || request()->wantsJson() || request()->header('X-Requested-With') === 'XMLHttpRequest') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Commande supprimée avec succès'
+                ]);
+            }
+            
+            return redirect()->route('admin.orders.index')
+                ->with('success', 'Commande #' . $orderId . ' supprimée avec succès');
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la suppression de la commande: ' . $e->getMessage(), [
+                'order_id' => $order->id,
+                'user_id' => auth()->id()
+            ]);
+            
+            if (request()->ajax() || request()->wantsJson() || request()->header('X-Requested-With') === 'XMLHttpRequest') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erreur lors de la suppression: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()
+                ->with('error', 'Erreur lors de la suppression de la commande: ' . $e->getMessage());
+        }
     }
 
     /**

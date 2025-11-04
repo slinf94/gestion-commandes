@@ -156,7 +156,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th width="8%">
-                                        <i class="fas fa-hashtag me-1"></i>ID
+                                        <i class="fas fa-id-card me-1"></i>ID
                                     </th>
                                     <th width="20%">
                                         <i class="fas fa-user me-1"></i>Client
@@ -184,7 +184,9 @@
                             <tbody>
                                 @forelse($orders as $order)
                                 <tr>
-                                    <td><strong>#{{ $order->id }}</strong></td>
+                                    <td>
+                                        <strong>{{ $order->id }}</strong>
+                                    </td>
                                     <td>
                                         @if($order->user)
                                             <div class="d-flex align-items-center">
@@ -231,26 +233,54 @@
                                         @php
                                             $status = is_string($order->status) ? $order->status : ($order->status->value ?? 'pending');
                                             $isPending = $status === 'pending';
+                                            $isConfirmed = $status === 'confirmed';
                                             $isProcessing = $status === 'processing';
-                                            $isTerminal = in_array($status, ['cancelled','delivered']);
+                                            $isShipped = $status === 'shipped';
+                                            $isDelivered = $status === 'delivered';
+                                            $isTerminal = in_array($status, ['cancelled','delivered','completed']);
                                         @endphp
                                         <div class="d-flex flex-wrap gap-2">
+                                            @php
+                                                $status = is_string($order->status) ? $order->status : ($order->status->value ?? 'pending');
+                                                $isPending = $status === 'pending';
+                                                $isConfirmed = $status === 'confirmed';
+                                                $isProcessing = $status === 'processing';
+                                                $isShipped = $status === 'shipped';
+                                            @endphp
                                             @if($isPending)
                                                 <button type="button"
                                                         class="btn btn-sm btn-success order-quick-action"
                                                         data-order-id="{{ $order->id }}"
-                                                        data-new-status="processing"
+                                                        data-new-status="confirmed"
                                                         title="Valider la commande">
                                                     <i class="fas fa-check me-1"></i>Valider
                                                 </button>
                                             @endif
-                                            @if($isProcessing)
+                                            @if($isConfirmed)
                                                 <button type="button"
                                                         class="btn btn-sm btn-primary order-quick-action"
                                                         data-order-id="{{ $order->id }}"
+                                                        data-new-status="processing"
+                                                        title="Mettre en traitement">
+                                                    <i class="fas fa-cog me-1"></i>En traitement
+                                                </button>
+                                            @endif
+                                            @if($isProcessing)
+                                                <button type="button"
+                                                        class="btn btn-sm btn-info order-quick-action"
+                                                        data-order-id="{{ $order->id }}"
                                                         data-new-status="shipped"
-                                                        title="Finaliser la commande">
-                                                    <i class="fas fa-check-double me-1"></i>Finaliser
+                                                        title="Expédier la commande">
+                                                    <i class="fas fa-shipping-fast me-1"></i>Expédier
+                                                </button>
+                                            @endif
+                                            @if($isShipped)
+                                                <button type="button"
+                                                        class="btn btn-sm btn-success order-quick-action"
+                                                        data-order-id="{{ $order->id }}"
+                                                        data-new-status="delivered"
+                                                        title="Marquer comme livrée">
+                                                    <i class="fas fa-check-double me-1"></i>Livrée
                                                 </button>
                                             @endif
                                             @if(!$isTerminal)
@@ -272,18 +302,32 @@
                                             <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-info" title="Voir">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            <form method="POST" action="{{ route('admin.orders.destroy', $order) }}"
-                                                  id="delete-order-{{ $order->id }}"
-                                                  class="d-inline delete-order-form">
-                                                @csrf
-                                                @method('DELETE')
-                                            </form>
-                                            <button type="button" class="btn btn-sm btn-outline-danger delete-order-btn"
-                                                    data-form-id="delete-order-{{ $order->id }}"
-                                                    data-order-id="{{ $order->id }}"
-                                                    title="Supprimer">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            @php
+                                                $status = is_string($order->status) ? $order->status : ($order->status->value ?? 'pending');
+                                                $isCancelled = $status === 'cancelled';
+                                            @endphp
+                                            @if($isCancelled)
+                                                {{-- Bouton Supprimer (seulement si annulée) --}}
+                                                <form method="POST" action="{{ route('admin.orders.destroy', $order) }}"
+                                                      id="delete-order-{{ $order->id }}"
+                                                      class="d-inline delete-order-form">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                </form>
+                                                <button type="button" class="btn btn-sm btn-outline-danger delete-order-btn"
+                                                        data-form-id="delete-order-{{ $order->id }}"
+                                                        data-order-id="{{ $order->id }}"
+                                                        title="Supprimer définitivement">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            @else
+                                                {{-- Bouton Annuler (si pas annulée) --}}
+                                                <button type="button" class="btn btn-sm btn-outline-warning cancel-order-btn"
+                                                        data-order-id="{{ $order->id }}"
+                                                        title="Annuler la commande">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -411,7 +455,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Gérer les boutons de suppression de commandes
+    // Gérer les boutons de suppression de commandes (seulement pour les commandes annulées)
     const deleteOrderButtons = document.querySelectorAll('.delete-order-btn');
 
     deleteOrderButtons.forEach(button => {
@@ -423,14 +467,46 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!form) return;
 
             customConfirm(
-                `Êtes-vous sûr de vouloir supprimer la commande #${orderId} ? Cette action est irréversible.`,
+                `Êtes-vous sûr de vouloir supprimer définitivement la commande ${orderId} ? Cette action est irréversible et supprimera toutes les données de la commande.`,
                 function() {
                     form.submit();
                 },
                 null,
-                'Suppression de commande',
+                'Suppression définitive',
                 'Oui, supprimer',
                 'Annuler'
+            );
+        });
+    });
+
+    // Gérer les boutons d'annulation depuis la colonne Actions
+    const cancelOrderButtons = document.querySelectorAll('.cancel-order-btn');
+
+    cancelOrderButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-order-id');
+            const that = this;
+            
+            customConfirm(
+                `Voulez-vous vraiment annuler la commande ${orderId} ?<br><small>Vous pouvez saisir une raison d'annulation.</small>`,
+                function onConfirm() {
+                    // Demander une raison (prompt simple)
+                    const reason = prompt('Raison de l\'annulation (optionnel) :', 'Annulation par l\'administrateur');
+                    that.disabled = true;
+                    postStatus(orderId, 'cancelled', reason || '')
+                        .then(() => {
+                            showAlert('Commande annulée avec succès', 'success', 'Succès');
+                            setTimeout(() => window.location.reload(), 600);
+                        })
+                        .catch(err => {
+                            showAlert(err.message || 'Erreur lors de l\'annulation', 'error', 'Erreur');
+                        })
+                        .finally(() => { that.disabled = false; });
+                },
+                null,
+                'Confirmation d\'annulation',
+                'Oui, annuler',
+                'Non'
             );
         });
     });
@@ -445,9 +521,10 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
             },
-            body: JSON.stringify({ status: newStatus, comment })
+            body: JSON.stringify({ status: newStatus, comment: comment || '' })
         }).then(async (res) => {
             const isJson = (res.headers.get('content-type') || '').includes('application/json');
             const data = isJson ? await res.json() : {};
@@ -482,7 +559,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const newStatus = this.getAttribute('data-new-status');
             const that = this;
             customConfirm(
-                `Voulez-vous vraiment annuler la commande #${orderId} ?<br><small>Vous pouvez saisir une raison d'annulation.</small>`,
+                `Voulez-vous vraiment annuler la commande ${orderId} ?<br><small>Vous pouvez saisir une raison d'annulation.</small>`,
                 function onConfirm() {
                     // Demander une raison (prompt simple)
                     const reason = prompt('Raison de l\'annulation (optionnel) :', 'Annulation par l\'administrateur');

@@ -196,7 +196,7 @@
                                         @forelse($orders as $order)
                                         <tr>
                                             <td>
-                                                <strong>#{{ $order->order_number }}</strong>
+                                                <strong>{{ $order->order_number }}</strong>
                                             </td>
                                             <td>{{ $order->created_at->format('d/m/Y H:i') }}</td>
                                             <td>

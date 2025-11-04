@@ -224,6 +224,16 @@ Route::prefix('admin')->group(function () {
                 // Gestion des variantes de produits
                 // Route déjà définie plus haut, à voir si protection nécessaire
 
+                // Notifications admin - Tous les admins
+                Route::middleware(['role:super-admin,admin,gestionnaire'])->group(function () {
+                    Route::get('/notifications', [\App\Http\Controllers\Admin\NotificationController::class, 'indexPage'])->name('admin.notifications.index');
+                    Route::get('/notifications/api', [\App\Http\Controllers\Admin\NotificationController::class, 'index'])->name('admin.notifications.api');
+                    Route::get('/notifications/unread-count', [\App\Http\Controllers\Admin\NotificationController::class, 'unreadCount'])->name('admin.notifications.unread-count');
+                    Route::post('/notifications/{notification}/read', [\App\Http\Controllers\Admin\NotificationController::class, 'markAsRead'])->name('admin.notifications.mark-read');
+                    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Admin\NotificationController::class, 'markAllAsRead'])->name('admin.notifications.mark-all-read');
+                    Route::delete('/notifications/{notification}', [\App\Http\Controllers\Admin\NotificationController::class, 'destroy'])->name('admin.notifications.destroy');
+                });
+
                 // Paramètres admin - Super Admin uniquement
                 Route::middleware(['role:super-admin'])->group(function () {
                     Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings.index');

@@ -183,7 +183,7 @@
                                     <tbody>
                                         @foreach($user->orders->take(5) as $order)
                                         <tr>
-                                            <td>#{{ $order->id }}</td>
+                                            <td>{{ $order->id }}</td>
                                             <td>{{ $order->created_at ? $order->created_at->format('d/m/Y H:i') : 'N/A' }}</td>
                                             <td>
                                                 <span class="badge badge-{{ $order->getStatusClass() }}">

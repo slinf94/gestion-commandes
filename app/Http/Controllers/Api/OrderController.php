@@ -222,8 +222,12 @@ class OrderController extends Controller
 
             TemporaryCart::where('session_id', $sessionId)->delete();
 
-            // Les notifications seront envoyées en arrière-plan pour éviter les timeouts
-            // Ne pas bloquer la réponse pour les notifications
+            // Notifier les administrateurs via le système de notifications
+            try {
+                \App\Helpers\NotificationHelper::notifyNewOrder($order);
+            } catch (\Exception $e) {
+                \Log::error('Erreur notification nouvelle commande: ' . $e->getMessage());
+            }
 
             DB::commit();
 

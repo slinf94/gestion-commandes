@@ -64,13 +64,12 @@ class AuthController extends Controller
             'status' => 'pending', // En attente d'activation par l'admin
         ]);
 
-        // Notifier les administrateurs par email (désactivé temporairement pour éviter les timeouts)
-        /*
-        $admins = User::whereIn('role', ['admin', 'gestionnaire'])->get();
-        foreach ($admins as $admin) {
-            $admin->notify(new NewUserRegistrationNotification($user));
+        // Notifier les administrateurs via le système de notifications
+        try {
+            \App\Helpers\NotificationHelper::notifyNewUser($user);
+        } catch (\Exception $e) {
+            \Log::error('Erreur notification nouvel utilisateur: ' . $e->getMessage());
         }
-        */
 
         return response()->json([
             'success' => true,

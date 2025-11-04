@@ -108,3 +108,5 @@ Ces identifiants peuvent être utilisés pour se connecter via l'API mobile de l
 - Tous ces comptes ont le statut `active`, donc ils peuvent se connecter immédiatement
 - Les comptes sont déjà vérifiés (`email_verified_at` est défini)
 
+
+

@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'default' => 'log',
+    'default' => 'smtp',
 
     /*
     |--------------------------------------------------------------------------
@@ -43,8 +43,8 @@ return [
             'url' => null,
             'host' => 'smtp.gmail.com',
             'port' => 587,
-            'username' => 'alnoreply48@gmail.com',
-            'password' => 'hqat hdgh wrek hilc',
+            'username' => 'noreply.allomobile@gmail.com',
+            'password' => 'doss dcnd bqeh ydkd',
             'timeout' => null,
             'local_domain' => 'allomobile.com',
             'encryption' => 'tls',
@@ -116,7 +116,7 @@ return [
     */
 
     'from' => [
-        'address' => 'alnoreply48@gmail.com',
+        'address' => 'noreply.allomobile@gmail.com',
         'name' => 'Allo Mobile',
     ],
 

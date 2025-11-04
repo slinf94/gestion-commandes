@@ -60,3 +60,5 @@ Si le serveur répond mais que les produits ne s'affichent pas dans Flutter :
 - La pagination est limitée à 5-10 produits pour éviter les problèmes de mémoire
 - Les images sont chargées via requêtes SQL brutes pour optimiser la performance
 
+
+

@@ -77,3 +77,5 @@ Après réinitialisation, aucun produit n'est affiché dans l'application mobile
 3. Vérifier que le middleware `ApiSecurityMiddleware` n bloque pas les requêtes
 4. Vérifier la connexion réseau entre le mobile et le serveur
 
+
+

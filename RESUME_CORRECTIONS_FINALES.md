@@ -51,3 +51,5 @@ Relancer l'application mobile et vérifier que :
    http://10.152.173.8:8000/api/v1/products?per_page=5
    ```
 
+
+

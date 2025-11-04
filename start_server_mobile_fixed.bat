@@ -65,3 +65,5 @@ php -d max_execution_time=300 -d memory_limit=512M artisan serve --host=0.0.0.0 
 
 pause
 
+
+

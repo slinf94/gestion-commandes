@@ -64,3 +64,5 @@ L'API retourne une erreur 500 lors de la récupération des produits, empêchant
 - Si une image échoue, le système continue avec les autres images
 - Les logs détaillent toutes les erreurs pour faciliter le débogage
 
+
+

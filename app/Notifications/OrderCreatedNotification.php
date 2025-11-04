@@ -38,7 +38,11 @@ class OrderCreatedNotification extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $statusInfo = OrderStatusHelper::getStatusInfo($this->order->status);
+        // Convertir l'enum en string si nécessaire
+        $statusString = $this->order->status instanceof \App\Enums\OrderStatus 
+            ? $this->order->status->value 
+            : (string)$this->order->status;
+        $statusInfo = OrderStatusHelper::getStatusInfo($statusString);
 
         $mailMessage = (new MailMessage)
             ->subject('✅ Commande confirmée - #' . $this->order->order_number)

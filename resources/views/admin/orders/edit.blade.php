@@ -8,7 +8,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Modifier la Commande #{{ $order->id }}</h3>
+                    <h3 class="card-title">Modifier la Commande {{ $order->id }}</h3>
                     <div class="card-tools">
                         <a href="{{ route('admin.orders.index') }}" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Retour à la liste
