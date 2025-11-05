@@ -401,39 +401,128 @@ class ProductApiController extends Controller
      */
     public function search(Request $request)
     {
-        $searchTerm = $request->get('q');
+        // Augmenter la limite de mémoire pour cette requête
+        ini_set('memory_limit', '2G');
+        ini_set('max_execution_time', '300');
+        
+        try {
+            $searchTerm = $request->get('q');
 
-        if (empty($searchTerm)) {
+            if (empty($searchTerm)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terme de recherche requis'
+                ], 400);
+            }
+
+            \Log::info('ProductApiController@search: Recherche pour: ' . $searchTerm);
+
+            // Utiliser des requêtes SQL directes pour éviter les problèmes Eloquent
+            $limit = min($request->get('per_page', 20), 50); // Limiter à 50 pour la recherche
+            
+            // Requête SQL directe pour les produits
+            $productsQuery = "SELECT id, name, description, price, cost_price, wholesale_price, 
+                retail_price, min_wholesale_quantity, stock_quantity, min_stock_alert,
+                category_id, product_type_id, sku, barcode, status, is_featured,
+                meta_title, meta_description, images, tags, created_at, updated_at
+                FROM products 
+                WHERE status = 'active' 
+                AND stock_quantity > 0 
+                AND deleted_at IS NULL 
+                AND (
+                    name LIKE ? 
+                    OR description LIKE ? 
+                    OR sku LIKE ? 
+                    OR barcode LIKE ?
+                )
+                ORDER BY 
+                    CASE 
+                        WHEN name LIKE ? THEN 1
+                        WHEN name LIKE ? THEN 2
+                        WHEN sku LIKE ? THEN 3
+                        ELSE 4
+                    END,
+                    created_at DESC
+                LIMIT ?";
+            
+            $searchPattern = "%{$searchTerm}%";
+            $products = DB::select($productsQuery, [
+                $searchPattern, // name LIKE
+                $searchPattern, // description LIKE
+                $searchPattern, // sku LIKE
+                $searchPattern, // barcode LIKE
+                $searchTerm,    // ORDER BY name exact
+                $searchPattern, // ORDER BY name starts with
+                $searchPattern, // ORDER BY sku
+                $limit
+            ]);
+
+            if (empty($products)) {
+                \Log::info('ProductApiController@search: Aucun produit trouvé');
+                return response()->json([
+                    'success' => true,
+                    'data' => []
+                ]);
+            }
+
+            // Récupérer les IDs des produits
+            $productIds = array_map(function($p) { return $p->id; }, $products);
+            $productIdsPlaceholders = implode(',', array_fill(0, count($productIds), '?'));
+
+            // Charger toutes les images en une seule requête
+            $productImages = DB::select(
+                "SELECT id, product_id, url, type FROM product_images WHERE product_id IN ($productIdsPlaceholders)",
+                $productIds
+            );
+            
+            // Organiser les images par product_id
+            $productImagesData = [];
+            foreach ($productImages as $img) {
+                if (!isset($productImagesData[$img->product_id])) {
+                    $productImagesData[$img->product_id] = [];
+                }
+                $productImagesData[$img->product_id][] = [
+                    'id' => $img->id,
+                    'url' => $img->url,
+                    'type' => $img->type,
+                ];
+            }
+
+            // Formater les produits
+            $formattedProducts = [];
+            foreach ($products as $product) {
+                try {
+                    $productData = $this->formatProductFromRaw($product, $productImagesData[$product->id] ?? []);
+                    $formattedProducts[] = $productData;
+                } catch (\Exception $e) {
+                    \Log::warning('ProductApiController@search: Erreur formatage produit ' . $product->id . ': ' . $e->getMessage());
+                    continue;
+                }
+            }
+
+            \Log::info('ProductApiController@search: ' . count($formattedProducts) . ' produits trouvés');
+
+            return response()->json([
+                'success' => true,
+                'data' => $formattedProducts
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Erreur dans ProductApiController@search', [
+                'search_term' => $request->get('q'),
+                'message' => $e->getMessage(),
+                'type' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Terme de recherche requis'
-            ], 400);
+                'message' => config('app.debug') 
+                    ? 'Erreur de recherche: ' . $e->getMessage()
+                    : 'Erreur du serveur: 500',
+                'data' => []
+            ], 500);
         }
-
-        $query = Product::with(['category', 'productType', 'productImages', 'attributeValues.attribute'])
-            ->where('status', 'active')
-            ->where('stock_quantity', '>', 0) // Ne retourner que les produits en stock
-            ->where(function($q) use ($searchTerm) {
-                $q->where('name', 'like', "%{$searchTerm}%")
-                  ->orWhere('description', 'like', "%{$searchTerm}%")
-                  ->orWhere('sku', 'like', "%{$searchTerm}%");
-            });
-
-        $perPage = $request->get('per_page', 20);
-        $products = $query->orderBy('created_at', 'desc')->paginate($perPage);
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'products' => $products->items(),
-                'pagination' => [
-                    'current_page' => $products->currentPage(),
-                    'last_page' => $products->lastPage(),
-                    'per_page' => $products->perPage(),
-                    'total' => $products->total(),
-                ]
-            ]
-        ]);
     }
 
     /**

@@ -585,11 +585,20 @@ class AuthController extends Controller
             // Mettre à jour l'utilisateur
             $user->update(['photo' => $path]);
 
+            // Recharger l'utilisateur pour obtenir toutes les données à jour
+            $user->refresh();
+            
             return response()->json([
                 'success' => true,
                 'message' => 'Photo de profil mise à jour avec succès',
                 'data' => [
-                    'photo_url' => url('storage/' . $path)
+                    'photo_url' => url('storage/' . $path),
+                    'photo' => $path, // Ajouter aussi le chemin relatif
+                    'user' => [
+                        'id' => $user->id,
+                        'photo' => $path,
+                        'photo_url' => url('storage/' . $path),
+                    ]
                 ]
             ]);
 
