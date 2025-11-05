@@ -4,8 +4,16 @@
 @section('page-title', 'Tableau de Bord')
 
 @section('content')
+@php
+    use App\Helpers\AdminMenuHelper;
+    $user = auth()->user();
+    $canViewRevenue = AdminMenuHelper::canSee($user, 'super-admin', 'admin');
+    $canViewUsers = AdminMenuHelper::canSee($user, 'super-admin', 'admin');
+@endphp
+
 <div class="row">
     <!-- Statistiques principales -->
+    @if($canViewUsers)
     <div class="col-md-3 mb-4">
         <div class="card bg-primary text-white">
             <div class="card-body">
@@ -21,6 +29,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <div class="col-md-3 mb-4">
         <div class="card bg-success text-white">
@@ -54,12 +63,14 @@
         </div>
     </div>
 
+    
+    @if($canViewRevenue)
     <div class="col-md-3 mb-4">
         <div class="card bg-info text-white">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h4 class="card-title">{{ $stats['total_revenue'] ?? 0 }} FCFA</h4>
+                        <h4 class="card-title">{{ number_format($stats['total_revenue'] ?? 0, 0, ',', ' ') }} FCFA</h4>
                         <p class="card-text">Chiffre d'affaires</p>
                     </div>
                     <div class="align-self-center">
@@ -69,6 +80,7 @@
             </div>
         </div>
     </div>
+    @endif
 </div>
 
 <!-- Actions rapides -->
@@ -142,7 +154,13 @@
                                 <tr>
                                     <td>{{ $order->id }}</td>
                                     <td>{{ $order->user->nom ?? 'N/A' }} {{ $order->user->prenom ?? '' }}</td>
-                                    <td>{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</td>
+                                    <td>
+                                        @if($canViewRevenue)
+                                            {{ number_format($order->total_amount, 0, ',', ' ') }} FCFA
+                                        @else
+                                            <span class="text-muted">***</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         <span class="badge bg-{{ $order->getStatusClass() }}">
                                             {{ $order->getStatusLabel() }}

@@ -251,6 +251,60 @@
             box-shadow: var(--shadow-hover);
         }
 
+        /* Styles pour la modale d'annulation personnalisée */
+        #customCancelOrderModal .modal-content {
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        #customCancelOrderModal .modal-header {
+            border-radius: 12px 12px 0 0;
+            background: linear-gradient(135deg, #dc3545, #c82333);
+        }
+
+        #customCancelOrderModal .modal-body {
+            padding: 25px;
+        }
+
+        #customCancelOrderModal .form-label {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        #customCancelOrderModal #cancelReasonInput {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        #customCancelOrderModal #cancelReasonInput:focus {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+            outline: none;
+        }
+
+        #customCancelOrderModal .modal-footer {
+            border-top: 1px solid #e9ecef;
+            padding: 15px 25px;
+        }
+
+        #customCancelOrderModal .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        #customCancelOrderModal .btn-danger:hover {
+            background: linear-gradient(135deg, #c82333, #bd2130);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        }
+
         .btn-secondary {
             background: #6c757d;
             border: none;
@@ -354,12 +408,20 @@
                 $canManageClients = AdminMenuHelper::canSee($u, 'super-admin', 'admin', 'gestionnaire');
                 $canViewActivityLogs = AdminMenuHelper::canSee($u, 'super-admin', 'admin');
                 $canManageSettings = AdminMenuHelper::canSee($u, 'super-admin');
+                $canManageRolePermissions = AdminMenuHelper::canSee($u, 'super-admin');
             @endphp
             <nav class="nav flex-column">
                 <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                     <i class="fas fa-tachometer-alt"></i>
                     <span>Tableau de Bord</span>
                 </a>
+
+                @if($canManageRolePermissions)
+                <a href="{{ route('admin.role-permissions.index') }}" class="nav-link {{ request()->routeIs('admin.role-permissions.*') ? 'active' : '' }}">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Profils & Droits</span>
+                </a>
+                @endif
 
                 @if($canManageUsers)
                 <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
@@ -538,6 +600,41 @@
         </div>
     </div>
 
+    <!-- Modal d'annulation de commande personnalisée -->
+    <div class="modal fade" id="customCancelOrderModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="customCancelOrderTitle">Confirmation d'annulation</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="customCancelOrderMessage"></p>
+                    <div class="mb-3 mt-3">
+                        <label for="cancelReasonInput" class="form-label">
+                            <i class="fas fa-comment-alt me-2"></i>Raison de l'annulation <small class="text-muted">(optionnel)</small>
+                        </label>
+                        <textarea 
+                            class="form-control" 
+                            id="cancelReasonInput" 
+                            rows="3" 
+                            placeholder="Ex: Annulation par l'administrateur, demande du client, stock indisponible..."
+                            style="resize: vertical;"></textarea>
+                        <small class="form-text text-muted">
+                            Vous pouvez laisser ce champ vide si aucune raison spécifique n'est nécessaire.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="customCancelOrderCancel">Non</button>
+                    <button type="button" class="btn btn-danger" id="customCancelOrderOk">
+                        <i class="fas fa-times me-2"></i>Oui, annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         /**
          * Fonction utilitaire pour sauvegarder et restaurer le focus dans les champs de recherche
@@ -613,6 +710,69 @@
             newCancelBtn.addEventListener('click', function() {
                 modal.hide();
                 if (onCancel) onCancel();
+            });
+
+            modal.show();
+        }
+
+        // Fonction d'annulation de commande personnalisée avec champ texte
+        function customCancelOrder(orderId, onConfirm, onCancel = null, title = 'Confirmation d\'annulation', okText = 'Oui, annuler', cancelText = 'Non') {
+            const modal = new bootstrap.Modal(document.getElementById('customCancelOrderModal'));
+            const modalTitle = document.getElementById('customCancelOrderTitle');
+            const modalMessage = document.getElementById('customCancelOrderMessage');
+            const reasonInput = document.getElementById('cancelReasonInput');
+            const modalOk = document.getElementById('customCancelOrderOk');
+            const modalCancel = document.getElementById('customCancelOrderCancel');
+
+            modalTitle.textContent = title;
+            modalMessage.innerHTML = `Voulez-vous vraiment annuler la commande <strong>#${orderId}</strong> ?<br><small class="text-muted">Vous pouvez saisir une raison d'annulation ci-dessous.</small>`;
+            reasonInput.value = 'Annulation par l\'administrateur'; // Valeur par défaut
+            modalOk.innerHTML = `<i class="fas fa-times me-2"></i>${okText}`;
+            modalCancel.textContent = cancelText;
+
+            // Supprimer les anciens event listeners
+            const newOkBtn = modalOk.cloneNode(true);
+            const newCancelBtn = modalCancel.cloneNode(true);
+            modalOk.parentNode.replaceChild(newOkBtn, modalOk);
+            modalCancel.parentNode.replaceChild(newCancelBtn, modalCancel);
+
+            // Ajouter les nouveaux event listeners
+            newOkBtn.addEventListener('click', function() {
+                const reason = reasonInput.value.trim();
+                modal.hide();
+                if (onConfirm) onConfirm(reason);
+            });
+
+            newCancelBtn.addEventListener('click', function() {
+                modal.hide();
+                if (onCancel) onCancel();
+            });
+
+            // Focus sur le champ texte quand la modale s'affiche
+            modal._element.addEventListener('shown.bs.modal', function() {
+                reasonInput.focus();
+                reasonInput.select(); // Sélectionner le texte par défaut pour faciliter la modification
+            });
+
+            // Gérer la touche Entrée pour confirmer
+            const handleKeyPress = function(e) {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    // Ctrl+Entrée pour confirmer
+                    e.preventDefault();
+                    const reason = reasonInput.value.trim();
+                    modal.hide();
+                    if (onConfirm) onConfirm(reason);
+                }
+            };
+
+            reasonInput.addEventListener('keydown', handleKeyPress);
+
+            // Gérer Escape pour annuler
+            modal._element.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    modal.hide();
+                    if (onCancel) onCancel();
+                }
             });
 
             modal.show();

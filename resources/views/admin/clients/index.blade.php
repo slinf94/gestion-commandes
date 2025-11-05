@@ -7,8 +7,16 @@
 <style>
     .client-card { border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); transition: transform 0.3s; }
     .client-card:hover { transform: translateY(-5px); }
-    .avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
-    .stats-badge { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 20px; padding: 4px 12px; font-size: 0.8em; }
+    .avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #38B04A 0%, #2d8f3a 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+    .stats-badge { 
+        background: linear-gradient(135deg, #38B04A 0%, #2d8f3a 100%); 
+        color: white; 
+        border-radius: 20px; 
+        padding: 4px 12px; 
+        font-size: 0.8em; 
+        display: inline-block;
+        font-weight: 500;
+    }
     .search-section { background: #f8f9fa; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
 </style>
 @endsection
@@ -165,7 +173,7 @@
                                     </span>
                                 </td>
                                     <td>
-                                        <a href="{{ route('admin.clients.show', $client) }}" class="btn btn-sm btn-primary">
+                                        <a href="{{ route('admin.clients.show', $client) }}" class="btn btn-sm" style="background: linear-gradient(135deg, #38B04A 0%, #2d8f3a 100%); color: white; border: none;">
                                             <i class="fas fa-eye"></i> Détails
                                         </a>
                                     </td>

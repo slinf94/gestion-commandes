@@ -9,9 +9,10 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Mes Notifications</h5>
         <div>
-            <button class="btn btn-sm btn-primary" id="markAllReadBtn">
+            {{-- Bouton "Tout marquer comme lu" masqué - ne pas supprimer la logique, juste masquer l'UI --}}
+            {{-- <button class="btn btn-sm btn-primary" id="markAllReadBtn">
                 <i class="fas fa-check-double me-1"></i>Tout marquer comme lu
-            </button>
+            </button> --}}
             <button class="btn btn-sm btn-outline-secondary" id="refreshBtn">
                 <i class="fas fa-sync-alt me-1"></i>Actualiser
             </button>
@@ -84,10 +85,30 @@
 
 @section('scripts')
 <script>
-(function() {
+// Attendre que le DOM soit complètement chargé
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔔 DOM chargé - Initialisation du script de notifications');
+    
     const notificationsContainer = document.getElementById('notificationsContainer');
-    const markAllReadBtn = document.getElementById('markAllReadBtn');
+    // const markAllReadBtn = document.getElementById('markAllReadBtn'); // Masqué - ne pas supprimer la logique
     const refreshBtn = document.getElementById('refreshBtn');
+    
+    if (!notificationsContainer) {
+        console.error('❌ notificationsContainer non trouvé');
+        return;
+    }
+    
+    // markAllReadBtn masqué - ne pas supprimer la logique
+    // if (!markAllReadBtn) {
+    //     console.error('❌ markAllReadBtn non trouvé dans le DOM');
+    // } else {
+    //     console.log('✅ markAllReadBtn trouvé:', markAllReadBtn);
+    // }
+    
+    if (!refreshBtn) {
+        console.error('❌ refreshBtn non trouvé');
+    }
+    
     let currentPage = 1;
     let isLoading = false;
 
@@ -149,16 +170,20 @@
                     <p>Vous n'avez pas encore de notifications.</p>
                 </div>
             `;
-            markAllReadBtn.style.display = 'none';
+            // markAllReadBtn.style.display = 'none'; // Masqué
             return;
         }
+
+        // Vérifier s'il y a des notifications non lues
+        const hasUnread = notifications.some(n => !n.is_read);
 
         notifications.forEach(notification => {
             const card = createNotificationCard(notification);
             notificationsContainer.appendChild(card);
         });
 
-        markAllReadBtn.style.display = 'block';
+        // Bouton masqué - ne pas supprimer la logique
+        // markAllReadBtn.style.display = hasUnread ? 'block' : 'none';
     }
 
     // Créer une carte de notification
@@ -192,9 +217,7 @@
                                         <i class="fas fa-check me-1"></i>Marquer lu
                                     </button>
                                 ` : ''}
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteNotification(${notification.id})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <!-- Bouton "Supprimer" masqué - logique conservée dans deleteNotification() -->
                             </div>
                         </div>
                     </div>
@@ -321,33 +344,110 @@
         );
     };
 
-    // Marquer toutes comme lues
-    markAllReadBtn.addEventListener('click', function() {
-        fetch('{{ route("admin.notifications.mark-all-read") }}', {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+    // Marquer toutes comme lues - Fonction masquée mais conservée
+    /*
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('🔔 Bouton "Tout marquer comme lu" cliqué');
+            
+            // Désactiver le bouton pendant le traitement
+            const originalText = markAllReadBtn.innerHTML;
+            markAllReadBtn.disabled = true;
+            markAllReadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Traitement...';
+            
+            // Récupérer le token CSRF
+            const csrfToken = document.querySelector('meta[name="csrf-token"]');
+            if (!csrfToken) {
+                console.error('❌ Token CSRF non trouvé');
+                markAllReadBtn.disabled = false;
+                markAllReadBtn.innerHTML = originalText;
+                alert('Erreur: Token CSRF manquant. Veuillez rafraîchir la page.');
+                return;
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                loadNotifications(1, false);
-                showAlert('Toutes les notifications ont été marquées comme lues', 'success');
-            }
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            showAlert('Erreur lors du marquage', 'error');
+            
+            const url = '{{ route("admin.notifications.mark-all-read") }}';
+            console.log('📡 Envoi de la requête vers:', url);
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken.content
+                },
+                credentials: 'same-origin'
+            })
+            .then(async response => {
+                console.log('📥 Réponse reçue:', response.status, response.statusText);
+                
+                // Vérifier si la réponse est OK
+                if (!response.ok) {
+                    let errorData;
+                    try {
+                        errorData = await response.json();
+                    } catch (e) {
+                        errorData = { message: `Erreur HTTP ${response.status}` };
+                    }
+                    console.error('❌ Erreur HTTP:', response.status, errorData);
+                    throw new Error(errorData.message || `Erreur HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('✅ Données reçues:', data);
+                
+                if (data.success) {
+                    console.log(`✅ ${data.count || 0} notification(s) marquée(s) comme lue(s)`);
+                    
+                    // Recharger les notifications pour mettre à jour l'affichage
+                    loadNotifications(1, false);
+                    
+                    // Afficher un message de succès
+                    if (typeof showAlert === 'function') {
+                        showAlert(data.message || 'Toutes les notifications ont été marquées comme lues', 'success');
+                    } else {
+                        alert(data.message || 'Toutes les notifications ont été marquées comme lues');
+                    }
+                } else {
+                    console.error('❌ Erreur dans la réponse:', data);
+                    throw new Error(data.message || 'Erreur lors du marquage des notifications');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Erreur détaillée:', error);
+                console.error('Stack:', error.stack);
+                const errorMessage = error.message || 'Erreur lors du marquage des notifications';
+                
+                if (typeof showAlert === 'function') {
+                    showAlert(errorMessage, 'error');
+                } else {
+                    alert('Erreur: ' + errorMessage);
+                }
+            })
+            .finally(() => {
+                // Réactiver le bouton
+                markAllReadBtn.disabled = false;
+                markAllReadBtn.innerHTML = originalText;
+                console.log('🔔 Bouton réactivé');
+            });
         });
-    });
+        
+        console.log('✅ Event listener ajouté au bouton "Tout marquer comme lu"');
+    } else {
+        console.error('❌ Bouton "Tout marquer comme lu" non trouvé dans le DOM');
+    }
+    */
 
     // Actualiser
-    refreshBtn.addEventListener('click', function() {
-        loadNotifications(1, false);
-    });
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            loadNotifications(1, false);
+        });
+    }
 
     // Afficher une erreur
     function showError(message) {
@@ -359,8 +459,11 @@
     }
 
     // Charger au démarrage
+    console.log('🔔 Chargement initial des notifications');
     loadNotifications(1, false);
-})();
+    
+    console.log('✅ Script de notifications initialisé avec succès');
+});
 </script>
 @endsection
 

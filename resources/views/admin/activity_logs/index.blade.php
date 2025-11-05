@@ -135,16 +135,23 @@
                        value="{{ request('activity_id', '') }}"
                        min="1">
             </div>
-            <div class="col-md-2 mb-3">
-                <label for="user_id" class="form-label">Utilisateur</label>
-                <select name="user_id" id="user_id" class="form-select">
-                    <option value="">Tous les utilisateurs</option>
-                    @foreach($users as $user)
-                        <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>
-                            {{ $user->nom }} {{ $user->prenom }} ({{ $user->email }})
-                        </option>
-                    @endforeach
-                </select>
+            <div class="col-md-2 mb-3 position-relative">
+                <label for="user_search" class="form-label">Utilisateur</label>
+                <div class="position-relative">
+                    <input type="text" 
+                           class="form-control" 
+                           id="user_search" 
+                           placeholder="Rechercher un utilisateur..."
+                           value="{{ request('user_id') ? ($users->firstWhere('id', request('user_id')) ? $users->firstWhere('id', request('user_id'))->nom . ' ' . $users->firstWhere('id', request('user_id'))->prenom . ' (' . $users->firstWhere('id', request('user_id'))->email . ')' : '') : '' }}"
+                           autocomplete="off"
+                           data-search-url="{{ route('admin.search.users') }}"
+                           style="caret-color: #212529 !important;">
+                    <input type="hidden" name="user_id" id="user_id" value="{{ request('user_id', '') }}">
+                    <button type="button" class="btn btn-sm btn-link position-absolute" style="right: 5px; top: 50%; transform: translateY(-50%); padding: 0; border: none; background: none; color: #6c757d; cursor: pointer; display: {{ request('user_id') ? 'block' : 'none' }};" id="clear_user_search" title="Effacer">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="user-search-results position-absolute" style="display: none; z-index: 1000; background: white; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 300px; overflow-y: auto; width: 100%; margin-top: 5px; left: 0; top: 100%;"></div>
             </div>
             <div class="col-md-2 mb-3">
                 <label for="subject_type" class="form-label">Modèle</label>
@@ -203,7 +210,7 @@
                 @include('admin.components.search-input', [
                     'id' => 'search',
                     'name' => 'search',
-                    'placeholder' => 'ID activité, ID sujet, ID utilisateur, description...',
+                    'placeholder' => 'ID activité, ID sujet, ID utilisateur, nom utilisateur, description...',
                     'value' => request('search', ''),
                     'searchUrl' => '', // Pas d'autocomplete pour les logs d'activité (recherche simple)
                     'resultKey' => 'data',
@@ -212,7 +219,7 @@
                 ])
                 <small class="text-muted d-block mt-1">
                     <i class="fas fa-info-circle me-1"></i>
-                    Vous pouvez rechercher par ID d'activité, ID sujet, ID utilisateur, ou texte dans la description
+                    Vous pouvez rechercher par ID d'activité, ID sujet, ID utilisateur, nom/prénom utilisateur, email, ou texte dans la description
                 </small>
             </div>
             <div class="col-md-2 mb-3">
@@ -330,6 +337,108 @@
                 document.getElementById('filterForm').submit();
             }, 500);
         });
+    }
+
+    // Recherche d'utilisateur avec autocomplete
+    const userSearchInput = document.getElementById('user_search');
+    const userSearchResults = userSearchInput?.closest('.position-relative')?.parentElement?.querySelector('.user-search-results');
+    const userIdHidden = document.getElementById('user_id');
+    const clearUserBtn = document.getElementById('clear_user_search');
+    let userSearchTimeout;
+
+    if (userSearchInput && userSearchResults) {
+        // Recherche avec debounce
+        userSearchInput.addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+            clearTimeout(userSearchTimeout);
+            
+            if (query.length === 0) {
+                hideUserResults();
+                if (userIdHidden) userIdHidden.value = '';
+                if (clearUserBtn) clearUserBtn.style.display = 'none';
+                return;
+            }
+
+            if (query.length < 2) {
+                hideUserResults();
+                return;
+            }
+
+            userSearchTimeout = setTimeout(() => {
+                performUserSearch(query);
+            }, 500);
+        });
+
+        // Fonction de recherche
+        async function performUserSearch(query) {
+            try {
+                const response = await fetch(`${userSearchInput.dataset.searchUrl}?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    displayUserResults(data.data);
+                } else {
+                    hideUserResults();
+                }
+            } catch (error) {
+                console.error('Erreur recherche utilisateur:', error);
+                hideUserResults();
+            }
+        }
+
+        // Afficher les résultats
+        function displayUserResults(users) {
+            userSearchResults.innerHTML = '';
+            users.forEach(user => {
+                const item = document.createElement('div');
+                item.className = 'p-3 border-bottom user-search-item';
+                item.style.cursor = 'pointer';
+                item.innerHTML = `
+                    <div class="fw-bold">${user.title}</div>
+                    <div class="text-muted small">${user.subtitle}</div>
+                `;
+                item.addEventListener('click', function() {
+                    userSearchInput.value = user.title;
+                    if (userIdHidden) userIdHidden.value = user.id;
+                    hideUserResults();
+                    if (clearUserBtn) clearUserBtn.style.display = 'block';
+                    document.getElementById('filterForm').submit();
+                });
+                item.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = '#f8f9fa';
+                });
+                item.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = 'white';
+                });
+                userSearchResults.appendChild(item);
+            });
+            userSearchResults.style.display = 'block';
+        }
+
+        // Masquer les résultats
+        function hideUserResults() {
+            userSearchResults.style.display = 'none';
+        }
+
+        // Masquer les résultats quand on clique en dehors
+        document.addEventListener('click', function(e) {
+            if (userSearchInput && userSearchResults && !userSearchInput.closest('.position-relative').parentElement.contains(e.target)) {
+                hideUserResults();
+            }
+        });
+
+        // Bouton effacer
+        if (clearUserBtn) {
+            clearUserBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                userSearchInput.value = '';
+                if (userIdHidden) userIdHidden.value = '';
+                this.style.display = 'none';
+                hideUserResults();
+                document.getElementById('filterForm').submit();
+            });
+        }
     }
 </script>
 @endsection

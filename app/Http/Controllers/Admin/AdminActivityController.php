@@ -15,7 +15,7 @@ class AdminActivityController extends Controller
      */
     public function index(Request $request)
     {
-        $query = ActivityLog::orderBy('created_at', 'desc');
+        $query = ActivityLog::with('causer')->orderBy('created_at', 'desc');
 
         // Filtrage par ID d'activité
         if ($request->filled('activity_id')) {
@@ -67,10 +67,22 @@ class AdminActivityController extends Controller
                       ->orWhere('subject_id', $search)
                       ->orWhere('causer_id', $search)
                       ->orWhere('description', 'like', "%{$search}%")
-                      ->orWhere('log_name', 'like', "%{$search}%");
+                      ->orWhere('log_name', 'like', "%{$search}%")
+                      ->orWhereHas('causer', function($subQuery) use ($search) {
+                          $subQuery->where('nom', 'like', "%{$search}%")
+                                   ->orWhere('prenom', 'like', "%{$search}%")
+                                   ->orWhere('email', 'like', "%{$search}%")
+                                   ->orWhere('id', $search);
+                      });
                 } else {
                     $q->where('description', 'like', "%{$search}%")
-                      ->orWhere('log_name', 'like', "%{$search}%");
+                      ->orWhere('log_name', 'like', "%{$search}%")
+                      ->orWhereHas('causer', function($subQuery) use ($search) {
+                          $subQuery->where('nom', 'like', "%{$search}%")
+                                   ->orWhere('prenom', 'like', "%{$search}%")
+                                   ->orWhere('email', 'like', "%{$search}%")
+                                   ->orWhere(DB::raw("CONCAT(nom, ' ', prenom)"), 'like', "%{$search}%");
+                      });
                 }
             });
         }
@@ -313,8 +325,29 @@ class AdminActivityController extends Controller
             if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function($q) use ($search) {
-                    $q->where('description', 'like', "%{$search}%")
-                      ->orWhere('log_name', 'like', "%{$search}%");
+                    // Si c'est un nombre, chercher aussi par ID
+                    if (is_numeric($search)) {
+                        $q->where('id', $search)
+                          ->orWhere('subject_id', $search)
+                          ->orWhere('causer_id', $search)
+                          ->orWhere('description', 'like', "%{$search}%")
+                          ->orWhere('log_name', 'like', "%{$search}%")
+                          ->orWhereHas('causer', function($subQuery) use ($search) {
+                              $subQuery->where('nom', 'like', "%{$search}%")
+                                       ->orWhere('prenom', 'like', "%{$search}%")
+                                       ->orWhere('email', 'like', "%{$search}%")
+                                       ->orWhere('id', $search);
+                          });
+                    } else {
+                        $q->where('description', 'like', "%{$search}%")
+                          ->orWhere('log_name', 'like', "%{$search}%")
+                          ->orWhereHas('causer', function($subQuery) use ($search) {
+                              $subQuery->where('nom', 'like', "%{$search}%")
+                                       ->orWhere('prenom', 'like', "%{$search}%")
+                                       ->orWhere('email', 'like', "%{$search}%")
+                                       ->orWhere(DB::raw("CONCAT(nom, ' ', prenom)"), 'like', "%{$search}%");
+                          });
+                    }
                 });
             }
 

@@ -45,7 +45,17 @@
                             </tr>
                             <tr>
                                 <td><strong>Total:</strong></td>
-                                <td><strong class="text-primary">{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</strong></td>
+                                <td>
+                                    @php
+                                        use App\Helpers\AdminMenuHelper;
+                                        $canViewRevenue = AdminMenuHelper::canSee(auth()->user(), 'super-admin', 'admin');
+                                    @endphp
+                                    @if($canViewRevenue)
+                                        <strong class="text-primary">{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</strong>
+                                    @else
+                                        <span class="text-muted">***</span>
+                                    @endif
+                                </td>
                             </tr>
                         </table>
                     </div>
@@ -185,7 +195,19 @@
                         </table>
                     </div>
                     <div class="mt-3 text-end">
-                        <h5 class="text-primary">Total de la commande: {{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</h5>
+                        @php
+                            if (!isset($canViewRevenue)) {
+                                $canViewRevenue = AdminMenuHelper::canSee(auth()->user(), 'super-admin', 'admin');
+                            }
+                        @endphp
+                        <h5 class="text-primary">
+                            Total de la commande: 
+                            @if($canViewRevenue)
+                                {{ number_format($order->total_amount, 0, ',', ' ') }} FCFA
+                            @else
+                                <span class="text-muted">***</span>
+                            @endif
+                        </h5>
                     </div>
                 @else
                     <div class="text-center py-4">

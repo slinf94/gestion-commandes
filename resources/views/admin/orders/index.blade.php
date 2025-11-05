@@ -232,7 +232,15 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <strong>{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</strong>
+                                        @php
+                                            use App\Helpers\AdminMenuHelper;
+                                            $canViewRevenue = AdminMenuHelper::canSee(auth()->user(), 'super-admin', 'admin');
+                                        @endphp
+                                        @if($canViewRevenue)
+                                            <strong>{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</strong>
+                                        @else
+                                            <span class="text-muted">***</span>
+                                        @endif
                                     </td>
                                     <td>
                                         <small>{{ $order->created_at ? $order->created_at->format('d/m/Y H:i') : 'N/A' }}</small>
@@ -495,11 +503,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const orderId = this.getAttribute('data-order-id');
             const that = this;
             
-            customConfirm(
-                `Voulez-vous vraiment annuler la commande ${orderId} ?<br><small>Vous pouvez saisir une raison d'annulation.</small>`,
-                function onConfirm() {
-                    // Demander une raison (prompt simple)
-                    const reason = prompt('Raison de l\'annulation (optionnel) :', 'Annulation par l\'administrateur');
+            customCancelOrder(
+                orderId,
+                function onConfirm(reason) {
                     that.disabled = true;
                     postStatus(orderId, 'cancelled', reason || '')
                         .then(() => {
@@ -566,11 +572,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const orderId = this.getAttribute('data-order-id');
             const newStatus = this.getAttribute('data-new-status');
             const that = this;
-            customConfirm(
-                `Voulez-vous vraiment annuler la commande ${orderId} ?<br><small>Vous pouvez saisir une raison d'annulation.</small>`,
-                function onConfirm() {
-                    // Demander une raison (prompt simple)
-                    const reason = prompt('Raison de l\'annulation (optionnel) :', 'Annulation par l\'administrateur');
+            customCancelOrder(
+                orderId,
+                function onConfirm(reason) {
                     that.disabled = true;
                     postStatus(orderId, newStatus, reason || '')
                         .then(() => {

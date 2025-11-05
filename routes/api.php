@@ -68,6 +68,14 @@ Route::get('/products/type/{productType}', [ProductApiController::class, 'byType
     Route::get('/categories/{id}', [CategoryController::class, 'show']);
     Route::get('/categories/{id}/products', [CategoryController::class, 'products']);
 
+    // Panier (accessible sans authentification, utilise session_id)
+    Route::get('/cart', [CartController::class, 'index']);
+    Route::post('/cart/add', [CartController::class, 'add']);
+    Route::put('/cart/update/{id}', [CartController::class, 'update']);
+    Route::delete('/cart/remove/{id}', [CartController::class, 'remove']);
+    Route::delete('/cart/clear', [CartController::class, 'clear']);
+    Route::get('/cart/count', [CartController::class, 'count']);
+
 });
 
 // Routes protégées par authentification JWT
@@ -83,14 +91,6 @@ Route::prefix('v1')->middleware('jwt.auth')->group(function () {
     // Profil utilisateur
     Route::post('/profile/photo', [AuthController::class, 'uploadProfilePhoto']);
     Route::delete('/profile/delete', [AuthController::class, 'deleteAccount']);
-
-    // Panier (protégé par authentification)
-    Route::get('/cart', [CartController::class, 'index']);
-    Route::post('/cart/add', [CartController::class, 'add']);
-    Route::put('/cart/update/{id}', [CartController::class, 'update']);
-    Route::delete('/cart/remove/{id}', [CartController::class, 'remove']);
-    Route::delete('/cart/clear', [CartController::class, 'clear']);
-    Route::get('/cart/count', [CartController::class, 'count']);
 
     // Commandes
     Route::get('/orders', [OrderController::class, 'index']);

@@ -132,21 +132,81 @@ class NotificationController extends Controller
     /**
      * Marquer toutes les notifications comme lues
      */
-    public function markAllAsRead()
+    public function markAllAsRead(Request $request)
     {
-        $user = Auth::user();
-        
-        Notification::where(function($q) use ($user) {
-            $q->whereNull('user_id')->orWhere('user_id', $user->id);
-        })
-        ->unread()
-        ->update(['is_read' => true]);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Toutes les notifications ont été marquées comme lues',
-            'unread_count' => 0
-        ]);
+        try {
+            \Log::info('🔔 Début markAllAsRead', [
+                'user_id' => Auth::id(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+            
+            $user = Auth::user();
+            
+            if (!$user) {
+                \Log::warning('❌ Utilisateur non authentifié pour markAllAsRead');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Utilisateur non authentifié'
+                ], 401);
+            }
+            
+            \Log::info('👤 Utilisateur authentifié', ['user_id' => $user->id, 'email' => $user->email]);
+            
+            // Compter les notifications non lues avant la mise à jour
+            $beforeCount = Notification::where(function($q) use ($user) {
+                $q->whereNull('user_id')->orWhere('user_id', $user->id);
+            })
+            ->whereIn('type', ['order', 'account', 'system', 'client'])
+            ->where(function($q) {
+                $q->where('is_read', false)
+                  ->orWhereNull('is_read')
+                  ->orWhere('is_read', 0);
+            })
+            ->count();
+            
+            \Log::info('📊 Notifications non lues trouvées', ['count' => $beforeCount]);
+            
+            // Marquer toutes les notifications non lues comme lues
+            $updated = Notification::where(function($q) use ($user) {
+                $q->whereNull('user_id')->orWhere('user_id', $user->id);
+            })
+            ->whereIn('type', ['order', 'account', 'system', 'client'])
+            ->where(function($q) {
+                $q->where('is_read', false)
+                  ->orWhereNull('is_read')
+                  ->orWhere('is_read', 0);
+            })
+            ->update(['is_read' => true]);
+            
+            \Log::info('✅ Notifications marquées comme lues', [
+                'user_id' => $user->id,
+                'updated_count' => $updated,
+                'before_count' => $beforeCount
+            ]);
+            
+            $unreadCount = $this->getUnreadCount();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Toutes les notifications ont été marquées comme lues',
+                'count' => $updated,
+                'before_count' => $beforeCount,
+                'unread_count' => $unreadCount
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('❌ Erreur lors du marquage de toutes les notifications: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'user_id' => Auth::id()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du marquage des notifications: ' . $e->getMessage()
+            ], 500);
+        }
     }
     
     /**

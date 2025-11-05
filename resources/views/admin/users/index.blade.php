@@ -8,7 +8,13 @@
 @section('page-title', 'Gestion des Utilisateurs')
 
 @section('content')
+@php
+    $user = auth()->user();
+    $canViewUsers = AdminMenuHelper::canSee($user, 'super-admin', 'admin');
+@endphp
+
 <!-- Statistiques principales -->
+@if($canViewUsers)
 <div class="row mb-4">
     <div class="col-md-3 mb-4">
         <div class="card bg-primary text-white">
@@ -74,6 +80,7 @@
         </div>
     </div>
 </div>
+@endif
 
 <!-- Actions rapides -->
 <div class="row mb-4">

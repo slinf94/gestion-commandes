@@ -139,6 +139,17 @@ Route::prefix('admin')->group(function () {
             Route::get('/clients/{client}/orders/filter', [ClientController::class, 'filterOrders'])->name('admin.clients.orders.filter');
         });
 
+        // Gestion des profils et droits d'accès - Super Admin uniquement
+        Route::middleware(['role:super-admin'])->group(function () {
+            Route::get('/role-permissions', [\App\Http\Controllers\Admin\RolePermissionController::class, 'index'])->name('admin.role-permissions.index');
+            Route::get('/role-permissions/{user}', [\App\Http\Controllers\Admin\RolePermissionController::class, 'show'])->name('admin.role-permissions.show');
+            Route::post('/role-permissions/{user}/assign-role', [\App\Http\Controllers\Admin\RolePermissionController::class, 'assignRole'])->name('admin.role-permissions.assign-role');
+            Route::post('/role-permissions/{user}/remove-role', [\App\Http\Controllers\Admin\RolePermissionController::class, 'removeRole'])->name('admin.role-permissions.remove-role');
+            Route::post('/role-permissions/{user}/assign-permission', [\App\Http\Controllers\Admin\RolePermissionController::class, 'assignPermission'])->name('admin.role-permissions.assign-permission');
+            Route::post('/role-permissions/{user}/remove-permission', [\App\Http\Controllers\Admin\RolePermissionController::class, 'removePermission'])->name('admin.role-permissions.remove-permission');
+            Route::put('/role-permissions/{user}/update-legacy-role', [\App\Http\Controllers\Admin\RolePermissionController::class, 'updateLegacyRole'])->name('admin.role-permissions.update-legacy-role');
+        });
+
         // Gestion des quartiers - Super Admin, Admin et Gestionnaire
         Route::middleware(['role:super-admin,admin,gestionnaire'])->group(function () {
             Route::get('/quartiers', [QuartierController::class, 'index'])->name('admin.quartiers.index');
