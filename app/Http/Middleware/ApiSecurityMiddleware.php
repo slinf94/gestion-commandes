@@ -18,7 +18,15 @@ class ApiSecurityMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
-        // Vérifier si la requête provient d'un navigateur web
+        // TOUJOURS autoriser les routes API pour permettre la communication avec l'application mobile
+        // Ce middleware ne doit PAS bloquer les requêtes API
+        
+        // Si c'est une route API, toujours autoriser (pour mobile et tests)
+        if (str_starts_with($request->path(), 'api/')) {
+            return $next($request);
+        }
+
+        // Pour les autres routes (non-API), appliquer la logique de sécurité
         $userAgent = $request->header('User-Agent', '');
 
         // Liste des user agents de navigateurs courants

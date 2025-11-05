@@ -22,8 +22,28 @@ use App\Http\Controllers\Api\NotificationController;
 |
 */
 
+// Route de test de connectivité
+Route::get('/ping', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'Server is running',
+        'timestamp' => now()->toIso8601String(),
+        'server_ip' => $_SERVER['SERVER_ADDR'] ?? 'unknown'
+    ]);
+});
+
 // Routes publiques
 Route::prefix('v1')->group(function () {
+    // Route de test de connectivité pour mobile
+    Route::get('/ping', function () {
+        return response()->json([
+            'success' => true,
+            'message' => 'API is running',
+            'timestamp' => now()->toIso8601String(),
+            'server_ip' => $_SERVER['SERVER_ADDR'] ?? 'unknown'
+        ]);
+    });
+    
     // Authentification
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);

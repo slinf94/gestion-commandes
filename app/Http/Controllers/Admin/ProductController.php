@@ -14,16 +14,21 @@ class ProductController extends Controller
      */
     public function __construct()
     {
-        ini_set('memory_limit', '1G'); // Augmentation à 1GB
+        ini_set('memory_limit', '2G'); // Augmentation à 2GB
         ini_set('max_execution_time', 300); // 5 minutes max
     }
 
     public function index(Request $request)
     {
         try {
+            // Nettoyer les messages d'erreur persistants si on arrive sur la page directement
+            if (!$request->has('error_redirect')) {
+                // Ne pas nettoyer automatiquement, laisser Laravel gérer
+            }
+            
             // Construction de la requête avec filtres dynamiques
             // Utiliser DB::table pour éviter l'épuisement de mémoire
-            $query = DB::table('products')->select('*');
+            $query = DB::table('products')->select('id', 'name', 'slug', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price', 'min_wholesale_quantity', 'stock_quantity', 'min_stock_alert', 'status', 'sku', 'barcode', 'category_id', 'product_type_id', 'meta_title', 'meta_description', 'tags', 'images', 'created_at', 'updated_at', 'deleted_at');
 
             // Filtres dynamiques
             if ($request->filled('search')) {
@@ -80,9 +85,17 @@ class ProductController extends Controller
                     ->get()
                     ->groupBy('product_id');
 
-                // Ajouter les images à chaque produit
+                // Ajouter les images à chaque produit et s'assurer que le slug existe
                 foreach ($products as $product) {
                     $product->images = $allImages->get($product->id) ?? collect();
+                    // S'assurer que le slug existe, sinon le générer
+                    if (empty($product->slug) || is_null($product->slug) || trim($product->slug) === '') {
+                        $product->slug = Product::generateSlug($product->name, $product->id);
+                        // Mettre à jour en base de données
+                        DB::table('products')->where('id', $product->id)->update(['slug' => $product->slug]);
+                    }
+                    // S'assurer que le slug est une chaîne valide
+                    $product->slug = trim($product->slug ?? '');
                 }
             }
 
@@ -122,72 +135,84 @@ class ProductController extends Controller
         }
     }
 
-    public function show($id)
+    public function show($slug)
     {
         try {
-            // Version ULTRA-SIMPLE - Pas de modèle Eloquent du tout
-            $product = DB::table('products')
-                ->select('id', 'name', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price', 'min_wholesale_quantity', 'stock_quantity', 'min_stock_alert', 'status', 'sku', 'barcode', 'category_id', 'product_type_id', 'meta_title', 'meta_description', 'tags', 'images', 'created_at', 'updated_at')
-                ->where('id', $id)
+            // Augmenter la mémoire pour cette méthode
+            ini_set('memory_limit', '2G');
+            
+            // Version ULTRA-SIMPLE - Pas de modèle Eloquent du tout, récupération directe par slug
+            $productData = DB::table('products')
+                ->select('id', 'name', 'slug', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price', 'min_wholesale_quantity', 'stock_quantity', 'min_stock_alert', 'status', 'sku', 'barcode', 'category_id', 'product_type_id', 'meta_title', 'meta_description', 'tags', 'images', 'created_at', 'updated_at')
+                ->where('slug', $slug)
                 ->whereNull('deleted_at')
                 ->first();
-
-            if (!$product) {
+            
+            // Si on ne trouve pas le produit, rediriger
+            if (!$productData) {
                 return redirect()->route('admin.products.index')
                     ->with('error', 'Produit non trouvé.');
             }
+            
+            $productId = $productData->id;
 
             // Chargement séparé des relations si nécessaire (avec limite)
             $category = null;
-            if ($product->category_id) {
+            if ($productData->category_id) {
                 $category = DB::table('categories')
                     ->select('id', 'name')
-                    ->where('id', $product->category_id)
+                    ->where('id', $productData->category_id)
                     ->first();
             }
 
             $productType = null;
-            if ($product->product_type_id) {
+            if ($productData->product_type_id) {
                 $productType = DB::table('product_types')
                     ->select('id', 'name')
-                    ->where('id', $product->product_type_id)
+                    ->where('id', $productData->product_type_id)
                     ->first();
             }
 
-            // Chargement des attributs du produit
+            // Chargement des attributs du produit (LIMITÉ à 50)
             $attributeValues = DB::table('product_attribute_values')
                 ->join('product_type_attributes', 'product_attribute_values.product_type_attribute_id', '=', 'product_type_attributes.id')
-                ->select('product_attribute_values.*',
+                ->select('product_attribute_values.id',
+                         'product_attribute_values.attribute_value',
                          'product_type_attributes.attribute_name',
                          'product_type_attributes.attribute_type',
                          'product_type_attributes.options')
-                ->where('product_attribute_values.product_id', $id)
+                ->where('product_attribute_values.product_id', $productId)
                 ->orderBy('product_type_attributes.sort_order')
+                ->limit(50)
                 ->get();
 
-            // Chargement des images du produit
+            // Chargement des images du produit (LIMITÉ à 20)
             $productImages = DB::table('product_images')
                 ->select('id', 'product_id', 'url', 'order')
-                ->where('product_id', $id)
+                ->where('product_id', $productId)
                 ->orderBy('order')
+                ->limit(20)
                 ->get();
 
             // Conversion en objet pour la compatibilité avec la vue
-            $product = (object) $product;
+            $product = (object) $productData;
             $product->category = $category;
             $product->productType = $productType;
             $product->attributeValues = $attributeValues;
             $product->productImages = $productImages;
 
-            // Libération mémoire
-            unset($category, $productType, $attributeValues, $productImages);
+            // Libération mémoire immédiate
+            unset($productData, $category, $productType);
+            gc_collect_cycles();
 
             return view('admin.products.show', compact('product'));
 
         } catch (\Exception $e) {
-            \Log::error('Erreur dans ProductController::show: ' . $e->getMessage());
+            \Log::error('Erreur dans ProductController::show: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return redirect()->route('admin.products.index')
-                ->with('error', 'Erreur lors du chargement du produit.');
+                ->with('error', 'Erreur lors du chargement du produit: ' . $e->getMessage());
         }
     }
 
@@ -238,9 +263,13 @@ class ProductController extends Controller
         try {
             DB::beginTransaction();
 
+            // Générer le slug
+            $slug = Product::generateSlug($request->name);
+            
             // Création ultra-simple
             $productId = DB::table('products')->insertGetId([
                 'name' => $request->name,
+                'slug' => $slug,
                 'description' => $request->description,
                 'price' => $request->price,
                 'category_id' => $request->category_id,
@@ -258,7 +287,10 @@ class ProductController extends Controller
 
             DB::commit();
 
-            return redirect()->route('admin.products.show', $productId)
+            // Récupérer le slug du produit créé
+            $productSlug = DB::table('products')->where('id', $productId)->value('slug');
+            
+            return redirect()->route('admin.products.show', $productSlug)
                 ->with('success', 'Produit créé avec succès.');
 
         } catch (\Exception $e) {
@@ -270,7 +302,7 @@ class ProductController extends Controller
         }
     }
 
-    public function edit($id)
+    public function edit($slug)
     {
         try {
             // Chargement minimal avec limites
@@ -291,21 +323,58 @@ class ProductController extends Controller
                 ->limit(50)
                 ->get();
 
-            // Chargement du produit
-            $product = DB::table('products')
-                ->select('id', 'name', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price', 'min_wholesale_quantity', 'stock_quantity', 'min_stock_alert', 'status', 'sku', 'barcode', 'category_id', 'product_type_id', 'meta_title', 'meta_description', 'tags', 'images')
-                ->where('id', $id)
+            // Chargement du produit par slug (sans route model binding pour éviter la mémoire)
+            // Si le slug contient un ID à la fin (format: nom-produit-id), essayer de trouver par ID aussi
+            $productData = DB::table('products')
+                ->select('id', 'name', 'slug', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price', 'min_wholesale_quantity', 'stock_quantity', 'min_stock_alert', 'status', 'sku', 'barcode', 'category_id', 'product_type_id', 'meta_title', 'meta_description', 'tags', 'images')
+                ->where('slug', $slug)
                 ->whereNull('deleted_at')
                 ->first();
+            
+            // Si pas trouvé par slug, essayer de trouver par ID si le slug contient un ID (format: nom-produit-id)
+            if (!$productData && preg_match('/-(\d+)$/', $slug, $matches)) {
+                $productId = (int)$matches[1];
+                $productData = DB::table('products')
+                    ->select('id', 'name', 'slug', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price', 'min_wholesale_quantity', 'stock_quantity', 'min_stock_alert', 'status', 'sku', 'barcode', 'category_id', 'product_type_id', 'meta_title', 'meta_description', 'tags', 'images')
+                    ->where('id', $productId)
+                    ->whereNull('deleted_at')
+                    ->first();
+                
+                // Si trouvé par ID mais pas de slug, générer le slug et le mettre à jour
+                if ($productData && (empty($productData->slug) || is_null($productData->slug))) {
+                    $newSlug = Product::generateSlug($productData->name, $productData->id);
+                    DB::table('products')->where('id', $productData->id)->update(['slug' => $newSlug]);
+                    $productData->slug = $newSlug;
+                }
+            }
+            
+            // Si toujours pas trouvé, essayer de trouver par ID directement si le slug est juste un nombre
+            if (!$productData && is_numeric($slug)) {
+                $productData = DB::table('products')
+                    ->select('id', 'name', 'slug', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price', 'min_wholesale_quantity', 'stock_quantity', 'min_stock_alert', 'status', 'sku', 'barcode', 'category_id', 'product_type_id', 'meta_title', 'meta_description', 'tags', 'images')
+                    ->where('id', (int)$slug)
+                    ->whereNull('deleted_at')
+                    ->first();
+            }
 
-            if (!$product) {
-                return redirect()->route('admin.products.index')
-                    ->with('error', 'Produit non trouvé.');
+            if (!$productData) {
+                \Log::error('Produit non trouvé dans edit()', [
+                    'slug_recherche' => $slug,
+                    'type_slug' => gettype($slug),
+                    'produits_disponibles' => DB::table('products')
+                        ->select('id', 'name', 'slug')
+                        ->whereNull('deleted_at')
+                        ->limit(10)
+                        ->get()
+                        ->toArray()
+                ]);
+                return redirect()->route('admin.products.index', ['error_redirect' => true])
+                    ->with('error', 'Produit non trouvé. Slug: ' . htmlspecialchars($slug));
             }
 
             // Chargement des attributs existants du produit (LIMITÉ)
             $productAttributeValues = DB::table('product_attribute_values')
-                ->where('product_id', $id)
+                ->where('product_id', $productData->id)
                 ->limit(100)
                 ->get()
                 ->keyBy('attribute_id');
@@ -313,13 +382,13 @@ class ProductController extends Controller
             // Chargement des images existantes (LIMITÉ)
             $productImages = DB::table('product_images')
                 ->select('id', 'url', 'order')
-                ->where('product_id', $id)
+                ->where('product_id', $productData->id)
                 ->orderBy('order')
                 ->limit(20)
                 ->get();
 
             // Conversion pour compatibilité
-            $product = (object) $product;
+            $product = (object) $productData;
             $product->productImages = $productImages;
 
             return view('admin.products.edit', compact('product', 'categories', 'productTypes', 'attributes', 'productAttributeValues'));
@@ -331,11 +400,47 @@ class ProductController extends Controller
         }
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, $slug)
     {
+        // Essayer d'abord par slug exact
+        $productData = DB::table('products')
+            ->where('slug', $slug)
+            ->whereNull('deleted_at')
+            ->first();
+        
+        // Si pas trouvé par slug, essayer par ID si le slug contient un ID
+        if (!$productData && preg_match('/-(\d+)$/', $slug, $matches)) {
+            $productId = (int)$matches[1];
+            $productData = DB::table('products')
+                ->where('id', $productId)
+                ->whereNull('deleted_at')
+                ->first();
+        }
+        
+        // Si toujours pas trouvé, essayer par ID directement si le slug est juste un nombre
+        if (!$productData && is_numeric($slug)) {
+            $productData = DB::table('products')
+                ->where('id', (int)$slug)
+                ->whereNull('deleted_at')
+                ->first();
+        }
+        
+        if (!$productData) {
+            \Log::error('Produit non trouvé dans update()', [
+                'slug_recherche' => $slug,
+                'type_slug' => gettype($slug)
+            ]);
+            return redirect()->route('admin.products.index')
+                ->with('error', 'Produit non trouvé. Slug: ' . htmlspecialchars($slug));
+        }
+        
+        $productId = $productData->id;
+        $currentName = $productData->name;
+        
         // Log pour debug
         \Log::info('=== UPDATE PRODUCT ===', [
-            'id' => $id,
+            'slug' => $slug,
+            'id' => $productId,
             'all_data' => $request->all(),
             'name' => $request->name,
             'price' => $request->price
@@ -406,19 +511,27 @@ class ProductController extends Controller
 
             \Log::info('Données à mettre à jour:', $updateData);
 
+            // Générer le slug si le nom a changé
+            if (isset($validated['name']) && $validated['name'] !== $currentName) {
+                $updateData['slug'] = Product::generateSlug($validated['name'], $productId);
+            }
+
             // Mise à jour avec DB::table
             $updated = DB::table('products')
-                ->where('id', $id)
+                ->where('id', $productId)
                 ->update($updateData);
 
-            \Log::info('Produit mis à jour:', ['id' => $id, 'name' => $validated['name'], 'rows_affected' => $updated]);
+            \Log::info('Produit mis à jour:', ['id' => $productId, 'name' => $validated['name'], 'rows_affected' => $updated]);
+
+            // Récupérer le nouveau slug
+            $newSlug = DB::table('products')->where('id', $productId)->value('slug');
 
             // Gestion des images
             if ($request->hasFile('images')) {
-                $this->handleImageUpload($request->file('images'), $id);
+                $this->handleImageUpload($request->file('images'), $productId);
             }
 
-            return redirect()->route('admin.products.index')
+            return redirect()->route('admin.products.show', $newSlug)
                 ->with('success', 'Produit mis à jour avec succès !');
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -466,26 +579,48 @@ class ProductController extends Controller
         }
     }
 
-    public function destroy($id)
+    public function destroy($slug)
     {
         try {
-            // Vérifier si le produit existe
-            $product = DB::table('products')->where('id', $id)->first();
-
-            if (!$product) {
-                return redirect()->route('admin.products.index')
-                    ->with('error', 'Produit introuvable.');
+            // Essayer d'abord par slug exact
+            $productData = DB::table('products')
+                ->where('slug', $slug)
+                ->whereNull('deleted_at')
+                ->first();
+            
+            // Si pas trouvé par slug, essayer par ID si le slug contient un ID
+            if (!$productData && preg_match('/-(\d+)$/', $slug, $matches)) {
+                $productId = (int)$matches[1];
+                $productData = DB::table('products')
+                    ->where('id', $productId)
+                    ->whereNull('deleted_at')
+                    ->first();
             }
+            
+            // Si toujours pas trouvé, essayer par ID directement si le slug est juste un nombre
+            if (!$productData && is_numeric($slug)) {
+                $productData = DB::table('products')
+                    ->where('id', (int)$slug)
+                    ->whereNull('deleted_at')
+                    ->first();
+            }
+            
+            if (!$productData) {
+                return redirect()->route('admin.products.index')
+                    ->with('error', 'Produit non trouvé. Slug: ' . $slug);
+            }
+            
+            $productId = $productData->id;
 
             // Supprimer les images associées
-            DB::table('product_images')->where('product_id', $id)->delete();
+            DB::table('product_images')->where('product_id', $productId)->delete();
 
             // Supprimer les variantes associées
-            DB::table('product_variants')->where('product_id', $id)->delete();
+            DB::table('product_variants')->where('product_id', $productId)->delete();
 
             // Suppression du produit (soft delete)
             DB::table('products')
-                ->where('id', $id)
+                ->where('id', $productId)
                 ->update(['deleted_at' => now()]);
 
             return redirect()->route('admin.products.index')
@@ -500,34 +635,54 @@ class ProductController extends Controller
     /**
      * Activer/Désactiver rapidement un produit (AJAX)
      */
-    public function toggleStatus(Request $request, $id)
+    public function toggleStatus(Request $request, $slug)
     {
         try {
-            $product = DB::table('products')
+            // Essayer d'abord par slug exact
+            $productData = DB::table('products')
                 ->select('id', 'status')
-                ->where('id', $id)
+                ->where('slug', $slug)
                 ->whereNull('deleted_at')
                 ->first();
+            
+            // Si pas trouvé par slug, essayer par ID si le slug contient un ID
+            if (!$productData && preg_match('/-(\d+)$/', $slug, $matches)) {
+                $productId = (int)$matches[1];
+                $productData = DB::table('products')
+                    ->select('id', 'status')
+                    ->where('id', $productId)
+                    ->whereNull('deleted_at')
+                    ->first();
+            }
+            
+            // Si toujours pas trouvé, essayer par ID directement si le slug est juste un nombre
+            if (!$productData && is_numeric($slug)) {
+                $productData = DB::table('products')
+                    ->select('id', 'status')
+                    ->where('id', (int)$slug)
+                    ->whereNull('deleted_at')
+                    ->first();
+            }
 
-            if (!$product) {
+            if (!$productData) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Produit non trouvé'
+                    'message' => 'Produit non trouvé. Slug: ' . $slug
                 ], 404);
             }
 
             // Ne basculer qu'entre active/inactive
-            if ($product->status === 'draft') {
+            if ($productData->status === 'draft') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Le produit est en brouillon. Veuillez le compléter avant activation.'
                 ], 422);
             }
 
-            $newStatus = $product->status === 'active' ? 'inactive' : 'active';
+            $newStatus = $productData->status === 'active' ? 'inactive' : 'active';
 
             $updated = DB::table('products')
-                ->where('id', $id)
+                ->where('id', $productData->id)
                 ->update([
                     'status' => $newStatus,
                     'updated_at' => now()

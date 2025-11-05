@@ -15,7 +15,7 @@
                 <small class="opacity-75">Informations complètes et gestion des images</small>
             </div>
             <div>
-                <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-light me-2" style="border-radius: 8px;">
+                <a href="{{ route('admin.products.edit', $product->slug ?? $product->id) }}" class="btn btn-light me-2" style="border-radius: 8px;">
                     <i class="fas fa-edit me-2"></i>Modifier
                 </a>
                 <a href="{{ route('admin.products.index') }}" class="btn btn-outline-light" style="border-radius: 8px;">

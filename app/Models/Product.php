@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 // use App\Traits\LogsActivity;
 
 class Product extends Model
@@ -13,7 +14,7 @@ class Product extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'name', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price',
+        'name', 'slug', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price',
         'min_wholesale_quantity', 'stock_quantity', 'min_stock_alert', 'category_id',
         'product_type_id', 'sku', 'barcode', 'images', 'status', 'is_featured',
         'meta_title', 'meta_description', 'tags'
@@ -297,5 +298,60 @@ class Product extends Model
     public function scopeLowStock($query)
     {
         return $query->whereColumn('stock_quantity', '<=', 'min_stock_alert');
+    }
+
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($product) {
+            if (empty($product->slug)) {
+                $product->slug = static::generateSlug($product->name);
+            }
+        });
+
+        static::updating(function ($product) {
+            // Si le nom change, mettre à jour le slug
+            if ($product->isDirty('name') && empty($product->slug)) {
+                $product->slug = static::generateSlug($product->name, $product->id);
+            }
+        });
+    }
+
+    /**
+     * Generate a unique slug from the product name.
+     */
+    public static function generateSlug(string $name, ?int $excludeId = null): string
+    {
+        $slug = Str::slug($name);
+        $originalSlug = $slug;
+        $counter = 1;
+
+        $query = static::where('slug', $slug);
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        while ($query->exists()) {
+            $slug = $originalSlug . '-' . $counter;
+            $counter++;
+            $query = static::where('slug', $slug);
+            if ($excludeId) {
+                $query->where('id', '!=', $excludeId);
+            }
+        }
+
+        return $slug;
+    }
+
+    /**
+     * Get the route key for the model.
+     */
+    public function getRouteKeyName()
+    {
+        return 'slug';
     }
 }

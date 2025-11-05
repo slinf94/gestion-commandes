@@ -56,7 +56,11 @@
         <div class="col-12">
             <div class="card shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
                 <div class="card-body" style="padding: 30px;">
-                    <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data" id="productEditForm">
+                    @php
+                        // S'assurer d'utiliser le slug au lieu de l'ID
+                        $updateSlug = !empty($product->slug) ? $product->slug : (\Illuminate\Support\Str::slug($product->name) . '-' . $product->id);
+                    @endphp
+                    <form action="{{ route('admin.products.update', $updateSlug) }}" method="POST" enctype="multipart/form-data" id="productEditForm">
                         @csrf
                         <input type="hidden" name="_method" value="PUT">
                         <div class="row">
@@ -249,13 +253,16 @@
                                                     </div>
 
                                                     <div class="position-absolute bottom-0 end-0 p-1">
-                                                        <form method="POST" action="{{ route('admin.products.delete-image', [$product->id, $image->id]) }}"
+                                                        @php
+                                                            $deleteImageSlug = !empty($product->slug) ? $product->slug : (\Illuminate\Support\Str::slug($product->name) . '-' . $product->id);
+                                                        @endphp
+                                                        <form method="POST" action="{{ route('admin.products.delete-image', [$deleteImageSlug, $image->id]) }}"
                                                               class="d-inline delete-image-form"
                                                               onsubmit="return false;">
                                                             @csrf
                                                             @method('DELETE')
                                                             <button type="button" class="btn btn-sm btn-danger delete-image-btn"
-                                                                    data-url="{{ route('admin.products.delete-image', [$product->id, $image->id]) }}"
+                                                                    data-url="{{ route('admin.products.delete-image', [$deleteImageSlug, $image->id]) }}"
                                                                     data-message="Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible."
                                                                     title="Supprimer l&#39;image">
                                                                 <i class="fas fa-trash"></i>

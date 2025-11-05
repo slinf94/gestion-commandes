@@ -64,10 +64,8 @@ class AccountActivatedNotification extends Notification
             ->line('')
             ->line('⚠️ **Sécurité :** Gardez vos identifiants confidentiels.')
             ->line('')
-            ->action('🚀 Commencer mes achats', url('/'))
-            ->line('')
             ->line('💬 Des questions ? Contactez notre équipe :')
-            ->line('   📧 support@allomobile.com')
+            ->line('   📧 noreply.allomobile@gmail.com')
             ->line('   📱 Service client 24/7')
             ->line('')
             ->salutation('À très bientôt sur Allo Mobile !');

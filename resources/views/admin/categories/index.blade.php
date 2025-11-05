@@ -50,9 +50,16 @@
                                 <div class="row g-3">
                                     <!-- Recherche -->
                                     <div class="col-md-4">
-                                        <label for="search" class="form-label">Recherche</label>
-                                        <input type="text" class="form-control" id="search" name="search"
-                                               value="{{ request('search') }}" placeholder="Nom, description...">
+                                        @include('admin.components.search-input', [
+                                            'id' => 'search',
+                                            'name' => 'search',
+                                            'placeholder' => 'Nom, description...',
+                                            'value' => request('search', ''),
+                                            'searchUrl' => route('admin.search.categories'),
+                                            'resultKey' => 'data',
+                                            'minLength' => 2,
+                                            'debounceDelay' => 500
+                                        ])
                                     </div>
 
                                     <!-- Statut -->
@@ -309,13 +316,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // 2. GÉRER LA RECHERCHE (input text)
+    // 2. GÉRER LA RECHERCHE (input text) - SEULEMENT SI PAS D'AUTOCOMPLETE
     const searchInput = document.getElementById('search');
 
-    if (searchInput) {
-        console.log('✅ Champ de recherche trouvé');
+    if (searchInput && !searchInput.hasAttribute('data-autocomplete-initialized')) {
+        console.log('✅ Champ de recherche trouvé (mode formulaire)');
 
-        searchInput.addEventListener('input', function() {
+        searchInput.addEventListener('input', function(e) {
+            // Ne pas soumettre si l'autocomplete est actif
+            if (this.closest('.search-autocomplete-wrapper')) {
+                return;
+            }
             console.log('🔄 Recherche tapée:', this.value);
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
@@ -323,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 filterForm.submit();
             }, 500);
         });
-    } else {
+    } else if (!searchInput) {
         console.warn('⚠️ Champ de recherche introuvable');
     }
 

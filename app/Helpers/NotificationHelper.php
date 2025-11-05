@@ -14,31 +14,64 @@ class NotificationHelper
     public static function notifyAdmins($title, $message, $type = 'system', $data = [])
     {
         try {
-            // Récupérer tous les admins (super-admin, admin, gestionnaire)
-            $admins = User::whereIn('role', ['super-admin', 'admin', 'gestionnaire'])
-                         ->where('status', 'active')
-                         ->get();
+            // Récupérer tous les admins (admin, gestionnaire, vendeur) via le champ role
+            $adminsByRole = User::whereIn('role', ['admin', 'gestionnaire', 'vendeur'])
+                              ->where('status', 'active')
+                              ->get();
 
-            foreach ($admins as $admin) {
-                Notification::create([
-                    'user_id' => $admin->id,
+            // Récupérer aussi les admins via le système RBAC (super-admin, admin)
+            $adminsByRBAC = User::whereHas('roles', function($q) {
+                $q->whereIn('slug', ['super-admin', 'admin']);
+            })
+            ->where('status', 'active')
+            ->get();
+
+            // Fusionner les deux listes et supprimer les doublons
+            $allAdmins = $adminsByRole->merge($adminsByRBAC)->unique('id');
+
+            \Log::info('Recherche des admins pour notifications', [
+                'admins_by_role' => $adminsByRole->count(),
+                'admins_by_rbac' => $adminsByRBAC->count(),
+                'total_unique' => $allAdmins->count()
+            ]);
+
+            if ($allAdmins->isEmpty()) {
+                \Log::warning('Aucun admin trouvé pour les notifications', [
                     'title' => $title,
-                    'message' => $message,
-                    'type' => $type,
-                    'is_read' => false,
-                    'data' => $data,
+                    'type' => $type
                 ]);
+                return false;
+            }
+
+            $notificationsCreated = 0;
+            foreach ($allAdmins as $admin) {
+                try {
+                    Notification::create([
+                        'user_id' => $admin->id,
+                        'title' => $title,
+                        'message' => $message,
+                        'type' => $type,
+                        'is_read' => false,
+                        'data' => $data,
+                    ]);
+                    $notificationsCreated++;
+                } catch (\Exception $e) {
+                    \Log::error('Erreur création notification pour admin ' . $admin->id . ': ' . $e->getMessage());
+                }
             }
 
             \Log::info('Notifications créées pour les admins', [
                 'title' => $title,
                 'type' => $type,
-                'admins_count' => $admins->count()
+                'admins_count' => $allAdmins->count(),
+                'notifications_created' => $notificationsCreated
             ]);
 
-            return true;
+            return $notificationsCreated > 0;
         } catch (\Exception $e) {
-            \Log::error('Erreur création notifications admins: ' . $e->getMessage());
+            \Log::error('Erreur création notifications admins: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return false;
         }
     }

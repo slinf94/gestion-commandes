@@ -84,8 +84,7 @@ class OrderCreatedNotification extends Notification
             ->line('Merci pour votre confiance !')
             ->line('')
             ->salutation('Cordialement,')
-            ->line('L\'équipe Allo Mobile')
-            ->action('Suivre ma commande', url('/orders/' . $this->order->id));
+            ->line('L\'équipe Allo Mobile');
 
         return $mailMessage;
     }

@@ -17,6 +17,16 @@ class AdminActivityController extends Controller
     {
         $query = ActivityLog::orderBy('created_at', 'desc');
 
+        // Filtrage par ID d'activité
+        if ($request->filled('activity_id')) {
+            $query->where('id', $request->activity_id);
+        }
+
+        // Filtrage par ID du sujet (subject_id)
+        if ($request->filled('subject_id')) {
+            $query->where('subject_id', $request->subject_id);
+        }
+
         // Filtrage par utilisateur
         if ($request->filled('user_id')) {
             $query->where('causer_id', $request->user_id)
@@ -47,12 +57,21 @@ class AdminActivityController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        // Recherche dans la description
+        // Recherche dans la description, ID, ou autres champs
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('description', 'like', "%{$search}%")
-                  ->orWhere('log_name', 'like', "%{$search}%");
+                // Si c'est un nombre, chercher aussi par ID
+                if (is_numeric($search)) {
+                    $q->where('id', $search)
+                      ->orWhere('subject_id', $search)
+                      ->orWhere('causer_id', $search)
+                      ->orWhere('description', 'like', "%{$search}%")
+                      ->orWhere('log_name', 'like', "%{$search}%");
+                } else {
+                    $q->where('description', 'like', "%{$search}%")
+                      ->orWhere('log_name', 'like', "%{$search}%");
+                }
             });
         }
 
@@ -112,6 +131,16 @@ class AdminActivityController extends Controller
             ->orderBy('created_at', 'desc');
 
         // Appliquer les mêmes filtres que dans index()
+        // Filtrage par ID d'activité
+        if ($request->filled('activity_id')) {
+            $query->where('id', $request->activity_id);
+        }
+
+        // Filtrage par ID du sujet (subject_id)
+        if ($request->filled('subject_id')) {
+            $query->where('subject_id', $request->subject_id);
+        }
+
         if ($request->filled('user_id')) {
             $query->where('causer_id', $request->user_id)
                   ->where('causer_type', User::class);
@@ -140,13 +169,27 @@ class AdminActivityController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('description', 'like', "%{$search}%")
-                  ->orWhere('log_name', 'like', "%{$search}%")
-                  ->orWhereHas('causer', function($subQuery) use ($search) {
-                      $subQuery->where('nom', 'like', "%{$search}%")
-                               ->orWhere('prenom', 'like', "%{$search}%")
-                               ->orWhere('email', 'like', "%{$search}%");
-                  });
+                // Si c'est un nombre, chercher aussi par ID
+                if (is_numeric($search)) {
+                    $q->where('id', $search)
+                      ->orWhere('subject_id', $search)
+                      ->orWhere('causer_id', $search)
+                      ->orWhere('description', 'like', "%{$search}%")
+                      ->orWhere('log_name', 'like', "%{$search}%")
+                      ->orWhereHas('causer', function($subQuery) use ($search) {
+                          $subQuery->where('nom', 'like', "%{$search}%")
+                                   ->orWhere('prenom', 'like', "%{$search}%")
+                                   ->orWhere('email', 'like', "%{$search}%");
+                      });
+                } else {
+                    $q->where('description', 'like', "%{$search}%")
+                      ->orWhere('log_name', 'like', "%{$search}%")
+                      ->orWhereHas('causer', function($subQuery) use ($search) {
+                          $subQuery->where('nom', 'like', "%{$search}%")
+                                   ->orWhere('prenom', 'like', "%{$search}%")
+                                   ->orWhere('email', 'like', "%{$search}%");
+                      });
+                }
             });
         }
 

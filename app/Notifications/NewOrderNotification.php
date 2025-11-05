@@ -93,8 +93,6 @@ class NewOrderNotification extends Notification
         $mailMessage
             ->line('⚠️ **ACTION REQUISE** : Merci de traiter cette commande rapidement.')
             ->line('')
-            ->action('✅ Gérer la commande', url('/admin/orders/' . $this->order->id))
-            ->line('')
             ->salutation('L\'équipe Allo Mobile - Service Commandes');
 
         return $mailMessage;

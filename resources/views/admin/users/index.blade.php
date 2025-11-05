@@ -178,9 +178,16 @@
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="search" class="form-label">Recherche</label>
-                            <input type="text" class="form-control" id="search" name="search"
-                                   value="{{ request('search') }}" placeholder="Nom, email, téléphone...">
+                            @include('admin.components.search-input', [
+                                'id' => 'search',
+                                'name' => 'search',
+                                'placeholder' => 'Nom, email, téléphone...',
+                                'value' => request('search', ''),
+                                'searchUrl' => route('admin.search.users'),
+                                'resultKey' => 'data',
+                                'minLength' => 2,
+                                'debounceDelay' => 500
+                            ])
                         </div>
                         <div class="col-md-2 mb-3">
                             <label for="per_page" class="form-label">Par page</label>
@@ -568,8 +575,12 @@ function showAlert(message, type) {
     function reinitializeEventListeners() {
         // L'input search ne devrait pas être recréé, mais on vérifie quand même
         const searchInput = document.getElementById('search');
-        if (searchInput && !searchInput.hasAttribute('data-listener-attached')) {
-            searchInput.addEventListener('input', function() {
+        if (searchInput && !searchInput.hasAttribute('data-listener-attached') && !searchInput.hasAttribute('data-autocomplete-initialized')) {
+            searchInput.addEventListener('input', function(e) {
+                // Ne pas soumettre si l'autocomplete est actif
+                if (this.closest('.search-autocomplete-wrapper')) {
+                    return;
+                }
                 clearTimeout(filterTimeout);
                 const delay = this.value.length > 2 ? 400 : 800;
                 filterTimeout = setTimeout(() => {
@@ -678,11 +689,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('✅ Formulaire trouvé');
 
-    // 1. RECHERCHE AVEC AUTO-SUBMIT (debounce) - AVEC RESTAURATION DU FOCUS
+    // 1. RECHERCHE AVEC AUTO-SUBMIT (debounce) - SEULEMENT SI PAS D'AUTOCOMPLETE
     const searchInput = document.getElementById('search');
-    if (searchInput) {
-        console.log('✅ Champ de recherche trouvé');
-        searchInput.addEventListener('input', function() {
+    if (searchInput && !searchInput.hasAttribute('data-autocomplete-initialized')) {
+        console.log('✅ Champ de recherche trouvé (mode formulaire)');
+        searchInput.addEventListener('input', function(e) {
+            // Ne pas soumettre si l'autocomplete est actif
+            if (this.closest('.search-autocomplete-wrapper')) {
+                return;
+            }
             clearTimeout(filterTimeout);
             const delay = this.value.length > 2 ? 400 : 800;
             filterTimeout = setTimeout(() => {

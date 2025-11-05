@@ -50,10 +50,16 @@
                         <form method="GET" action="{{ route('admin.clients.index') }}" id="filterForm">
                             <div class="row mb-3">
                                 <div class="col-md-4">
-                                    <label class="form-label">Recherche</label>
-                                    <input type="text" class="form-control" name="search" id="search"
-                                           placeholder="Nom, email, téléphone..."
-                                           value="{{ request('search') }}">
+                                    @include('admin.components.search-input', [
+                                        'id' => 'search',
+                                        'name' => 'search',
+                                        'placeholder' => 'Nom, email, téléphone...',
+                                        'value' => request('search', ''),
+                                        'searchUrl' => route('admin.search.clients'),
+                                        'resultKey' => 'data',
+                                        'minLength' => 2,
+                                        'debounceDelay' => 500
+                                    ])
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Quartier</label>
@@ -202,10 +208,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (form) {
         let filterTimeout = null;
 
-        // Recherche avec debounce
+        // Recherche avec debounce (seulement si pas d'autocomplete)
         const searchInput = document.getElementById('search');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
+        if (searchInput && !searchInput.hasAttribute('data-autocomplete-initialized')) {
+            searchInput.addEventListener('input', function(e) {
+                // Ne pas soumettre si l'autocomplete est actif
+                if (this.closest('.search-autocomplete-wrapper')) {
+                    return;
+                }
                 clearTimeout(filterTimeout);
                 filterTimeout = setTimeout(() => form.submit(), 500);
             });

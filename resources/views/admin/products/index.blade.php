@@ -5,6 +5,7 @@
 
 @php
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 @endphp
 
 @section('content')
@@ -17,11 +18,15 @@ use Illuminate\Support\Facades\Storage;
 @endif
 
 @if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <div class="alert alert-danger alert-dismissible fade show auto-dismiss" data-dismiss-time="8000" role="alert">
         <i class="fas fa-exclamation-circle me-2"></i>
-        {{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <strong>Erreur:</strong> {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
+    @php
+        // Nettoyer le message d'erreur après affichage pour éviter la persistance
+        session()->forget('error');
+    @endphp
 @endif
 
 <div class="card shadow-lg border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
@@ -62,9 +67,16 @@ use Illuminate\Support\Facades\Storage;
             <div class="row g-3">
                 <!-- Recherche -->
                 <div class="col-md-4">
-                    <label for="search" class="form-label">Recherche</label>
-                    <input type="text" class="form-control" id="search" name="search"
-                           value="{{ request('search') }}" placeholder="Nom, description, SKU...">
+                    @include('admin.components.search-input', [
+                        'id' => 'search',
+                        'name' => 'search',
+                        'placeholder' => 'Nom, description, SKU...',
+                        'value' => request('search', ''),
+                        'searchUrl' => route('admin.search.products'),
+                        'resultKey' => 'data',
+                        'minLength' => 2,
+                        'debounceDelay' => 500
+                    ])
                 </div>
 
                 <!-- Statut -->
@@ -208,9 +220,13 @@ use Illuminate\Support\Facades\Storage;
                                 @if($product->status === 'draft')
                                     <span class="badge bg-warning">Brouillon</span>
                                 @else
+                                    @php
+                                        // S'assurer d'avoir un slug valide pour toggle
+                                        $toggleSlug = !empty($product->slug) ? $product->slug : (\Illuminate\Support\Str::slug($product->name) . '-' . $product->id);
+                                    @endphp
                                     <button type="button"
                                             class="btn btn-sm product-toggle-btn {{ $isActive ? 'btn-outline-secondary' : 'btn-success' }}"
-                                            data-product-id="{{ $product->id }}"
+                                            data-product-slug="{{ $toggleSlug }}"
                                             data-current-status="{{ $product->status }}">
                                         @if($isActive)
                                             <i class="fas fa-user-slash me-1"></i>Désactiver
@@ -225,13 +241,33 @@ use Illuminate\Support\Facades\Storage;
                             </td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <a href="{{ route('admin.products.show', $product->id) }}"
+                                    @php
+                                        // S'assurer d'avoir un slug valide
+                                        $showSlug = !empty($product->slug) ? $product->slug : (\Illuminate\Support\Str::slug($product->name) . '-' . $product->id);
+                                    @endphp
+                                    <a href="{{ route('admin.products.show', $showSlug) }}"
                                        class="btn btn-sm btn-outline-primary" title="Voir">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     @php $canEdit = auth()->user() && (auth()->user()->hasRole('super-admin') || auth()->user()->hasRole('admin') || in_array(auth()->user()->role,['super-admin','admin'])); @endphp
                                     @if($canEdit)
-                                        <a href="{{ route('admin.products.edit', $product->id) }}"
+                                        @php
+                                            // S'assurer d'avoir un slug valide - vérification stricte
+                                            $productSlug = isset($product->slug) ? trim($product->slug ?? '') : '';
+                                            if (empty($productSlug)) {
+                                                // Générer le slug si manquant
+                                                $productSlug = \Illuminate\Support\Str::slug($product->name);
+                                                // Vérifier l'unicité et ajouter l'ID si nécessaire
+                                                $existing = DB::table('products')->where('slug', $productSlug)->where('id', '!=', $product->id)->exists();
+                                                if ($existing) {
+                                                    $productSlug .= '-' . $product->id;
+                                                }
+                                                // Mettre à jour en base
+                                                DB::table('products')->where('id', $product->id)->update(['slug' => $productSlug]);
+                                            }
+                                            $editSlug = $productSlug;
+                                        @endphp
+                                        <a href="{{ route('admin.products.edit', $editSlug) }}"
                                            class="btn btn-sm btn-outline-warning" title="Modifier">
                                             <i class="fas fa-edit"></i>
                                         </a>
@@ -239,7 +275,11 @@ use Illuminate\Support\Facades\Storage;
                                            class="btn btn-sm btn-success" title="Gérer les variantes" style="border-radius: 6px;">
                                             <i class="fas fa-cubes me-1"></i>Variantes
                                         </a>
-                                        <form action="{{ route('admin.products.destroy', $product->id) }}"
+                                        @php
+                                            // S'assurer d'avoir un slug valide pour destroy
+                                            $destroySlug = !empty($product->slug) ? $product->slug : (\Illuminate\Support\Str::slug($product->name) . '-' . $product->id);
+                                        @endphp
+                                        <form action="{{ route('admin.products.destroy', $destroySlug) }}"
                                               id="delete-product-{{ $product->id }}"
                                               method="POST" class="d-inline delete-product-form">
                                             @csrf
@@ -325,11 +365,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('✅ Formulaire trouvé');
 
-    // 1. RECHERCHE AVEC AUTO-SUBMIT (debounce)
+    // 1. RECHERCHE AVEC AUTO-SUBMIT (debounce) - SEULEMENT SI PAS D'AUTOCOMPLETE
     const searchInput = document.getElementById('search');
-    if (searchInput) {
-        console.log('✅ Champ de recherche trouvé');
-        searchInput.addEventListener('input', function() {
+    if (searchInput && !searchInput.hasAttribute('data-autocomplete-initialized')) {
+        console.log('✅ Champ de recherche trouvé (mode formulaire)');
+        searchInput.addEventListener('input', function(e) {
+            // Ne pas soumettre si l'autocomplete est actif
+            if (this.closest('.search-autocomplete-wrapper')) {
+                return;
+            }
             clearTimeout(filterTimeout);
             const delay = this.value.length > 2 ? 300 : 600;
             filterTimeout = setTimeout(() => {
@@ -447,14 +491,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     document.querySelectorAll('.product-toggle-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            const productId = this.getAttribute('data-product-id');
+            const productSlug = this.getAttribute('data-product-slug');
             const current = this.getAttribute('data-current-status');
             const actionText = current === 'active' ? 'désactiver' : 'activer';
             const that = this;
 
             const doRequest = () => {
                 that.disabled = true;
-                fetch(`/admin/products/${productId}/toggle-status`, {
+                fetch(`/admin/products/${productSlug}/toggle-status`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

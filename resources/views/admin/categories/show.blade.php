@@ -213,7 +213,7 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <a href="{{ route('admin.products.show', $product->id) }}" class="btn btn-sm btn-outline-primary">
+                                        <a href="{{ route('admin.products.show', $product->slug ?? $product->id) }}" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                     </td>

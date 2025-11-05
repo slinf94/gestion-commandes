@@ -29,6 +29,23 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
+        // Augmenter le timeout pour cette requête spécifique
+        set_time_limit(300); // 5 minutes
+        ini_set('max_execution_time', '300');
+        ini_set('memory_limit', '512M');
+        
+        // Désactiver l'exécution du timeout pour cette requête
+        ignore_user_abort(true);
+        
+        \Log::info('=== REGISTER REQUEST START ===', [
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'data_received' => $request->except(['password', 'password_confirmation']),
+            'timestamp' => now()->toIso8601String(),
+            'server_ip' => $_SERVER['SERVER_ADDR'] ?? 'unknown'
+        ]);
+        
+        try {
         $validator = Validator::make($request->all(), [
             'nom' => 'required|string|max:100',
             'prenom' => 'required|string|max:100',
@@ -43,6 +60,9 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
+            \Log::warning('Register validation failed', [
+                'errors' => $validator->errors()->toArray()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
@@ -50,6 +70,10 @@ class AuthController extends Controller
             ], 422);
         }
 
+        \Log::info('Register validation passed, creating user...');
+        
+        DB::beginTransaction();
+        try {
         $user = User::create([
             'nom' => $request->nom,
             'prenom' => $request->prenom,
@@ -64,12 +88,28 @@ class AuthController extends Controller
             'status' => 'pending', // En attente d'activation par l'admin
         ]);
 
+        DB::commit();
+        
+        \Log::info('User created successfully', [
+            'user_id' => $user->id,
+            'email' => $user->email
+        ]);
+        
         // Notifier les administrateurs via le système de notifications
+        // Créer les notifications de manière synchrone pour garantir qu'elles sont créées
         try {
             \App\Helpers\NotificationHelper::notifyNewUser($user);
+            \Log::info('Admin notification sent successfully (sync)');
         } catch (\Exception $e) {
-            \Log::error('Erreur notification nouvel utilisateur: ' . $e->getMessage());
+            \Log::error('Erreur notification nouvel utilisateur: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Ne pas bloquer la création du compte si la notification échoue
         }
+
+        \Log::info('=== REGISTER REQUEST SUCCESS ===', [
+            'user_id' => $user->id
+        ]);
 
         return response()->json([
             'success' => true,
@@ -78,6 +118,34 @@ class AuthController extends Controller
                 'user' => $user->makeHidden(['password', 'two_factor_secret'])
             ]
         ], 201);
+        
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('=== REGISTER REQUEST ERROR ===', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la création du compte. Veuillez réessayer.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Une erreur est survenue'
+            ], 500);
+        }
+        } catch (\Exception $e) {
+            \Log::error('=== REGISTER REQUEST FATAL ERROR ===', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur serveur. Veuillez réessayer plus tard.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Erreur serveur'
+            ], 500);
+        }
     }
 
 

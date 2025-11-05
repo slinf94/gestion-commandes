@@ -126,6 +126,16 @@
     <form id="filterForm" method="GET" action="{{ route('admin.activity-logs.index') }}">
         <div class="row align-items-end">
             <div class="col-md-2 mb-3">
+                <label for="activity_id" class="form-label">ID Activité</label>
+                <input type="number" 
+                       name="activity_id" 
+                       id="activity_id" 
+                       class="form-control" 
+                       placeholder="ID de l'activité"
+                       value="{{ request('activity_id', '') }}"
+                       min="1">
+            </div>
+            <div class="col-md-2 mb-3">
                 <label for="user_id" class="form-label">Utilisateur</label>
                 <select name="user_id" id="user_id" class="form-select">
                     <option value="">Tous les utilisateurs</option>
@@ -179,10 +189,31 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-md-10 mb-3">
-                <label for="search" class="form-label">Recherche</label>
-                <input type="text" name="search" id="search" class="form-control"
-                       placeholder="Rechercher dans les descriptions, utilisateurs..." value="{{ request('search') }}">
+            <div class="col-md-2 mb-3">
+                <label for="subject_id" class="form-label">ID Sujet</label>
+                <input type="number" 
+                       name="subject_id" 
+                       id="subject_id" 
+                       class="form-control" 
+                       placeholder="ID du sujet"
+                       value="{{ request('subject_id', '') }}"
+                       min="1">
+            </div>
+            <div class="col-md-8 mb-3">
+                @include('admin.components.search-input', [
+                    'id' => 'search',
+                    'name' => 'search',
+                    'placeholder' => 'ID activité, ID sujet, ID utilisateur, description...',
+                    'value' => request('search', ''),
+                    'searchUrl' => '', // Pas d'autocomplete pour les logs d'activité (recherche simple)
+                    'resultKey' => 'data',
+                    'minLength' => 1,
+                    'debounceDelay' => 500
+                ])
+                <small class="text-muted d-block mt-1">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Vous pouvez rechercher par ID d'activité, ID sujet, ID utilisateur, ou texte dans la description
+                </small>
             </div>
             <div class="col-md-2 mb-3">
                 <button type="submit" class="btn btn-primary w-100">
@@ -285,14 +316,21 @@
         this.submit();
     });
 
-    // Recherche en temps réel
+    // Recherche en temps réel (seulement si le champ n'a pas l'autocomplete)
     let searchTimeout;
-    document.getElementById('search').addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            document.getElementById('filterForm').submit();
-        }, 500);
-    });
+    const searchInputForLogs = document.getElementById('search');
+    if (searchInputForLogs && !searchInputForLogs.hasAttribute('data-autocomplete-initialized')) {
+        searchInputForLogs.addEventListener('input', function(e) {
+            // Ne pas soumettre si l'autocomplete est actif
+            if (this.closest('.search-autocomplete-wrapper')) {
+                return;
+            }
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                document.getElementById('filterForm').submit();
+            }, 500);
+        });
+    }
 </script>
 @endsection
 

@@ -88,9 +88,16 @@
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <label for="search" class="form-label">Recherche</label>
-                                <input type="text" name="search" id="search" class="form-control"
-                                       placeholder="Nom ou slug..." value="{{ request('search') }}">
+                                @include('admin.components.search-input', [
+                                    'id' => 'search',
+                                    'name' => 'search',
+                                    'placeholder' => 'Nom ou slug...',
+                                    'value' => request('search', ''),
+                                    'searchUrl' => route('admin.search.attributes'),
+                                    'resultKey' => 'data',
+                                    'minLength' => 2,
+                                    'debounceDelay' => 500
+                                ])
                             </div>
                             <div class="col-md-3 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary me-2">
@@ -495,11 +502,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const inputs = form.querySelectorAll('input, select');
 
         inputs.forEach(input => {
+            // Ignorer les champs avec autocomplete pour éviter les conflits
+            if (input.hasAttribute('data-autocomplete-initialized')) {
+                return; // Ne pas ajouter d'écouteurs sur les champs avec autocomplete
+            }
+
             input.addEventListener('change', function() {
                 form.submit();
             });
 
-            if (input.type === 'text') {
+            if (input.type === 'text' && !input.hasAttribute('data-autocomplete-initialized')) {
                 input.addEventListener('keyup', function() {
                     clearTimeout(this.searchTimeout);
                     this.searchTimeout = setTimeout(() => {

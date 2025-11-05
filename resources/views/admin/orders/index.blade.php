@@ -86,8 +86,16 @@
                     <form method="GET" action="{{ route('admin.orders.index') }}" id="filterForm">
                         <div class="row">
                             <div class="col-md-3">
-                                <label for="search" class="form-label">Recherche</label>
-                                <input type="text" name="search" id="search" class="form-control" placeholder="ID, n° commande, client..." value="{{ request('search') }}">
+                                @include('admin.components.search-input', [
+                                    'id' => 'search',
+                                    'name' => 'search',
+                                    'placeholder' => 'ID, n° commande, client...',
+                                    'value' => request('search', ''),
+                                    'searchUrl' => route('admin.search.orders'),
+                                    'resultKey' => 'data',
+                                    'minLength' => 2,
+                                    'debounceDelay' => 500
+                                ])
                             </div>
                             <div class="col-md-2">
                                 <label for="status" class="form-label">Statut</label>

@@ -12,8 +12,12 @@ class Notification extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = [
+    /**
+     * Nom de la table (pour éviter les conflits avec Laravel Notifications)
+     */
+    protected $table = 'notifications';
 
+    protected $fillable = [
         'user_id',
         'title',
         'message',

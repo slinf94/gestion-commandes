@@ -849,6 +849,693 @@
         })();
     </script>
 
+    <!-- Script de recherche autocomplete -->
+    <script>
+        /**
+         * Script réutilisable pour les champs de recherche avec autocomplete
+         */
+        (function() {
+            'use strict';
+
+            function initializeSearchAutocomplete(input) {
+                const wrapper = input.closest('.search-autocomplete-wrapper');
+                if (!wrapper) return;
+
+                const resultsContainer = wrapper.querySelector('.search-autocomplete-results');
+                const resultsList = wrapper.querySelector('.search-autocomplete-list');
+                const emptyMessage = wrapper.querySelector('.search-autocomplete-empty');
+                const spinner = wrapper.querySelector('.search-autocomplete-spinner');
+                const clearBtn = wrapper.querySelector('.search-autocomplete-clear');
+                
+                const searchUrl = input.getAttribute('data-search-url');
+                const resultKey = input.getAttribute('data-result-key') || 'data';
+                const minLength = parseInt(input.getAttribute('data-min-length') || '2');
+                const debounceDelay = parseInt(input.getAttribute('data-debounce-delay') || '500');
+                
+                let debounceTimer = null;
+                let isSearching = false;
+                let currentFocus = -1;
+                let isComposing = false; // Pour gérer les compositions IME (caractères spéciaux)
+                
+                // Marquer le champ pour éviter les conflits avec d'autres scripts
+                input.setAttribute('data-autocomplete-initialized', 'true');
+                
+                // Fonction pour afficher/masquer le bouton de suppression
+                function updateClearButton() {
+                    if (clearBtn) {
+                        clearBtn.style.display = input.value.length > 0 ? 'block' : 'none';
+                    }
+                }
+                
+                // Fonction pour effacer la recherche
+                function clearSearch() {
+                    input.value = '';
+                    input.focus();
+                    hideResults();
+                    updateClearButton();
+                    // Déclencher l'événement input pour mettre à jour le formulaire si nécessaire
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                
+                // Écouter le bouton de suppression
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        clearSearch();
+                    });
+                }
+                
+                // Mettre à jour le bouton au chargement
+                updateClearButton();
+
+                function performSearch(query) {
+                    if (!searchUrl || query.length < minLength) {
+                        hideResults();
+                        return;
+                    }
+
+                    if (isSearching) return;
+                    isSearching = true;
+
+                    // Préserver le focus et la position du curseur AVANT toute opération
+                    const wasFocused = document.activeElement === input;
+                    const cursorPosition = input.selectionStart;
+
+                    if (spinner) spinner.style.display = 'block';
+                    showResults();
+
+                    const url = new URL(searchUrl, window.location.origin);
+                    url.searchParams.set('q', query);
+                    url.searchParams.set('limit', '10');
+
+                    fetch(url.toString(), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            // Si la réponse n'est pas OK, essayer de lire le message d'erreur
+                            return response.json().then(errData => {
+                                throw new Error(errData.message || `HTTP error! status: ${response.status}`);
+                            }).catch(() => {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Vérifier si la réponse contient une erreur
+                        if (data.success === false) {
+                            showError(data.message || 'Erreur lors de la recherche');
+                            return;
+                        }
+                        displayResults(data, resultKey, query);
+                    })
+                    .catch(error => {
+                        console.error('Erreur recherche:', error);
+                        showError('Erreur lors de la recherche: ' + (error.message || 'Erreur inconnue'));
+                    })
+                    .finally(() => {
+                        isSearching = false;
+                        if (spinner) spinner.style.display = 'none';
+                        
+                        // Restaurer le focus après la recherche - TRIPLE PROTECTION
+                        if (wasFocused) {
+                            // Technique 1: Restauration immédiate
+                            setTimeout(() => {
+                                input.focus();
+                                const newCursorPos = Math.min(cursorPosition, input.value.length);
+                                input.setSelectionRange(newCursorPos, newCursorPos);
+                            }, 0);
+                            
+                            // Technique 2: Double requestAnimationFrame
+                            requestAnimationFrame(() => {
+                                requestAnimationFrame(() => {
+                                    input.focus();
+                                    const newCursorPos = Math.min(cursorPosition, input.value.length);
+                                    input.setSelectionRange(newCursorPos, newCursorPos);
+                                });
+                            });
+                            
+                            // Technique 3: Vérification après un court délai
+                            setTimeout(() => {
+                                if (document.activeElement !== input) {
+                                    input.focus();
+                                    const newCursorPos = Math.min(cursorPosition, input.value.length);
+                                    input.setSelectionRange(newCursorPos, newCursorPos);
+                                }
+                            }, 50);
+                        }
+                    });
+                }
+
+                function displayResults(data, resultKey, query) {
+                    if (!resultsList || !resultsContainer) return;
+                    const results = getNestedValue(data, resultKey) || [];
+                    
+                    if (results.length === 0) {
+                        showEmptyMessage();
+                        showResults(); // Afficher le message "Aucun résultat"
+                        return;
+                    }
+
+                    hideEmptyMessage();
+                    resultsList.innerHTML = '';
+                    results.forEach((item, index) => {
+                        const itemElement = createResultItem(item, index, query);
+                        resultsList.appendChild(itemElement);
+                    });
+                    currentFocus = -1;
+                    
+                    // AFFICHER les résultats et LES GARDER AFFICHÉS
+                    showResults();
+                }
+
+                // Fonction helper pour les badges de statut
+                function getStatusBadgeColor(status) {
+                    const statusLower = status.toLowerCase();
+                    if (statusLower.includes('confirmée') || statusLower.includes('livrée') || statusLower.includes('terminée')) return 'success';
+                    if (statusLower.includes('en attente')) return 'warning';
+                    if (statusLower.includes('en traitement') || statusLower.includes('expédiée')) return 'info';
+                    if (statusLower.includes('annulée')) return 'danger';
+                    return 'secondary';
+                }
+
+                function createResultItem(item, index, query) {
+                    const div = document.createElement('div');
+                    div.className = 'search-autocomplete-item';
+                    div.setAttribute('data-index', index);
+                    div.setAttribute('tabindex', '0');
+
+                    const title = item.title || item.name || item.label || item.text || '';
+                    let subtitle = item.subtitle || item.description || item.email || item.phone || '';
+                    
+                    // Améliorer l'affichage selon le type de résultat
+                    if (item.sku) {
+                        // C'est un produit, améliorer l'affichage
+                        const subtitleParts = subtitle.split(' • ');
+                        let formattedSubtitle = '';
+                        
+                        if (subtitleParts.length >= 2) {
+                            // Afficher : Catégorie | Prix | Stock
+                            formattedSubtitle = `
+                                <div class="search-autocomplete-item-subtitle">
+                                    ${subtitleParts[0] ? `<span class="badge bg-info me-2">${escapeHtml(subtitleParts[0])}</span>` : ''}
+                                    <strong>${escapeHtml(subtitleParts[1] || '')}</strong>
+                                    ${subtitleParts[2] ? `<span class="ms-2 ${subtitleParts[2].includes('Rupture') ? 'text-danger' : 'text-success'}">${escapeHtml(subtitleParts[2])}</span>` : ''}
+                                </div>
+                            `;
+                        } else {
+                            formattedSubtitle = subtitle ? `<div class="search-autocomplete-item-subtitle">${escapeHtml(subtitle)}</div>` : '';
+                        }
+                        
+                        div.innerHTML = `
+                            <div class="search-autocomplete-item-title">${highlightText(title, query)}</div>
+                            ${formattedSubtitle}
+                        `;
+                    } else if (item.order_number || item.status) {
+                        // C'est une commande
+                        const subtitleParts = subtitle.split(' • ');
+                        let formattedSubtitle = '';
+                        
+                        if (subtitleParts.length >= 2) {
+                            formattedSubtitle = `
+                                <div class="search-autocomplete-item-subtitle">
+                                    ${subtitleParts[0] ? `<span class="text-primary">${escapeHtml(subtitleParts[0])}</span>` : ''}
+                                    <strong class="ms-2">${escapeHtml(subtitleParts[1] || '')}</strong>
+                                    ${subtitleParts[2] ? `<span class="badge bg-${getStatusBadgeColor(subtitleParts[2])} ms-2">${escapeHtml(subtitleParts[2])}</span>` : ''}
+                                </div>
+                            `;
+                        } else {
+                            formattedSubtitle = subtitle ? `<div class="search-autocomplete-item-subtitle">${escapeHtml(subtitle)}</div>` : '';
+                        }
+                        
+                        div.innerHTML = `
+                            <div class="search-autocomplete-item-title">${highlightText(title, query)}</div>
+                            ${formattedSubtitle}
+                        `;
+                    } else {
+                        // Autres types de résultats (utilisateurs, catégories, etc.)
+                        const subtitleParts = subtitle.split(' • ');
+                        let formattedSubtitle = '';
+                        
+                        if (subtitleParts.length > 1) {
+                            formattedSubtitle = `
+                                <div class="search-autocomplete-item-subtitle">
+                                    ${subtitleParts.map((part, idx) => {
+                                        if (idx === 0 && item.email) {
+                                            return `<span class="text-primary">${escapeHtml(part)}</span>`;
+                                        } else if (part.includes('Actif') || part.includes('Inactif')) {
+                                            const color = part.includes('Actif') ? 'success' : 'secondary';
+                                            return `<span class="badge bg-${color} ms-2">${escapeHtml(part)}</span>`;
+                                        } else {
+                                            return `<span>${escapeHtml(part)}</span>`;
+                                        }
+                                    }).join(' • ')}
+                                </div>
+                            `;
+                        } else {
+                            formattedSubtitle = subtitle ? `<div class="search-autocomplete-item-subtitle">${escapeHtml(subtitle)}</div>` : '';
+                        }
+                        
+                        div.innerHTML = `
+                            <div class="search-autocomplete-item-title">${highlightText(title, query)}</div>
+                            ${formattedSubtitle}
+                        `;
+                    }
+
+                    div.addEventListener('mousedown', function(e) {
+                        // Empêcher la perte de focus lors du clic
+                        e.preventDefault();
+                        selectItem(item);
+                    });
+                    
+                    div.addEventListener('click', () => selectItem(item));
+                    
+                    div.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            selectItem(item);
+                        }
+                    });
+
+                    return div;
+                }
+
+                function highlightText(text, query) {
+                    if (!text || !query) return escapeHtml(text);
+                    const escapedText = escapeHtml(text);
+                    const escapedQuery = escapeHtml(query);
+                    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+                    return escapedText.replace(regex, '<mark>$1</mark>');
+                }
+
+                function escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                }
+
+                function selectItem(item) {
+                    // Si l'élément a une URL, rediriger vers cette URL
+                    if (item.url) {
+                        window.location.href = item.url;
+                        return;
+                    }
+
+                    // Sinon, remplir le champ avec la valeur sélectionnée
+                    if (item.value !== undefined) {
+                        input.value = item.value;
+                    } else if (item.title) {
+                        input.value = item.title;
+                    } else if (item.name) {
+                        input.value = item.name;
+                    }
+
+                    input.dispatchEvent(new CustomEvent('search:selected', {
+                        detail: { item: item }
+                    }));
+
+                    // Masquer les résultats seulement après sélection
+                    hideResults();
+                    
+                    // Restaurer le focus avec position du curseur
+                    setTimeout(() => {
+                        input.focus();
+                        const cursorPos = input.value.length;
+                        input.setSelectionRange(cursorPos, cursorPos);
+                    }, 0);
+                }
+
+                function getNestedValue(obj, path) {
+                    return path.split('.').reduce((current, key) => current && current[key], obj);
+                }
+
+                function showResults() {
+                    if (resultsContainer) {
+                        resultsContainer.style.display = 'block';
+                        resultsContainer.style.visibility = 'visible';
+                        resultsContainer.style.opacity = '1';
+                        // S'assurer que le conteneur reste visible
+                        resultsContainer.setAttribute('data-visible', 'true');
+                    }
+                }
+
+                function hideResults() {
+                    // Ne masquer que si l'utilisateur clique explicitement en dehors ou efface le texte
+                    if (resultsContainer) {
+                        resultsContainer.style.display = 'none';
+                        resultsContainer.style.visibility = 'hidden';
+                        resultsContainer.setAttribute('data-visible', 'false');
+                        currentFocus = -1;
+                    }
+                }
+
+                function showEmptyMessage() {
+                    if (emptyMessage) emptyMessage.style.display = 'block';
+                    if (resultsList) resultsList.innerHTML = '';
+                }
+
+                function hideEmptyMessage() {
+                    if (emptyMessage) emptyMessage.style.display = 'none';
+                }
+
+                function showError(message) {
+                    // Afficher l'erreur dans le conteneur de résultats
+                    if (resultsContainer) {
+                        resultsContainer.style.display = 'block';
+                        if (emptyMessage) {
+                            emptyMessage.style.display = 'none';
+                        }
+                        if (resultsList) {
+                            resultsList.innerHTML = `
+                                <div style="padding: 20px; text-align: center; color: #dc3545; border-bottom: 1px solid #f0f0f0;">
+                                    <i class="fas fa-exclamation-circle me-2"></i><strong>${escapeHtml(message)}</strong>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+
+                function setActiveItem(items, index) {
+                    items.forEach((item, i) => {
+                        if (i === index) {
+                            item.classList.add('active');
+                            item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                        } else {
+                            item.classList.remove('active');
+                        }
+                    });
+                }
+
+                // Gérer les événements de composition (pour les caractères spéciaux)
+                input.addEventListener('compositionstart', function() {
+                    isComposing = true;
+                });
+                
+                input.addEventListener('compositionend', function() {
+                    isComposing = false;
+                });
+
+                // Fonction pour préserver et restaurer le focus
+                function preserveFocus(callback) {
+                    const wasFocused = document.activeElement === input;
+                    const cursorPosition = input.selectionStart;
+                    
+                    // Exécuter la callback
+                    if (callback) callback();
+                    
+                    // Toujours restaurer le focus si le champ était focusé
+                    if (wasFocused) {
+                        // Utiliser requestAnimationFrame pour garantir que le DOM est stable
+                        requestAnimationFrame(() => {
+                            input.focus();
+                            const newCursorPos = Math.min(cursorPosition, input.value.length);
+                            input.setSelectionRange(newCursorPos, newCursorPos);
+                        });
+                    }
+                }
+
+                input.addEventListener('input', function(e) {
+                    // Ne pas traiter pendant la composition (caractères spéciaux)
+                    if (isComposing) return;
+                    
+                    // Empêcher la propagation pour éviter les conflits avec d'autres scripts
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    
+                    // PRÉSERVER IMMÉDIATEMENT la position du curseur AVANT toute autre opération
+                    const cursorPosition = input.selectionStart || input.value.length;
+                    const wasFocused = document.activeElement === input;
+                    
+                    // Mettre à jour le bouton de suppression
+                    updateClearButton();
+                    
+                    const query = e.target.value.trim();
+                    clearTimeout(debounceTimer);
+                    
+                    // RESTAURER LE FOCUS IMMÉDIATEMENT après chaque frappe - TRIPLE PROTECTION
+                    if (wasFocused) {
+                        // Technique 1: Restauration immédiate
+                        setTimeout(() => {
+                            input.focus();
+                            const newCursorPos = Math.min(cursorPosition, input.value.length);
+                            input.setSelectionRange(newCursorPos, newCursorPos);
+                        }, 0);
+                        
+                        // Technique 2: Double requestAnimationFrame pour garantir
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                input.focus();
+                                const newCursorPos = Math.min(cursorPosition, input.value.length);
+                                input.setSelectionRange(newCursorPos, newCursorPos);
+                            });
+                        });
+                        
+                        // Technique 3: Vérification supplémentaire après un court délai
+                        setTimeout(() => {
+                            if (document.activeElement !== input) {
+                                input.focus();
+                                const newCursorPos = Math.min(cursorPosition, input.value.length);
+                                input.setSelectionRange(newCursorPos, newCursorPos);
+                            }
+                        }, 10);
+                    }
+                    
+                    if (query.length === 0) {
+                        hideResults();
+                        return;
+                    }
+
+                    // Vérifier si l'autocomplete est activé et si une URL de recherche existe
+                    if (!searchUrl || searchUrl === '') {
+                        return; // Pas d'autocomplete, le champ fonctionne comme un champ de recherche normal
+                    }
+
+                    if (query.length < minLength) {
+                        hideResults();
+                        return;
+                    }
+
+                    debounceTimer = setTimeout(() => {
+                        // Préserver le focus AVANT la recherche
+                        const currentCursorPos = input.selectionStart || input.value.length;
+                        const wasFocusedBefore = document.activeElement === input;
+                        const inputValue = input.value; // Sauvegarder la valeur
+                        
+                        performSearch(query);
+                        
+                        // Restaurer le focus APRÈS la recherche - TRIPLE PROTECTION
+                        if (wasFocusedBefore) {
+                            // Technique 1: Restauration immédiate
+                            setTimeout(() => {
+                                input.focus();
+                                const newCursorPos = Math.min(currentCursorPos, input.value.length);
+                                input.setSelectionRange(newCursorPos, newCursorPos);
+                            }, 0);
+                            
+                            // Technique 2: Double requestAnimationFrame
+                            requestAnimationFrame(() => {
+                                requestAnimationFrame(() => {
+                                    input.focus();
+                                    const newCursorPos = Math.min(currentCursorPos, input.value.length);
+                                    input.setSelectionRange(newCursorPos, newCursorPos);
+                                });
+                            });
+                            
+                            // Technique 3: Vérification après un court délai
+                            setTimeout(() => {
+                                if (document.activeElement !== input) {
+                                    input.focus();
+                                    const newCursorPos = Math.min(currentCursorPos, input.value.length);
+                                    input.setSelectionRange(newCursorPos, newCursorPos);
+                                }
+                            }, 50);
+                        }
+                    }, debounceDelay);
+                });
+                
+                // Empêcher la perte de focus lors des clics sur les résultats
+                // NE PAS masquer les résultats lors du blur - ils restent affichés
+                input.addEventListener('blur', function(e) {
+                    // Ne pas perdre le focus si on clique sur les résultats ou le wrapper
+                    const relatedTarget = e.relatedTarget;
+                    const cursorPos = input.selectionStart || input.value.length;
+                    
+                    if (relatedTarget && wrapper.contains(relatedTarget)) {
+                        // Utiliser setTimeout pour restaurer le focus après le blur
+                        setTimeout(() => {
+                            input.focus();
+                            input.setSelectionRange(cursorPos, cursorPos);
+                        }, 0);
+                        
+                        // Double protection avec requestAnimationFrame
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                input.focus();
+                                input.setSelectionRange(cursorPos, cursorPos);
+                            });
+                        });
+                    }
+                    // NE PAS appeler hideResults() ici - les résultats restent affichés
+                });
+
+                // Gérer les clics pour maintenir le focus ET garder les résultats affichés
+                document.addEventListener('click', function(e) {
+                    if (!wrapper.contains(e.target)) {
+                        // Clic en dehors du wrapper - masquer les résultats
+                        hideResults();
+                    } else if (e.target === input || wrapper.contains(e.target)) {
+                        // Si on clique sur l'input ou dans le wrapper, s'assurer qu'il a le focus
+                        const cursorPos = input.selectionStart || input.value.length;
+                        
+                        // Si on clique sur l'input, afficher les résultats s'ils existent
+                        if (e.target === input && input.value.length >= minLength) {
+                            // Afficher les résultats si on a déjà fait une recherche
+                            if (resultsList && resultsList.children.length > 0) {
+                                showResults();
+                            }
+                        }
+                        
+                        // Triple protection pour le focus
+                        setTimeout(() => {
+                            input.focus();
+                            input.setSelectionRange(cursorPos, cursorPos);
+                        }, 0);
+                        
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                if (document.activeElement !== input) {
+                                    input.focus();
+                                    input.setSelectionRange(cursorPos, cursorPos);
+                                }
+                            });
+                        });
+                    }
+                });
+                
+                // Empêcher la perte de focus lors de l'affichage des résultats
+                input.addEventListener('focus', function() {
+                    // S'assurer que le focus reste avec triple protection
+                    const cursorPos = input.selectionStart || input.value.length;
+                    
+                    setTimeout(() => {
+                        input.focus();
+                        input.setSelectionRange(cursorPos, cursorPos);
+                    }, 0);
+                    
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            if (document.activeElement !== input) {
+                                input.focus();
+                                input.setSelectionRange(cursorPos, cursorPos);
+                            }
+                        });
+                    });
+                });
+                
+                // Gérer les événements mousedown pour préserver le focus
+                input.addEventListener('mousedown', function(e) {
+                    // Ne pas empêcher le comportement par défaut, mais s'assurer que le focus reste
+                    const cursorPos = input.selectionStart || input.value.length;
+                    
+                    setTimeout(() => {
+                        input.focus();
+                        input.setSelectionRange(cursorPos, cursorPos);
+                    }, 0);
+                    
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            input.focus();
+                            input.setSelectionRange(cursorPos, cursorPos);
+                        });
+                    });
+                });
+                
+                // Gérer les événements keydown pour préserver le focus ET navigation
+                input.addEventListener('keydown', function(e) {
+                    const items = resultsList ? resultsList.querySelectorAll('.search-autocomplete-item') : [];
+                    
+                    // Navigation dans les résultats (ArrowDown, ArrowUp, Enter, Escape)
+                    if (items.length > 0 && ['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(e.key)) {
+                        // La navigation est gérée plus bas
+                    } else {
+                        // Pour toutes les autres touches, préserver le focus
+                        const cursorPos = input.selectionStart || input.value.length;
+                        setTimeout(() => {
+                            input.focus();
+                            input.setSelectionRange(cursorPos, cursorPos);
+                        }, 0);
+                    }
+                    
+                    if (items.length === 0) return;
+
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        currentFocus = (currentFocus < items.length - 1) ? currentFocus + 1 : 0;
+                        setActiveItem(items, currentFocus);
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        currentFocus = (currentFocus > 0) ? currentFocus - 1 : items.length - 1;
+                        setActiveItem(items, currentFocus);
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (currentFocus >= 0 && items[currentFocus]) {
+                            items[currentFocus].click();
+                        }
+                    } else if (e.key === 'Escape') {
+                        hideResults();
+                    }
+                });
+            }
+
+            // Initialiser tous les champs de recherche au chargement
+            function initAllSearchInputs() {
+                const searchInputs = document.querySelectorAll('.search-autocomplete-input:not([data-autocomplete-initialized])');
+                searchInputs.forEach(input => {
+                    try {
+                        initializeSearchAutocomplete(input);
+                    } catch (error) {
+                        console.error('Erreur initialisation autocomplete:', error);
+                    }
+                });
+            }
+            
+            // Initialiser au chargement du DOM
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initAllSearchInputs);
+            } else {
+                // DOM déjà chargé
+                initAllSearchInputs();
+            }
+            
+            // Réinitialiser après les mises à jour AJAX (MutationObserver)
+            const observer = new MutationObserver(function(mutations) {
+                let shouldReinit = false;
+                mutations.forEach(function(mutation) {
+                    if (mutation.addedNodes.length > 0) {
+                        mutation.addedNodes.forEach(function(node) {
+                            if (node.nodeType === 1 && (node.classList.contains('search-autocomplete-input') || node.querySelector('.search-autocomplete-input'))) {
+                                shouldReinit = true;
+                            }
+                        });
+                    }
+                });
+                if (shouldReinit) {
+                    initAllSearchInputs();
+                }
+            });
+            
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        })();
+    </script>
+
     @yield('scripts')
 </body>
 </html>

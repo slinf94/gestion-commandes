@@ -30,9 +30,16 @@
                     <form method="GET" action="{{ route('admin.quartiers.clients', $quartier) }}">
                         <div class="row">
                             <div class="col-md-3">
-                                <label for="search">Recherche</label>
-                                <input type="text" class="form-control" id="search" name="search"
-                                       value="{{ request('search') }}" placeholder="Nom, email...">
+                                @include('admin.components.search-input', [
+                                    'id' => 'search',
+                                    'name' => 'search',
+                                    'placeholder' => 'Nom, email...',
+                                    'value' => request('search', ''),
+                                    'searchUrl' => route('admin.search.clients'),
+                                    'resultKey' => 'data',
+                                    'minLength' => 2,
+                                    'debounceDelay' => 500
+                                ])
                             </div>
                             <div class="col-md-2">
                                 <label for="status">Statut</label>

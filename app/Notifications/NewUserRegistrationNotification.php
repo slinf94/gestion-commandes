@@ -60,8 +60,6 @@ class NewUserRegistrationNotification extends Notification
             ->line('')
             ->line('⚠️ **Important :** Vérifiez les informations avant activation.')
             ->line('')
-            ->action('✅ Gérer le compte utilisateur', url('/admin/users/' . $this->user->id))
-            ->line('')
             ->salutation('L\'équipe Allo Mobile - Administration');
     }
 

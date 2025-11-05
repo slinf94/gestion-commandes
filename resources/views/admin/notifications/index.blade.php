@@ -275,34 +275,50 @@
 
     // Supprimer notification
     window.deleteNotification = function(id) {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer cette notification ?')) {
-            return;
+        // Récupérer les détails de la notification pour le message personnalisé
+        const card = document.querySelector(`[data-id="${id}"]`);
+        let notificationTitle = 'cette notification';
+        if (card) {
+            const titleElement = card.querySelector('h6');
+            if (titleElement) {
+                notificationTitle = `"${titleElement.textContent.trim()}"`;
+            }
         }
 
-        fetch(`/admin/notifications/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const card = document.querySelector(`[data-id="${id}"]`);
-                if (card) {
-                    card.style.transition = 'opacity 0.3s';
-                    card.style.opacity = '0';
-                    setTimeout(() => card.remove(), 300);
-                }
-                showAlert('Notification supprimée', 'success');
-            }
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            showAlert('Erreur lors de la suppression', 'error');
-        });
+        customConfirm(
+            `Êtes-vous sûr de vouloir supprimer ${notificationTitle} ?<br><br><small class="text-muted">Cette action est irréversible et la notification sera définitivement supprimée.</small>`,
+            function() {
+                // Confirmation : supprimer la notification
+                fetch(`/admin/notifications/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const card = document.querySelector(`[data-id="${id}"]`);
+                        if (card) {
+                            card.style.transition = 'opacity 0.3s';
+                            card.style.opacity = '0';
+                            setTimeout(() => card.remove(), 300);
+                        }
+                        showAlert('Notification supprimée', 'success');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showAlert('Erreur lors de la suppression', 'error');
+                });
+            },
+            null, // Pas de fonction d'annulation
+            'Supprimer la notification',
+            'Supprimer',
+            'Annuler'
+        );
     };
 
     // Marquer toutes comme lues

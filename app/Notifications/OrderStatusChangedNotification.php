@@ -86,8 +86,7 @@ class OrderStatusChangedNotification extends Notification
                     ->line('Nous espérons que vous êtes satisfait de votre commande.')
                     ->line('Merci pour votre confiance et à très bientôt sur Allo Mobile !')
                     ->line('');
-                $mailMessage->line('💬 **Votre avis nous intéresse** : N\'hésitez pas à nous laisser un commentaire.')
-                    ->action('Laisser un avis', url('/orders/' . $this->order->id . '/review'));
+                $mailMessage->line('💬 **Votre avis nous intéresse** : N\'hésitez pas à nous laisser un commentaire.');
                 break;
             case OrderStatus::CANCELLED:
                 $mailMessage->line('❌ **Votre commande a été annulée.**')
@@ -95,9 +94,8 @@ class OrderStatusChangedNotification extends Notification
                     ->line('n\'hésitez pas à nous contacter au service client.')
                     ->line('');
                 $mailMessage->line('📞 **Besoin d\'aide ?** Contactez-nous :')
-                    ->line('   📧 support@allomobile.com')
-                    ->line('   📱 Service client')
-                    ->action('Nous contacter', url('/contact'));
+                    ->line('   📧 noreply.allomobile@gmail.com')
+                    ->line('   📱 Service client');
                 break;
         }
 
@@ -122,8 +120,6 @@ class OrderStatusChangedNotification extends Notification
             ->line($this->order->delivery_address['country'] ?? '')
             ->line('')
             ->line('💬 **Questions ?** Notre équipe est à votre disposition.')
-            ->line('')
-            ->action('📋 Voir ma commande', url('/orders/' . $this->order->id))
             ->line('')
             ->salutation('Cordialement,')
             ->line('📱 L\'équipe Allo Mobile');

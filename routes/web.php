@@ -88,23 +88,23 @@ Route::prefix('admin')->group(function () {
             Route::post('/products/bulk-update', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'bulkUpdate'])->name('admin.products.bulk-update');
             Route::get('/products/statistics/export', [\App\Http\Controllers\Admin\ProductImportExportController::class, 'exportStatistics'])->name('admin.products.statistics.export');
 
-            Route::get('/products/{id}/edit', [ProductController::class, 'edit'])->name('admin.products.edit');
-            Route::put('/products/{id}', [ProductController::class, 'update'])->name('admin.products.update');
-            Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('admin.products.destroy');
-            Route::post('/products/{id}/restore', [ProductController::class, 'restore'])->name('admin.products.restore');
-            Route::post('/products/{id}/toggle-status', [ProductController::class, 'toggleStatus'])->name('admin.products.toggle-status');
+            Route::get('/products/{slug}/edit', [ProductController::class, 'edit'])->name('admin.products.edit');
+            Route::put('/products/{slug}', [ProductController::class, 'update'])->name('admin.products.update');
+            Route::delete('/products/{slug}', [ProductController::class, 'destroy'])->name('admin.products.destroy');
+            Route::post('/products/{slug}/restore', [ProductController::class, 'restore'])->name('admin.products.restore');
+            Route::post('/products/{slug}/toggle-status', [ProductController::class, 'toggleStatus'])->name('admin.products.toggle-status');
         });
 
-        // IMPORTANT: placer /products/{id} APRÈS /products/create pour éviter le conflit
+        // IMPORTANT: placer /products/{product} APRÈS /products/create pour éviter le conflit
         Route::middleware(['role:super-admin,admin,gestionnaire,vendeur'])->group(function () {
-            Route::get('/products/{id}', [ProductController::class, 'show'])->name('admin.products.show');
+            Route::get('/products/{slug}', [ProductController::class, 'show'])->name('admin.products.show');
         });
 
     // Gestion des images de produits (réservé Admin/SuperAdmin)
     Route::middleware(['role:super-admin,admin'])->group(function () {
-        Route::post('/products/{product}/images', [ProductController::class, 'uploadImages'])->name('admin.products.upload-images');
-        Route::post('/products/{product}/images/{image}/set-main', [ProductController::class, 'setMainImage'])->name('admin.products.set-main-image');
-        Route::delete('/products/{product}/images/{image}', [ProductController::class, 'deleteImage'])->name('admin.products.delete-image');
+        Route::post('/products/{slug}/images', [ProductController::class, 'uploadImages'])->name('admin.products.upload-images');
+        Route::post('/products/{slug}/images/{image}/set-main', [ProductController::class, 'setMainImage'])->name('admin.products.set-main-image');
+        Route::delete('/products/{slug}/images/{image}', [ProductController::class, 'deleteImage'])->name('admin.products.delete-image');
     });
 
     // Gestion des variantes de produits (réservé Admin/SuperAdmin)
@@ -223,6 +223,17 @@ Route::prefix('admin')->group(function () {
 
                 // Gestion des variantes de produits
                 // Route déjà définie plus haut, à voir si protection nécessaire
+
+                // Recherche autocomplete - Tous les admins
+                Route::middleware(['role:super-admin,admin,gestionnaire'])->group(function () {
+                    Route::get('/search/products', [\App\Http\Controllers\Admin\SearchController::class, 'products'])->name('admin.search.products');
+                    Route::get('/search/users', [\App\Http\Controllers\Admin\SearchController::class, 'users'])->name('admin.search.users');
+                    Route::get('/search/orders', [\App\Http\Controllers\Admin\SearchController::class, 'orders'])->name('admin.search.orders');
+                    Route::get('/search/clients', [\App\Http\Controllers\Admin\SearchController::class, 'clients'])->name('admin.search.clients');
+                    Route::get('/search/categories', [\App\Http\Controllers\Admin\SearchController::class, 'categories'])->name('admin.search.categories');
+                    Route::get('/search/attributes', [\App\Http\Controllers\Admin\SearchController::class, 'attributes'])->name('admin.search.attributes');
+                    Route::get('/search/product-types', [\App\Http\Controllers\Admin\SearchController::class, 'productTypes'])->name('admin.search.product-types');
+                });
 
                 // Notifications admin - Tous les admins
                 Route::middleware(['role:super-admin,admin,gestionnaire'])->group(function () {
