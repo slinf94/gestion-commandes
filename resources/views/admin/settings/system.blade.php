@@ -150,19 +150,23 @@
                                         </div>
 
                                         <div class="col-md-6 col-lg-3 mb-3">
-                                            <button type="button" class="btn btn-success btn-block"
-                                                    onclick="alert('Fonctionnalité à venir')">
-                                                <i class="fas fa-database me-2"></i>
-                                                Optimiser DB
-                                            </button>
+                                            <form action="{{ route('admin.settings.optimize-db') }}" method="POST"
+                                                  class="d-inline"
+                                                  onsubmit="return false;">
+                                                @csrf
+                                                <button type="button" class="btn btn-success btn-block"
+                                                        onclick="submitWithConfirmation(this.closest('form'), 'Êtes-vous sûr de vouloir optimiser la base de données ? Cette action va optimiser toutes les tables pour améliorer les performances.')">
+                                                    <i class="fas fa-database me-2"></i>
+                                                    Optimiser DB
+                                                </button>
+                                            </form>
                                         </div>
 
                                         <div class="col-md-6 col-lg-3 mb-3">
-                                            <button type="button" class="btn btn-secondary btn-block"
-                                                    onclick="alert('Fonctionnalité à venir')">
+                                            <a href="{{ route('admin.settings.logs') }}" class="btn btn-secondary btn-block">
                                                 <i class="fas fa-file-alt me-2"></i>
                                                 Voir les Logs
-                                            </button>
+                                            </a>
                                         </div>
                                     </div>
                                 </div>

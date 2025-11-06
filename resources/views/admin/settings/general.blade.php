@@ -99,11 +99,6 @@
                             <li><strong>Debug :</strong> {{ $settings['app_debug'] ? 'Activé' : 'Désactivé' }}</li>
                         </ul>
                     </div>
-
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Note :</strong> Certains paramètres nécessitent un redémarrage du serveur pour être pris en compte.
-                    </div>
                 </div>
             </div>
 

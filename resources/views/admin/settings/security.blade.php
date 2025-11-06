@@ -24,34 +24,28 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Information :</strong> Les paramètres de sécurité sont actuellement en cours de développement.
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0" style="color: #38B04A; font-weight: 600;">
                                 <i class="fas fa-lock me-2"></i>
                                 Authentification
                             </h5>
                         </div>
                         <div class="card-body">
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                <strong>En développement :</strong> Les paramètres d'authentification seront disponibles dans une prochaine version.
-                            </div>
-
                             <div class="form-group">
-                                <label>Mot de passe actuel</label>
+                                <label class="fw-bold">Mot de passe actuel</label>
                                 <div class="input-group">
                                     <input type="password" class="form-control" value="••••••••" disabled>
                                     <div class="input-group-append">
-                                        <a href="{{ route('admin.profile.password') }}" class="btn btn-outline-primary">
+                                        <a href="{{ route('admin.profile.password') }}" class="btn btn-success" style="background: linear-gradient(135deg, #38B04A, #4CAF50); border: none;">
                                             <i class="fas fa-edit"></i> Modifier
                                         </a>
                                     </div>
                                 </div>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Fonctionnalité disponible : Vous pouvez modifier votre mot de passe à tout moment.
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -70,32 +64,33 @@
                             </div>
 
                             <div class="form-group">
-                                <label>Durée de session</label>
-                                <select class="form-control" disabled>
+                                <label class="fw-bold">Durée de session</label>
+                                <select class="form-control" disabled style="background-color: #f8f9fa;">
                                     <option>2 heures (par défaut)</option>
                                 </select>
-                                <small class="form-text text-muted">En développement</small>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Fonctionnalité à venir : Vous pourrez configurer la durée d'inactivité avant déconnexion automatique.
+                                </small>
                             </div>
                         </div>
                     </div>
 
                     <div class="card mt-3">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0" style="color: #38B04A; font-weight: 600;">
                                 <i class="fas fa-ban me-2"></i>
                                 Restrictions d'Accès
                             </h5>
                         </div>
                         <div class="card-body">
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                <strong>En développement :</strong> Les restrictions d'accès seront configurable dans une prochaine version.
-                            </div>
-
                             <div class="form-group">
-                                <label>Adresses IP autorisées</label>
-                                <input type="text" class="form-control" value="Toutes les adresses IP" disabled>
-                                <small class="form-text text-muted">En développement</small>
+                                <label class="fw-bold">Adresses IP autorisées</label>
+                                <input type="text" class="form-control" value="Toutes les adresses IP" disabled style="background-color: #f8f9fa;">
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Fonctionnalité à venir : Vous pourrez restreindre l'accès à des adresses IP spécifiques pour renforcer la sécurité.
+                                </small>
                             </div>
                         </div>
                     </div>

@@ -265,7 +265,11 @@ Route::prefix('admin')->group(function () {
                     Route::get('/settings/notifications', [SettingsController::class, 'notifications'])->name('admin.settings.notifications');
                     Route::put('/settings/notifications', [SettingsController::class, 'updateNotifications'])->name('admin.settings.notifications.update');
                     Route::get('/settings/system', [SettingsController::class, 'system'])->name('admin.settings.system');
+                    Route::get('/settings/logs', [SettingsController::class, 'logs'])->name('admin.settings.logs');
+                    Route::get('/settings/maintenance', [SettingsController::class, 'maintenance'])->name('admin.settings.maintenance');
                     Route::post('/settings/clear-cache', [SettingsController::class, 'clearCache'])->name('admin.settings.clear-cache');
+                    Route::post('/settings/optimize-db', [SettingsController::class, 'optimizeDatabase'])->name('admin.settings.optimize-db');
+                    Route::post('/settings/clear-logs', [SettingsController::class, 'clearLogs'])->name('admin.settings.clear-logs');
                 });
     });
 });

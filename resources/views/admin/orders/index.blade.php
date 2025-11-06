@@ -233,8 +233,7 @@
                                     </td>
                                     <td>
                                         @php
-                                            use App\Helpers\AdminMenuHelper;
-                                            $canViewRevenue = AdminMenuHelper::canSee(auth()->user(), 'super-admin', 'admin');
+                                            $canViewRevenue = \App\Helpers\AdminMenuHelper::canSee(auth()->user(), 'super-admin', 'admin');
                                         @endphp
                                         @if($canViewRevenue)
                                             <strong>{{ number_format($order->total_amount, 0, ',', ' ') }} FCFA</strong>
@@ -256,13 +255,6 @@
                                             $isTerminal = in_array($status, ['cancelled','delivered','completed']);
                                         @endphp
                                         <div class="d-flex flex-wrap gap-2">
-                                            @php
-                                                $status = is_string($order->status) ? $order->status : ($order->status->value ?? 'pending');
-                                                $isPending = $status === 'pending';
-                                                $isConfirmed = $status === 'confirmed';
-                                                $isProcessing = $status === 'processing';
-                                                $isShipped = $status === 'shipped';
-                                            @endphp
                                             @if($isPending)
                                                 <button type="button"
                                                         class="btn btn-sm btn-success order-quick-action"
@@ -349,7 +341,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="7" class="text-center py-5">
+                                    <td colspan="8" class="text-center py-5">
                                         <div class="empty-state">
                                             <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
                                             <h5 class="text-muted">Aucune commande trouvée</h5>
@@ -502,7 +494,7 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function() {
             const orderId = this.getAttribute('data-order-id');
             const that = this;
-            
+
             customCancelOrder(
                 orderId,
                 function onConfirm(reason) {
