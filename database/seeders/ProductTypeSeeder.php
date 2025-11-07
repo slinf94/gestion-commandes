@@ -15,18 +15,99 @@ class ProductTypeSeeder extends Seeder
      */
     public function run(): void
     {
-        // Récupérer les catégories existantes
-        $electronique = Category::where('slug', 'electronique')->first();
-        $vetements = Category::where('slug', 'vetements')->first();
-        $maison = Category::where('slug', 'maison-jardin')->first();
-        $sports = Category::where('slug', 'sports-loisirs')->first();
+        // S'assurer que les catégories nécessaires existent
+        $categoriesSeed = [
+            'electronique' => [
+                'name' => 'Électronique',
+                'description' => 'Appareils électroniques et gadgets',
+                'is_active' => true,
+            ],
+            'vetements' => [
+                'name' => 'Mode & Beauté',
+                'description' => 'Vêtements et produits de beauté',
+                'is_active' => true,
+            ],
+            'maison-jardin' => [
+                'name' => 'Maison & Jardin',
+                'description' => 'Articles pour la maison et le jardin',
+                'is_active' => true,
+            ],
+            'sports-loisirs' => [
+                'name' => 'Sports & Loisirs',
+                'description' => 'Articles de sport et loisirs',
+                'is_active' => true,
+            ],
+        ];
 
-        // Récupérer les attributs existants
-        $couleur = Attribute::where('slug', 'couleur')->first();
-        $taille = Attribute::where('slug', 'taille')->first();
-        $marque = Attribute::where('slug', 'marque')->first();
-        $poids = Attribute::where('slug', 'poids')->first();
-        $garantie = Attribute::where('slug', 'garantie')->first();
+        $categories = [];
+        foreach ($categoriesSeed as $slug => $data) {
+            $categories[$slug] = Category::updateOrCreate(
+                ['slug' => $slug],
+                array_merge($data, ['slug' => $slug])
+            );
+        }
+
+        $electronique = $categories['electronique'];
+        $vetements = $categories['vetements'];
+        $maison = $categories['maison-jardin'];
+        $sports = $categories['sports-loisirs'];
+
+        // S'assurer que les attributs nécessaires existent
+        $attributesSeed = [
+            'couleur' => [
+                'name' => 'Couleur',
+                'type' => 'select',
+                'is_filterable' => true,
+                'is_variant' => false,
+                'is_required' => false,
+            ],
+            'taille' => [
+                'name' => 'Taille',
+                'type' => 'select',
+                'is_filterable' => true,
+                'is_variant' => false,
+                'is_required' => false,
+            ],
+            'marque' => [
+                'name' => 'Marque',
+                'type' => 'select',
+                'is_filterable' => true,
+                'is_variant' => false,
+                'is_required' => false,
+            ],
+            'poids' => [
+                'name' => 'Poids',
+                'type' => 'number',
+                'is_filterable' => true,
+                'is_variant' => false,
+                'is_required' => false,
+            ],
+            'garantie' => [
+                'name' => 'Garantie',
+                'type' => 'text',
+                'is_filterable' => false,
+                'is_variant' => false,
+                'is_required' => false,
+            ],
+        ];
+
+        $attributes = [];
+        foreach ($attributesSeed as $slug => $data) {
+            $attributes[$slug] = Attribute::updateOrCreate(
+                ['slug' => $slug],
+                array_merge($data, [
+                    'slug' => $slug,
+                    'is_active' => true,
+                    'sort_order' => $data['sort_order'] ?? 0,
+                ])
+            );
+        }
+
+        $couleur = $attributes['couleur'];
+        $taille = $attributes['taille'];
+        $marque = $attributes['marque'];
+        $poids = $attributes['poids'];
+        $garantie = $attributes['garantie'];
 
         $productTypes = [
             [

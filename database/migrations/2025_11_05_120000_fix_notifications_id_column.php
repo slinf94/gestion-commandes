@@ -22,10 +22,14 @@ return new class extends Migration
                 $columnType = DB::select("SHOW COLUMNS FROM notifications WHERE Field = 'id'");
                 
                 if (!empty($columnType)) {
-                    $type = $columnType[0]->Type;
+                    $definition = $columnType[0];
+                    $type = $definition->Type;
+                    $extra = strtolower($definition->Extra ?? '');
                     
+                    $isAlreadyAutoIncrement = strpos($type, 'int') !== false && str_contains($extra, 'auto_increment');
+
                     // Si c'est un UUID ou un char, le convertir en bigint auto-increment
-                    if (strpos($type, 'char') !== false || strpos($type, 'uuid') !== false) {
+                    if (!$isAlreadyAutoIncrement && (strpos($type, 'char') !== false || strpos($type, 'uuid') !== false)) {
                         // Supprimer les anciennes données (notifications Laravel standard)
                         // Ces notifications ne sont pas utilisées par notre système personnalisé
                         DB::table('notifications')->whereNull('user_id')->orWhereNull('title')->delete();
@@ -40,7 +44,7 @@ return new class extends Migration
                         // Supprimer la colonne id et la recréer en bigint auto-increment
                         DB::statement('ALTER TABLE notifications DROP COLUMN id');
                         DB::statement('ALTER TABLE notifications ADD COLUMN id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST');
-                    } elseif (strpos($type, 'int') === false || strpos($type, 'auto_increment') === false) {
+                    } elseif (!$isAlreadyAutoIncrement && strpos($type, 'int') !== false && ! str_contains($extra, 'auto_increment')) {
                         // Si c'est un int mais pas auto-increment, ajouter auto-increment
                         DB::statement('ALTER TABLE notifications MODIFY COLUMN id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY');
                     }

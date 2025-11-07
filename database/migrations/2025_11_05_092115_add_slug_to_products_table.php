@@ -12,13 +12,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Vérifier si la colonne slug existe déjà
+        // Vérifier si la colonne slug existe déjà, sinon l'ajouter
         if (!Schema::hasColumn('products', 'slug')) {
             Schema::table('products', function (Blueprint $table) {
-                $table->string('slug', 255)->unique()->nullable()->after('name');
+                $table->string('slug', 255)->nullable()->after('name');
             });
         }
-        
+
         // Générer des slugs pour les produits existants qui n'en ont pas
         $products = DB::table('products')->whereNull('slug')->orWhere('slug', '')->get();
         foreach ($products as $product) {
@@ -38,8 +38,17 @@ return new class extends Migration
         // Rendre le slug obligatoire (si la colonne existe)
         if (Schema::hasColumn('products', 'slug')) {
             Schema::table('products', function (Blueprint $table) {
-                $table->string('slug', 255)->nullable(false)->unique()->change();
+                $table->string('slug', 255)->nullable(false)->change();
             });
+
+            // Vérifier la présence d'un index unique avant de l'ajouter
+            $hasUniqueIndex = collect(DB::select("SHOW INDEX FROM products WHERE Key_name = 'products_slug_unique'"))->isNotEmpty();
+
+            if (! $hasUniqueIndex) {
+                Schema::table('products', function (Blueprint $table) {
+                    $table->unique('slug', 'products_slug_unique');
+                });
+            }
         }
     }
 
@@ -48,8 +57,15 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('products', function (Blueprint $table) {
-            $table->dropColumn('slug');
-        });
+        if (Schema::hasColumn('products', 'slug')) {
+            $hasUniqueIndex = collect(DB::select("SHOW INDEX FROM products WHERE Key_name = 'products_slug_unique'"))->isNotEmpty();
+
+            Schema::table('products', function (Blueprint $table) use ($hasUniqueIndex) {
+                if ($hasUniqueIndex) {
+                    $table->dropUnique('products_slug_unique');
+                }
+                $table->dropColumn('slug');
+            });
+        }
     }
 };

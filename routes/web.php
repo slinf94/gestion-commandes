@@ -205,33 +205,44 @@ Route::prefix('admin')->group(function () {
                 // Lecture: Admin, SuperAdmin, Gestionnaire
                 Route::middleware(['role:super-admin,admin,gestionnaire'])->group(function () {
                     Route::get('attributes', [\App\Http\Controllers\Admin\AttributeController::class, 'index'])->name('admin.attributes.index');
-                    Route::get('attributes/{attribute}', [\App\Http\Controllers\Admin\AttributeController::class, 'show'])->name('admin.attributes.show');
                 });
                 // Écriture: Admin, SuperAdmin
                 Route::middleware(['role:super-admin,admin'])->group(function () {
+                    // Routes spécifiques AVANT les routes avec paramètres
                     Route::get('attributes/create', [\App\Http\Controllers\Admin\AttributeController::class, 'create'])->name('admin.attributes.create');
                     Route::post('attributes', [\App\Http\Controllers\Admin\AttributeController::class, 'store'])->name('admin.attributes.store');
+                    Route::post('/attributes/reorder', [\App\Http\Controllers\Admin\AttributeController::class, 'reorder'])->name('admin.attributes.reorder');
+                    // Routes avec paramètres APRÈS les routes spécifiques
                     Route::get('attributes/{attribute}/edit', [\App\Http\Controllers\Admin\AttributeController::class, 'edit'])->name('admin.attributes.edit');
                     Route::put('attributes/{attribute}', [\App\Http\Controllers\Admin\AttributeController::class, 'update'])->name('admin.attributes.update');
                     Route::delete('attributes/{attribute}', [\App\Http\Controllers\Admin\AttributeController::class, 'destroy'])->name('admin.attributes.destroy');
                     Route::post('/attributes/{attribute}/toggle-status', [\App\Http\Controllers\Admin\AttributeController::class, 'toggleStatus'])->name('admin.attributes.toggle-status');
                     Route::get('/attributes/{attribute}/options', [\App\Http\Controllers\Admin\AttributeController::class, 'getOptions'])->name('admin.attributes.options');
                 });
+                Route::middleware(['role:super-admin,admin,gestionnaire'])->group(function () {
+                    Route::get('attributes/{attribute}', [\App\Http\Controllers\Admin\AttributeController::class, 'show'])->name('admin.attributes.show');
+                });
 
                 // Types de produits
                 // Lecture: Admin, SuperAdmin, Gestionnaire
                 Route::middleware(['role:super-admin,admin,gestionnaire'])->group(function () {
                     Route::get('product-types', [\App\Http\Controllers\Admin\ProductTypeController::class, 'index'])->name('admin.product-types.index');
-                    Route::get('product-types/{productType}', [\App\Http\Controllers\Admin\ProductTypeController::class, 'show'])->name('admin.product-types.show');
                 });
                 // Écriture: Admin, SuperAdmin
                 Route::middleware(['role:super-admin,admin'])->group(function () {
+                    // Routes spécifiques AVANT les routes avec paramètres
                     Route::get('product-types/create', [\App\Http\Controllers\Admin\ProductTypeController::class, 'create'])->name('admin.product-types.create');
                     Route::post('product-types', [\App\Http\Controllers\Admin\ProductTypeController::class, 'store'])->name('admin.product-types.store');
+                    Route::post('product-types/reorder', [\App\Http\Controllers\Admin\ProductTypeController::class, 'reorder'])->name('admin.product-types.reorder');
+                    // Routes avec paramètres APRÈS les routes spécifiques
                     Route::get('product-types/{productType}/edit', [\App\Http\Controllers\Admin\ProductTypeController::class, 'edit'])->name('admin.product-types.edit');
                     Route::put('product-types/{productType}', [\App\Http\Controllers\Admin\ProductTypeController::class, 'update'])->name('admin.product-types.update');
                     Route::delete('product-types/{productType}', [\App\Http\Controllers\Admin\ProductTypeController::class, 'destroy'])->name('admin.product-types.destroy');
                     Route::post('/product-types/{productType}/toggle-status', [\App\Http\Controllers\Admin\ProductTypeController::class, 'toggleStatus'])->name('admin.product-types.toggle-status');
+                });
+                // Visualisation détaillée (après déclaration des routes spécifiques)
+                Route::middleware(['role:super-admin,admin,gestionnaire'])->group(function () {
+                    Route::get('product-types/{productType}', [\App\Http\Controllers\Admin\ProductTypeController::class, 'show'])->name('admin.product-types.show');
                 });
 
                 // Gestion des variantes de produits

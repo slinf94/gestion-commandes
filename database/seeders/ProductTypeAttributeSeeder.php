@@ -13,11 +13,14 @@ class ProductTypeAttributeSeeder extends Seeder
     public function run(): void
     {
         // Récupérer les types de produits
-        $ordinateur = \App\Models\ProductType::where('slug', 'ordinateur')->first();
-        $habit = \App\Models\ProductType::where('slug', 'habit')->first();
-        $voiture = \App\Models\ProductType::where('slug', 'voiture')->first();
-        $smartphone = \App\Models\ProductType::where('slug', 'smartphone')->first();
-        $meuble = \App\Models\ProductType::where('slug', 'meuble')->first();
+        $productTypes = [
+            'smartphone' => \App\Models\ProductType::where('slug', 'smartphone')->first(),
+            'ordinateur-portable' => \App\Models\ProductType::where('slug', 'ordinateur-portable')->first(),
+            't-shirt' => \App\Models\ProductType::where('slug', 't-shirt')->first(),
+            'jean' => \App\Models\ProductType::where('slug', 'jean')->first(),
+            'chaise-bureau' => \App\Models\ProductType::where('slug', 'chaise-bureau')->first(),
+            'table-bureau' => \App\Models\ProductType::where('slug', 'table-bureau')->first(),
+        ];
 
         // Attributs pour les ordinateurs
         $ordinateurAttributes = [
@@ -53,19 +56,39 @@ class ProductTypeAttributeSeeder extends Seeder
         ];
 
         // Créer les attributs pour chaque type
-        foreach ($ordinateurAttributes as $attr) {
-            $attr['product_type_id'] = $ordinateur->id;
-            \App\Models\ProductTypeAttribute::create($attr);
+        if ($productTypes['ordinateur-portable']) {
+            foreach ($ordinateurAttributes as $attr) {
+                $attr['product_type_id'] = $productTypes['ordinateur-portable']->id;
+                \App\Models\ProductTypeAttribute::create($attr);
+            }
         }
 
-        foreach ($habitAttributes as $attr) {
-            $attr['product_type_id'] = $habit->id;
-            \App\Models\ProductTypeAttribute::create($attr);
+        if ($productTypes['t-shirt']) {
+            foreach ($habitAttributes as $attr) {
+                $attr['product_type_id'] = $productTypes['t-shirt']->id;
+                \App\Models\ProductTypeAttribute::create($attr);
+            }
         }
 
-        foreach ($voitureAttributes as $attr) {
-            $attr['product_type_id'] = $voiture->id;
-            \App\Models\ProductTypeAttribute::create($attr);
+        if ($productTypes['jean']) {
+            foreach ($habitAttributes as $attr) {
+                $attr['product_type_id'] = $productTypes['jean']->id;
+                \App\Models\ProductTypeAttribute::create($attr);
+            }
+        }
+
+        if ($productTypes['chaise-bureau']) {
+            foreach ($habitAttributes as $attr) {
+                $attr['product_type_id'] = $productTypes['chaise-bureau']->id;
+                \App\Models\ProductTypeAttribute::create($attr);
+            }
+        }
+
+        if ($productTypes['table-bureau']) {
+            foreach ($habitAttributes as $attr) {
+                $attr['product_type_id'] = $productTypes['table-bureau']->id;
+                \App\Models\ProductTypeAttribute::create($attr);
+            }
         }
     }
 }

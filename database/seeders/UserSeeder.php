@@ -103,6 +103,7 @@ class UserSeeder extends Seeder
                 'numero_telephone' => '+226 70 00 00 00',
                 'localisation' => 'Ouagadougou',
                 'quartier' => 'Secteur 1',
+                'ville' => 'Ouagadougou',
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ]);
