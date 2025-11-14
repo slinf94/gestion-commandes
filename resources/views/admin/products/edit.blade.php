@@ -169,6 +169,112 @@
                                     @enderror
                                 </div>
 
+                                <!-- Champs e-commerce pour téléphones et accessoires -->
+                                <div class="row mt-3">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="brand">Marque</label>
+                                            <select class="form-control select2-tags @error('brand') is-invalid @enderror"
+                                                    id="brand" name="brand" data-placeholder="Rechercher ou saisir une marque...">
+                                                <option value="">{{ old('brand', $product->brand ?? '') ? '' : 'Rechercher ou saisir...' }}</option>
+                                                @if(old('brand', $product->brand ?? '') && !in_array(old('brand', $product->brand ?? ''), $brands->toArray()))
+                                                    <option value="{{ old('brand', $product->brand ?? '') }}" selected>{{ old('brand', $product->brand ?? '') }}</option>
+                                                @endif
+                                                @foreach($brands as $brand)
+                                                    <option value="{{ $brand }}" {{ old('brand', $product->brand ?? '') == $brand ? 'selected' : '' }}>{{ $brand }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('brand')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                            <small class="text-muted">Pour téléphones</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="range">Gamme</label>
+                                            <select class="form-control select2-tags @error('range') is-invalid @enderror"
+                                                    id="range" name="range" data-placeholder="Rechercher ou saisir une gamme...">
+                                                <option value="">{{ old('range', $product->range ?? '') ? '' : 'Rechercher ou saisir...' }}</option>
+                                                @if(old('range', $product->range ?? '') && !in_array(old('range', $product->range ?? ''), $ranges->toArray()))
+                                                    <option value="{{ old('range', $product->range ?? '') }}" selected>{{ old('range', $product->range ?? '') }}</option>
+                                                @endif
+                                                @foreach($ranges as $range)
+                                                    <option value="{{ $range }}" {{ old('range', $product->range ?? '') == $range ? 'selected' : '' }}>{{ $range }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('range')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                            <small class="text-muted">Pour téléphones</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="format">Format</label>
+                                            <select class="form-control select2-tags @error('format') is-invalid @enderror"
+                                                    id="format" name="format" data-placeholder="Sélectionner ou saisir un format...">
+                                                <option value="">{{ old('format', $product->format ?? '') ? '' : 'Sélectionner ou saisir...' }}</option>
+                                                @php
+                                                    $defaultFormats = ['tactile', 'à touches', 'tablette Android'];
+                                                    $allFormats = $formats->merge($defaultFormats)->unique()->sort();
+                                                @endphp
+                                                @if(old('format', $product->format ?? '') && !in_array(old('format', $product->format ?? ''), $allFormats->toArray()))
+                                                    <option value="{{ old('format', $product->format ?? '') }}" selected>{{ old('format', $product->format ?? '') }}</option>
+                                                @endif
+                                                @foreach($allFormats as $format)
+                                                    <option value="{{ $format }}" {{ old('format', $product->format ?? '') == $format ? 'selected' : '' }}>{{ $format }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('format')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                            <small class="text-muted">Pour téléphones</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="type_accessory">Type d'accessoire</label>
+                                            <select class="form-control select2-tags @error('type_accessory') is-invalid @enderror"
+                                                    id="type_accessory" name="type_accessory" data-placeholder="Rechercher ou saisir un type...">
+                                                <option value="">{{ old('type_accessory', $product->type_accessory ?? '') ? '' : 'Rechercher ou saisir...' }}</option>
+                                                @if(old('type_accessory', $product->type_accessory ?? '') && !in_array(old('type_accessory', $product->type_accessory ?? ''), $accessoryTypes->toArray()))
+                                                    <option value="{{ old('type_accessory', $product->type_accessory ?? '') }}" selected>{{ old('type_accessory', $product->type_accessory ?? '') }}</option>
+                                                @endif
+                                                @foreach($accessoryTypes as $type)
+                                                    <option value="{{ $type }}" {{ old('type_accessory', $product->type_accessory ?? '') == $type ? 'selected' : '' }}>{{ $type }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('type_accessory')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                            <small class="text-muted">Pour accessoires</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="compatibility">Compatibilité</label>
+                                            <select class="form-control select2-tags @error('compatibility') is-invalid @enderror"
+                                                    id="compatibility" name="compatibility" data-placeholder="Rechercher ou saisir une compatibilité...">
+                                                <option value="">{{ old('compatibility', $product->compatibility ?? '') ? '' : 'Rechercher ou saisir...' }}</option>
+                                                @if(old('compatibility', $product->compatibility ?? '') && !in_array(old('compatibility', $product->compatibility ?? ''), $compatibilities->toArray()))
+                                                    <option value="{{ old('compatibility', $product->compatibility ?? '') }}" selected>{{ old('compatibility', $product->compatibility ?? '') }}</option>
+                                                @endif
+                                                @foreach($compatibilities as $compatibility)
+                                                    <option value="{{ $compatibility }}" {{ old('compatibility', $product->compatibility ?? '') == $compatibility ? 'selected' : '' }}>{{ $compatibility }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('compatibility')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                            <small class="text-muted">Pour accessoires</small>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="form-group">
                                     <label for="tags">Tags (séparés par des virgules)</label>
                                     <input type="text" class="form-control @error('tags') is-invalid @enderror"
@@ -348,8 +454,48 @@
 </div>
 @endsection
 
+<!-- jQuery (requis pour Select2) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 @section('scripts')
 <script>
+$(document).ready(function() {
+    // Initialiser Select2 pour les champs avec tags (recherche + saisie manuelle)
+    $('.select2-tags').select2({
+        theme: 'bootstrap-5',
+        tags: true,
+        allowClear: true,
+        placeholder: function() {
+            return $(this).data('placeholder') || 'Rechercher ou saisir...';
+        },
+        language: {
+            noResults: function() {
+                return "Aucun résultat trouvé. Appuyez sur Entrée pour ajouter.";
+            },
+            searching: function() {
+                return "Recherche en cours...";
+            }
+        },
+        createTag: function (params) {
+            const term = $.trim(params.term);
+            if (term === '') {
+                return null;
+            }
+            return {
+                id: term,
+                text: term,
+                newTag: true
+            };
+        }
+    });
+
     // Version SIMPLE - Pas de JavaScript complexe, juste la soumission du formulaire
     document.addEventListener('DOMContentLoaded', function() {
         console.log('✅ Page chargée');
@@ -374,5 +520,6 @@
             });
         }
     });
+});
 </script>
 @endsection

@@ -16,8 +16,8 @@ class ProductSimple extends Model
     protected $fillable = [
         'name', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price',
         'min_wholesale_quantity', 'stock_quantity', 'min_stock_alert', 'category_id',
-        'product_type_id', 'sku', 'barcode', 'images', 'status', 'is_featured',
-        'meta_title', 'meta_description', 'tags'
+        'product_type_id', 'sku', 'barcode', 'brand', 'range', 'format', 'type_accessory',
+        'compatibility', 'images', 'status', 'is_featured', 'meta_title', 'meta_description', 'tags'
     ];
 
     protected $casts = [

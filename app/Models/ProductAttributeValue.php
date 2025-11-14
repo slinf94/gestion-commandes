@@ -28,11 +28,12 @@ class ProductAttributeValue extends Model
     }
 
     /**
-     * Get the attribute that owns the attribute value.
+     * Get the attribute that owns the attribute value (via productTypeAttribute).
+     * Accès via productTypeAttribute->attribute pour éviter les problèmes de relation
      */
-    public function attribute(): BelongsTo
+    public function getAttributeAttribute()
     {
-        return $this->belongsTo(Attribute::class);
+        return $this->productTypeAttribute->attribute ?? null;
     }
 
     /**

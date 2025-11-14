@@ -46,7 +46,7 @@ class ProductType extends Model
      */
     public function attributes(): BelongsToMany
     {
-        return $this->belongsToMany(Attribute::class, 'product_type_attributes')
+        return $this->belongsToMany(Attribute::class, 'product_type_attributes', 'product_type_id', 'attribute_id')
             ->withPivot(['is_required', 'is_filterable', 'is_variant', 'sort_order', 'default_value'])
             ->withTimestamps();
     }

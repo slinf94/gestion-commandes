@@ -63,6 +63,9 @@ Route::get('/products/type/{productType}', [ProductApiController::class, 'byType
     Route::get('/product-types', [ProductApiController::class, 'productTypes']);
     Route::get('/attributes', [ProductApiController::class, 'attributes']);
     Route::get('/attribute-values', [ProductApiController::class, 'attributeValues']);
+    
+    // Valeurs distinctes pour les filtres
+    Route::get('/products/filter-values', [ProductApiController::class, 'filterValues']);
 
     // Anciennes routes pour compatibilité
     Route::get('/categories/{id}', [CategoryController::class, 'show']);

@@ -16,31 +16,80 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'attributeValues.productTypeAttribute', 'productImages'])
-            ->where('status', 'active');
+        $query = Product::with(['category', 'attributeValues.productTypeAttribute', 'productImages']);
+
+        // Filtrage par statut (par défaut: active, mais peut être changé)
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        } else {
+            // Par défaut, ne montrer que les produits actifs
+            $query->where('status', 'active');
+        }
 
         // Filtrage par catégorie
         if ($request->has('category_id') && $request->category_id) {
             $query->where('category_id', $request->category_id);
         }
 
-        // Filtrage par prix
-        if ($request->has('min_price') && $request->min_price) {
+        // Filtrage par type de produit
+        if ($request->has('product_type_id') && $request->product_type_id) {
+            $query->where('product_type_id', $request->product_type_id);
+        }
+
+        // Filtrage par prix (min/max)
+        if ($request->has('price_min') && $request->price_min) {
+            $query->where('price', '>=', $request->price_min);
+        } elseif ($request->has('min_price') && $request->min_price) {
+            // Compatibilité avec l'ancien paramètre
             $query->where('price', '>=', $request->min_price);
         }
 
-        if ($request->has('max_price') && $request->max_price) {
+        if ($request->has('price_max') && $request->price_max) {
+            $query->where('price', '<=', $request->price_max);
+        } elseif ($request->has('max_price') && $request->max_price) {
+            // Compatibilité avec l'ancien paramètre
             $query->where('price', '<=', $request->max_price);
         }
 
-        // Filtrage par statut de stock - par défaut, masquer les produits épuisés
-        if ($request->has('in_stock')) {
+        // Filtrage par disponibilité stock
+        if ($request->has('stock_available')) {
+            if ($request->stock_available == 'yes') {
+                $query->where('stock_quantity', '>', 0);
+            } elseif ($request->stock_available == 'no') {
+                $query->where('stock_quantity', '<=', 0);
+            }
+        } elseif ($request->has('in_stock')) {
+            // Compatibilité avec l'ancien paramètre
             if ($request->in_stock) {
                 $query->where('stock_quantity', '>', 0);
             }
         } else {
-            // Par défaut, ne pas afficher les produits épuisés
-            $query->where('stock_quantity', '>', 0);
+            // Par défaut, ne pas afficher les produits épuisés (sauf si status=draft)
+            if (!$request->has('status') || $request->status !== 'draft') {
+                $query->where('stock_quantity', '>', 0);
+            }
+        }
+
+        // Filtres avancés pour téléphones
+        if ($request->has('brand') && $request->brand) {
+            $query->where('brand', $request->brand);
+        }
+
+        if ($request->has('range') && $request->range) {
+            $query->where('range', $request->range);
+        }
+
+        if ($request->has('format') && $request->format) {
+            $query->where('format', $request->format);
+        }
+
+        // Filtres avancés pour accessoires
+        if ($request->has('type_accessory') && $request->type_accessory) {
+            $query->where('type_accessory', $request->type_accessory);
+        }
+
+        if ($request->has('compatibility') && $request->compatibility) {
+            $query->where('compatibility', $request->compatibility);
         }
 
         // Filtrage par produits en vedette
@@ -48,13 +97,15 @@ class ProductController extends Controller
             $query->where('is_featured', true);
         }
 
-        // Recherche par nom ou description
+        // Recherche par nom, description, SKU, marque, gamme
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
                   ->orWhere('description', 'LIKE', "%{$search}%")
-                  ->orWhere('sku', 'LIKE', "%{$search}%");
+                  ->orWhere('sku', 'LIKE', "%{$search}%")
+                  ->orWhere('brand', 'LIKE', "%{$search}%")
+                  ->orWhere('range', 'LIKE', "%{$search}%");
             });
         }
 
@@ -116,25 +167,62 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:200',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'cost_price' => 'nullable|numeric|min:0',
-            'stock_quantity' => 'required|integer|min:0',
-            'min_stock_alert' => 'nullable|integer|min:0',
-            'category_id' => 'required|exists:categories,id',
-            'sku' => 'required|string|max:100|unique:products',
-            'barcode' => 'nullable|string|max:100|unique:products',
-            'images' => 'nullable|array',
-            'images.*' => 'string',
-            'status' => 'nullable|in:active,inactive,out_of_stock,discontinued',
-            'is_featured' => 'nullable|boolean',
-            'meta_title' => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string',
-            'tags' => 'nullable|array',
-            'tags.*' => 'string',
-        ]);
+        // Validation intelligente selon le statut (compatible Flutter)
+        if ($request->status === 'draft') {
+            // Validation assouplie pour les produits en brouillon
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'category_id' => 'required|exists:categories,id',
+                'status' => 'required|in:active,inactive,draft',
+                'description' => 'nullable|string',
+                'price' => 'nullable|numeric|min:0',
+                'stock_quantity' => 'nullable|integer|min:0',
+                'cost_price' => 'nullable|numeric|min:0',
+                'min_stock_alert' => 'nullable|integer|min:0',
+                'product_type_id' => 'nullable|exists:product_types,id',
+                'sku' => 'nullable|string|max:100|unique:products,sku',
+                'barcode' => 'nullable|string|max:100|unique:products,barcode',
+                'brand' => 'nullable|string|max:100',
+                'range' => 'nullable|string|max:100',
+                'format' => 'nullable|string|max:100',
+                'type_accessory' => 'nullable|string|max:100',
+                'compatibility' => 'nullable|string|max:100',
+                'images' => 'nullable|array',
+                'images.*' => 'string',
+                'is_featured' => 'nullable|boolean',
+                'meta_title' => 'nullable|string|max:255',
+                'meta_description' => 'nullable|string',
+                'tags' => 'nullable|array',
+                'tags.*' => 'string',
+            ]);
+        } else {
+            // Validation stricte pour les produits actifs/inactifs
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'price' => 'required|numeric|min:0',
+                'stock_quantity' => 'required|integer|min:0',
+                'category_id' => 'required|exists:categories,id',
+                'status' => 'required|in:active,inactive,draft',
+                'description' => 'nullable|string',
+                'cost_price' => 'nullable|numeric|min:0',
+                'min_stock_alert' => 'nullable|integer|min:0',
+                'product_type_id' => 'nullable|exists:product_types,id',
+                'sku' => 'nullable|string|max:100|unique:products,sku',
+                'barcode' => 'nullable|string|max:100|unique:products,barcode',
+                'brand' => 'nullable|string|max:100',
+                'range' => 'nullable|string|max:100',
+                'format' => 'nullable|string|max:100',
+                'type_accessory' => 'nullable|string|max:100',
+                'compatibility' => 'nullable|string|max:100',
+                'images' => 'nullable|array',
+                'images.*' => 'string',
+                'is_featured' => 'nullable|boolean',
+                'meta_title' => 'nullable|string|max:255',
+                'meta_description' => 'nullable|string',
+                'tags' => 'nullable|array',
+                'tags.*' => 'string',
+            ]);
+        }
 
         if ($validator->fails()) {
             return response()->json([
@@ -144,11 +232,20 @@ class ProductController extends Controller
             ], 422);
         }
 
-        $product = Product::create($request->all());
+        $validated = $validator->validated();
+
+        // Générer le SKU automatiquement si non fourni
+        $validated['sku'] = $request->sku ?? Product::generateSku();
+        
+        // Générer le slug automatiquement
+        $validated['slug'] = Product::generateSlug($validated['name']);
+
+        // Créer le produit
+        $product = Product::create($validated);
 
         return response()->json([
             'success' => true,
-            'data' => $product->load(['category', 'attributeValues.productTypeAttribute']),
+            'product' => $product->load(['category', 'attributeValues.productTypeAttribute']),
             'message' => 'Produit créé avec succès'
         ], 201);
     }

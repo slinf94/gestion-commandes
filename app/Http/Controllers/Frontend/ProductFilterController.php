@@ -165,9 +165,9 @@ class ProductFilterController extends Controller
             foreach ($attributeFilters as $attributeName => $values) {
                 if (!empty($values)) {
                     $query->whereHas('attributeValues', function($q) use ($attributeName, $values) {
-                        $q->whereHas('attribute', function($subQ) use ($attributeName) {
+                        $q->whereHas('productTypeAttribute.attribute', function($subQ) use ($attributeName) {
                             $subQ->where('name', $attributeName);
-                        })->whereIn('value', $values);
+                        })->whereIn('attribute_value', $values);
                     });
                     $filters['attributes'][$attributeName] = $values;
                 }

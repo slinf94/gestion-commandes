@@ -31,22 +31,119 @@ class ProductApiController extends Controller
             $page = $request->get('page', 1);
             $offset = ($page - 1) * $perPage;
             
-            // Requête SQL directe pour les produits
-            $productsQuery = "SELECT id, name, description, price, cost_price, wholesale_price, 
+            // Construire la requête avec filtres dynamiques
+            $whereConditions = ["deleted_at IS NULL"];
+            $queryParams = [];
+            
+            // Filtre par statut (par défaut: active)
+            $status = $request->get('status', 'active');
+            $whereConditions[] = "status = ?";
+            $queryParams[] = $status;
+            
+            // Filtre par catégorie
+            if ($request->filled('category_id')) {
+                $whereConditions[] = "category_id = ?";
+                $queryParams[] = $request->category_id;
+            }
+            
+            // Filtre par type de produit
+            if ($request->filled('product_type_id')) {
+                $whereConditions[] = "product_type_id = ?";
+                $queryParams[] = $request->product_type_id;
+            }
+            
+            // Filtres avancés pour téléphones
+            if ($request->filled('brand') && trim($request->brand) !== '') {
+                $whereConditions[] = "brand = ?";
+                $queryParams[] = trim($request->brand);
+            }
+            
+            if ($request->filled('range') && trim($request->range) !== '') {
+                $whereConditions[] = "`range` = ?";
+                $queryParams[] = trim($request->range);
+            }
+            
+            if ($request->filled('format') && trim($request->format) !== '') {
+                $whereConditions[] = "format = ?";
+                $queryParams[] = trim($request->format);
+            }
+            
+            // Filtres avancés pour accessoires
+            if ($request->filled('type_accessory') && trim($request->type_accessory) !== '') {
+                $whereConditions[] = "type_accessory = ?";
+                $queryParams[] = trim($request->type_accessory);
+            }
+            
+            if ($request->filled('compatibility') && trim($request->compatibility) !== '') {
+                $whereConditions[] = "compatibility = ?";
+                $queryParams[] = trim($request->compatibility);
+            }
+            
+            // Filtre par prix
+            if ($request->filled('price_min') || $request->filled('min_price')) {
+                $whereConditions[] = "price >= ?";
+                $queryParams[] = $request->price_min ?? $request->min_price;
+            }
+            
+            if ($request->filled('price_max') || $request->filled('max_price')) {
+                $whereConditions[] = "price <= ?";
+                $queryParams[] = $request->price_max ?? $request->max_price;
+            }
+            
+            // Filtre par disponibilité stock
+            if ($request->filled('stock_available')) {
+                if ($request->stock_available == 'yes') {
+                    $whereConditions[] = "stock_quantity > 0";
+                } elseif ($request->stock_available == 'no') {
+                    $whereConditions[] = "stock_quantity <= 0";
+                }
+                // Si stock_available est fourni mais vide/null, on n'applique pas de filtre (afficher tous)
+            } elseif ($request->filled('in_stock')) {
+                if ($request->in_stock) {
+                    $whereConditions[] = "stock_quantity > 0";
+                }
+            } else {
+                // Par défaut, afficher uniquement les produits en stock pour les produits actifs
+                // Permettre de voir tous les produits si explicitement demandé via show_all=true
+                if (!$request->filled('show_all') && $status !== 'draft') {
+                    $whereConditions[] = "stock_quantity > 0";
+                }
+            }
+            
+            // Recherche
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $whereConditions[] = "(name LIKE ? OR description LIKE ? OR sku LIKE ? OR brand LIKE ? OR `range` LIKE ?)";
+                $searchPattern = "%{$search}%";
+                $queryParams[] = $searchPattern;
+                $queryParams[] = $searchPattern;
+                $queryParams[] = $searchPattern;
+                $queryParams[] = $searchPattern;
+                $queryParams[] = $searchPattern;
+            }
+            
+            $whereClause = implode(' AND ', $whereConditions);
+            
+            // Requête SQL avec tous les nouveaux champs
+            $productsQuery = "SELECT id, name, slug, description, price, cost_price, wholesale_price, 
                 retail_price, min_wholesale_quantity, stock_quantity, min_stock_alert,
-                category_id, product_type_id, sku, barcode, status, is_featured,
+                category_id, product_type_id, sku, barcode, brand, `range`, format, 
+                type_accessory, compatibility, status, is_featured,
                 meta_title, meta_description, images, tags, created_at, updated_at
                 FROM products 
-                WHERE status = 'active' 
-                AND stock_quantity > 0 
-                AND deleted_at IS NULL 
+                WHERE {$whereClause}
                 ORDER BY updated_at DESC, created_at DESC 
                 LIMIT ? OFFSET ?";
             
-            $products = DB::select($productsQuery, [$perPage, $offset]);
-            $totalQuery = "SELECT COUNT(*) as total FROM products 
-                WHERE status = 'active' AND stock_quantity > 0 AND deleted_at IS NULL";
-            $totalResult = DB::selectOne($totalQuery);
+            $queryParams[] = $perPage;
+            $queryParams[] = $offset;
+            
+            $products = DB::select($productsQuery, $queryParams);
+            
+            // Requête pour le total
+            $totalQuery = "SELECT COUNT(*) as total FROM products WHERE {$whereClause}";
+            $totalParams = array_slice($queryParams, 0, -2); // Enlever LIMIT et OFFSET
+            $totalResult = DB::selectOne($totalQuery, $totalParams);
             $total = $totalResult->total ?? 0;
             
             \Log::info('ProductApiController@index: Produits récupérés', [
@@ -185,9 +282,10 @@ class ProductApiController extends Controller
             \Log::info('ProductApiController@show: Début pour produit ' . $id);
             
             // VERSION SIMPLIFIÉE - Utiliser DB::select directement
-            $product = DB::selectOne("SELECT id, name, description, price, cost_price, wholesale_price, 
+            $product = DB::selectOne("SELECT id, name, slug, description, price, cost_price, wholesale_price, 
                 retail_price, min_wholesale_quantity, stock_quantity, min_stock_alert,
-                category_id, product_type_id, sku, barcode, status, is_featured,
+                category_id, product_type_id, sku, barcode, brand, `range`, format, 
+                type_accessory, compatibility, status, is_featured,
                 meta_title, meta_description, images, tags, created_at, updated_at
                 FROM products 
                 WHERE id = ? 
@@ -220,9 +318,10 @@ class ProductApiController extends Controller
             // Ajouter les attributs (optionnel, peut être chargé plus tard si nécessaire)
             try {
                 $attributes = DB::select("
-                    SELECT pav.id, pav.value, a.id as attribute_id, a.name as attribute_name
+                    SELECT pav.id, pav.attribute_value as value, a.id as attribute_id, a.name as attribute_name
                     FROM product_attribute_values pav
-                    JOIN attributes a ON pav.attribute_id = a.id
+                    JOIN product_type_attributes pta ON pav.product_type_attribute_id = pta.id
+                    JOIN attributes a ON pta.attribute_id = a.id
                     WHERE pav.product_id = ?
                 ", [$id]);
                 
@@ -381,8 +480,8 @@ class ProductApiController extends Controller
         $values = [];
         foreach ($products as $product) {
             foreach ($product->attributeValues as $attributeValue) {
-                if ($attributeValue->attribute_id == $attributeId) {
-                    $values[] = $attributeValue->value;
+                if ($attributeValue->productTypeAttribute && $attributeValue->productTypeAttribute->attribute_id == $attributeId) {
+                    $values[] = $attributeValue->attribute_value;
                 }
             }
         }
@@ -421,9 +520,10 @@ class ProductApiController extends Controller
             $limit = min($request->get('per_page', 20), 50); // Limiter à 50 pour la recherche
             
             // Requête SQL directe pour les produits
-            $productsQuery = "SELECT id, name, description, price, cost_price, wholesale_price, 
+            $productsQuery = "SELECT id, name, slug, description, price, cost_price, wholesale_price, 
                 retail_price, min_wholesale_quantity, stock_quantity, min_stock_alert,
-                category_id, product_type_id, sku, barcode, status, is_featured,
+                category_id, product_type_id, sku, barcode, brand, `range`, format, 
+                type_accessory, compatibility, status, is_featured,
                 meta_title, meta_description, images, tags, created_at, updated_at
                 FROM products 
                 WHERE status = 'active' 
@@ -649,9 +749,9 @@ class ProductApiController extends Controller
             foreach ($attributeFilters as $attributeName => $values) {
                 if (!empty($values)) {
                     $query->whereHas('attributeValues', function($q) use ($attributeName, $values) {
-                        $q->whereHas('attribute', function($subQ) use ($attributeName) {
+                        $q->whereHas('productTypeAttribute.attribute', function($subQ) use ($attributeName) {
                             $subQ->where('name', $attributeName);
-                        })->whereIn('value', $values);
+                        })->whereIn('attribute_value', $values);
                     });
                 }
             }
@@ -758,6 +858,7 @@ class ProductApiController extends Controller
             return [
                 'id' => (int)$product->id,
                 'name' => (string)($product->name ?? ''),
+                'slug' => isset($product->slug) ? (string)$product->slug : null,
                 'description' => $product->description ?? null,
                 'price' => (float)($product->price ?? 0),
                 'cost_price' => isset($product->cost_price) ? (float)$product->cost_price : null,
@@ -770,6 +871,12 @@ class ProductApiController extends Controller
                 'product_type_id' => isset($product->product_type_id) ? (int)$product->product_type_id : null,
                 'sku' => (string)($product->sku ?? ''),
                 'barcode' => isset($product->barcode) ? (string)$product->barcode : null,
+                // Nouveaux champs e-commerce
+                'brand' => isset($product->brand) ? (string)$product->brand : null,
+                'range' => isset($product->range) ? (string)$product->range : null,
+                'format' => isset($product->format) ? (string)$product->format : null,
+                'type_accessory' => isset($product->type_accessory) ? (string)$product->type_accessory : null,
+                'compatibility' => isset($product->compatibility) ? (string)$product->compatibility : null,
                 'status' => (string)($product->status ?? 'active'),
                 'is_featured' => (bool)($product->is_featured ?? false),
                 'meta_title' => isset($product->meta_title) ? (string)$product->meta_title : null,
@@ -1112,12 +1219,13 @@ class ProductApiController extends Controller
         $attributes = [];
         if ($product->attributeValues && $product->attributeValues->count() > 0) {
             foreach ($product->attributeValues as $attrValue) {
-                if ($attrValue->attribute) {
+                if ($attrValue->productTypeAttribute && $attrValue->productTypeAttribute->attribute) {
+                    $attribute = $attrValue->productTypeAttribute->attribute;
                     $attributes[] = [
-                        'id' => $attrValue->attribute->id,
-                        'name' => $attrValue->attribute->name,
-                        'value' => $attrValue->value,
-                        'type' => $attrValue->attribute->type ?? 'text',
+                        'id' => $attribute->id,
+                        'name' => $attribute->name,
+                        'value' => $attrValue->attribute_value,
+                        'type' => $attribute->type ?? 'text',
                     ];
                 }
             }
@@ -1181,5 +1289,141 @@ class ProductApiController extends Controller
         }
 
         return $productData;
+    }
+
+    /**
+     * Get distinct filter values for mobile app
+     */
+    public function filterValues()
+    {
+        try {
+            // Valeurs par défaut si la base est vide
+            $defaultBrands = ['Tecno', 'Infinix', 'Itel', 'Samsung', 'iPhone', 'Xiaomi', 'Huawei', 'Oppo', 'Vivo', 'Nokia', 'Realme', 'OnePlus', 'Lenovo', 'Alcatel', 'Sony Xperia', 'LG', 'ZTE', 'Gionee', 'Wiko', 'Blackview', 'Doogee', 'Cubot', 'Ulefone', 'Honor', 'Google Pixel', 'Motorola', 'Umidigi', 'Asus', 'Lava', 'Turing', 'Redmi', 'Poco'];
+            $defaultRanges = ['Spark', 'Camon', 'Phantom', 'Pop', 'Hot', 'Note', 'Zero', 'Smart', 'A-series', 'S-series', 'P-series', 'Galaxy A', 'Galaxy M', 'Galaxy S', 'Galaxy Note', 'Z Fold', 'iPhone 6', 'iPhone 7', 'iPhone 8', 'iPhone X', 'iPhone XR', 'iPhone 11', 'iPhone 12', 'iPhone 13', 'iPhone 14', 'iPhone 15', 'Redmi Note', 'Redmi A', 'Poco X', 'Poco F', 'Y-series', 'Nova', 'P-series', 'Mate', 'A-series', 'Reno', 'F-series', 'V-series', 'X-series', 'C-series', 'G-series', 'XR-series', 'Narzo', 'GT', 'Nord', '8', '9', '10', '11', 'K-series', 'Tab M', 'G-series', 'Velvet', 'K-series', 'Pixel 4', 'Pixel 5', 'Pixel 6', 'Pixel 7', 'Pixel 8'];
+            $defaultFormats = ['tactile', 'à touches', 'tablette Android'];
+            $defaultAccessoryTypes = ['Chargeur mural', 'Câble USB', 'Adaptateur secteur', 'Écouteurs filaires', 'Écouteurs Bluetooth', 'Casque audio', 'Batterie externe (Power Bank)', 'Coque de protection', 'Film protecteur (verre trempé)', 'Support téléphone voiture', 'Trépied photo / selfie stick', 'Haut-parleur Bluetooth', 'Clé USB OTG', 'Adaptateur Type-C / Micro USB', 'Station de charge sans fil', 'Smartwatch', 'Bracelet connecté', 'Anneau lumineux (Ring Light)', 'Carte mémoire (SD / microSD)', 'Hub USB', 'Dock de recharge multiple', 'Étui tablette', 'Câble HDMI mobile', 'Support bureau pliable', 'Mini ventilateur USB', 'Câble auxiliaire audio (jack 3.5 mm)', 'Batterie interne (remplaçable)', 'Chargeur allume-cigare', 'Connecteur magnétique', 'Adaptateur SIM / Ejecteur SIM'];
+            $defaultCompatibilities = ['Android universel', 'iPhone (Lightning)', 'Type-C universel', 'Micro-USB universel', 'Infinix / Tecno / Itel', 'Samsung Galaxy', 'iPhone 11 à 15', 'Huawei Y & P series', 'Redmi / Poco', 'Oppo A & F series', 'Vivo Y series', 'Nokia C & G series', 'Lenovo Tab', 'LG G & K series', 'OnePlus Nord / 8 / 9', 'Realme C / Narzo', 'Honor Magic / X', 'Google Pixel (4 à 8)', 'Motorola Moto G / E', 'Sony Xperia', 'Ulefone Armor', 'Doogee S series', 'Blackview BV series', 'Wiko Sunny / Jerry / Y', 'iPad (toutes générations)', 'Tablettes Android 10"', 'Smartwatch universelle', 'Accessoires audio Bluetooth 5.0', 'Casques jack 3.5 mm', 'Appareils à touches (Itel, Nokia 105, Tecno T series)'];
+
+            // Récupérer les valeurs distinctes depuis la base de données
+            $brands = DB::table('products')
+                ->select('brand')
+                ->whereNotNull('brand')
+                ->where('brand', '!=', '')
+                ->whereNull('deleted_at')
+                ->groupBy('brand')
+                ->orderBy('brand')
+                ->limit(100)
+                ->pluck('brand')
+                ->filter()
+                ->values()
+                ->toArray();
+            
+            if (empty($brands)) {
+                $brands = $defaultBrands;
+            } else {
+                // Fusionner avec les valeurs par défaut et supprimer les doublons
+                $brands = array_values(array_unique(array_merge($defaultBrands, $brands)));
+            }
+
+            $ranges = DB::table('products')
+                ->select('range')
+                ->whereNotNull('range')
+                ->where('range', '!=', '')
+                ->whereNull('deleted_at')
+                ->groupBy('range')
+                ->orderBy('range')
+                ->limit(100)
+                ->pluck('range')
+                ->filter()
+                ->values()
+                ->toArray();
+            
+            if (empty($ranges)) {
+                $ranges = $defaultRanges;
+            } else {
+                $ranges = array_values(array_unique(array_merge($defaultRanges, $ranges)));
+            }
+
+            $formats = DB::table('products')
+                ->select('format')
+                ->whereNotNull('format')
+                ->where('format', '!=', '')
+                ->whereNull('deleted_at')
+                ->groupBy('format')
+                ->orderBy('format')
+                ->limit(50)
+                ->pluck('format')
+                ->filter()
+                ->values()
+                ->toArray();
+            
+            if (empty($formats)) {
+                $formats = $defaultFormats;
+            } else {
+                $formats = array_values(array_unique(array_merge($defaultFormats, $formats)));
+            }
+
+            $accessoryTypes = DB::table('products')
+                ->select('type_accessory')
+                ->whereNotNull('type_accessory')
+                ->where('type_accessory', '!=', '')
+                ->whereNull('deleted_at')
+                ->groupBy('type_accessory')
+                ->orderBy('type_accessory')
+                ->limit(100)
+                ->pluck('type_accessory')
+                ->filter()
+                ->values()
+                ->toArray();
+            
+            if (empty($accessoryTypes)) {
+                $accessoryTypes = $defaultAccessoryTypes;
+            } else {
+                $accessoryTypes = array_values(array_unique(array_merge($defaultAccessoryTypes, $accessoryTypes)));
+            }
+
+            $compatibilities = DB::table('products')
+                ->select('compatibility')
+                ->whereNotNull('compatibility')
+                ->where('compatibility', '!=', '')
+                ->whereNull('deleted_at')
+                ->groupBy('compatibility')
+                ->orderBy('compatibility')
+                ->limit(100)
+                ->pluck('compatibility')
+                ->filter()
+                ->values()
+                ->toArray();
+            
+            if (empty($compatibilities)) {
+                $compatibilities = $defaultCompatibilities;
+            } else {
+                $compatibilities = array_values(array_unique(array_merge($defaultCompatibilities, $compatibilities)));
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'brands' => $brands,
+                    'ranges' => $ranges,
+                    'formats' => $formats,
+                    'accessory_types' => $accessoryTypes,
+                    'compatibilities' => $compatibilities,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Erreur récupération filterValues: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des valeurs de filtres',
+                'data' => [
+                    'brands' => [],
+                    'ranges' => [],
+                    'formats' => [],
+                    'accessory_types' => [],
+                    'compatibilities' => [],
+                ],
+            ], 500);
+        }
     }
 }
