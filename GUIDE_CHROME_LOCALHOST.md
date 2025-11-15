@@ -116,3 +116,6 @@ TCP    127.0.0.1:8000         0.0.0.0:0              LISTENING
 
 **Prochaine étape** : Démarrer le serveur avec `demarrer_serveur_chrome.ps1` et ouvrir Chrome sur `http://localhost:8000` 🚀
 
+
+
+

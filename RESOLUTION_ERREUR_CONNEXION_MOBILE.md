@@ -154,3 +154,6 @@ Si vous changez de réseau WiFi, vous devrez :
 
 Une fois ces étapes suivies, l'application mobile devrait pouvoir se connecter au serveur Laravel ! 🚀
 
+
+
+
