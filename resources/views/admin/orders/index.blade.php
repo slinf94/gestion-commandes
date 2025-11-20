@@ -15,6 +15,41 @@
 </div>
 
 <div class="container-fluid">
+    <!-- Onglets pour séparer Téléphones et Accessoires -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="orderTypeTabs" role="tablist" style="border-bottom: 2px solid #38B04A;">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {{ ($productType ?? 'all') === 'all' ? 'active' : '' }}" 
+                       href="{{ route('admin.orders.index', array_merge(request()->query(), ['product_type' => 'all'])) }}"
+                       style="color: {{ ($productType ?? 'all') === 'all' ? '#38B04A' : '#6c757d' }}; font-weight: {{ ($productType ?? 'all') === 'all' ? '600' : '400' }};">
+                        <i class="fas fa-list me-2"></i>Toutes les Commandes
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {{ ($productType ?? 'all') === 'telephone' ? 'active' : '' }}" 
+                       href="{{ route('admin.orders.index', array_merge(request()->query(), ['product_type' => 'telephone'])) }}"
+                       style="color: {{ ($productType ?? 'all') === 'telephone' ? '#38B04A' : '#6c757d' }}; font-weight: {{ ($productType ?? 'all') === 'telephone' ? '600' : '400' }};">
+                        <i class="fas fa-mobile-alt me-2"></i>Téléphones
+                        @if(isset($statsByType['telephones']['total']) && $statsByType['telephones']['total'] > 0)
+                            <span class="badge bg-warning ms-2">{{ $statsByType['telephones']['total'] }}</span>
+                        @endif
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {{ ($productType ?? 'all') === 'accessoire' ? 'active' : '' }}" 
+                       href="{{ route('admin.orders.index', array_merge(request()->query(), ['product_type' => 'accessoire'])) }}"
+                       style="color: {{ ($productType ?? 'all') === 'accessoire' ? '#38B04A' : '#6c757d' }}; font-weight: {{ ($productType ?? 'all') === 'accessoire' ? '600' : '400' }};">
+                        <i class="fas fa-headphones me-2"></i>Accessoires
+                        @if(isset($statsByType['accessoires']['total']) && $statsByType['accessoires']['total'] > 0)
+                            <span class="badge bg-info ms-2">{{ $statsByType['accessoires']['total'] }}</span>
+                        @endif
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
     <!-- Statistiques modernes -->
     @if(isset($stats))
     <div class="row mb-4">
@@ -25,6 +60,12 @@
                         <div>
                             <h6 class="text-muted mb-1" style="font-size: 0.75rem; text-transform: uppercase;">Total Commandes</h6>
                             <h3 class="mb-0" style="font-weight: 700; color: #0066cc;">{{ $stats['total'] }}</h3>
+                            @if(isset($statsByType))
+                                <small class="text-muted">
+                                    📱 {{ $statsByType['telephones']['total'] ?? 0 }} Tél. | 
+                                    🔌 {{ $statsByType['accessoires']['total'] ?? 0 }} Acc.
+                                </small>
+                            @endif
                         </div>
                         <i class="fas fa-chart-line fa-2x" style="color: #0066cc; opacity: 0.3;"></i>
                     </div>
@@ -38,6 +79,12 @@
                         <div>
                             <h6 class="text-muted mb-1" style="font-size: 0.75rem; text-transform: uppercase;">En Attente</h6>
                             <h3 class="mb-0" style="font-weight: 700; color: #ffc107;">{{ $stats['pending'] ?? 0 }}</h3>
+                            @if(isset($statsByType))
+                                <small class="text-muted">
+                                    📱 {{ $statsByType['telephones']['pending'] ?? 0 }} Tél. | 
+                                    🔌 {{ $statsByType['accessoires']['pending'] ?? 0 }} Acc.
+                                </small>
+                            @endif
                         </div>
                         <i class="fas fa-clock fa-2x" style="color: #ffc107; opacity: 0.3;"></i>
                     </div>
@@ -106,6 +153,14 @@
                                     <option value="shipped" {{ request('status') == 'shipped' ? 'selected' : '' }}>Expédié</option>
                                     <option value="delivered" {{ request('status') == 'delivered' ? 'selected' : '' }}>Livré</option>
                                     <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Annulé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="product_type" class="form-label">Type de Produit</label>
+                                <select name="product_type" id="product_type" class="form-select">
+                                    <option value="all" {{ ($productType ?? 'all') === 'all' ? 'selected' : '' }}>Tous</option>
+                                    <option value="telephone" {{ ($productType ?? 'all') === 'telephone' ? 'selected' : '' }}>Téléphones</option>
+                                    <option value="accessoire" {{ ($productType ?? 'all') === 'accessoire' ? 'selected' : '' }}>Accessoires</option>
                                 </select>
                             </div>
                             <div class="col-md-2">

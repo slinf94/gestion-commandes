@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Helpers\ProductTypeHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class NotificationController extends Controller
 {
@@ -34,12 +36,14 @@ class NotificationController extends Controller
             
             // Récupérer les notifications pour les admins
             // Les notifications peuvent être créées pour tous les admins ou pour un admin spécifique
-            $query = Notification::where(function($q) use ($user) {
-                // Notifications pour tous les admins (user_id = null) ou pour cet admin spécifique
-                $q->whereNull('user_id')
-                  ->orWhere('user_id', $user->id);
-            })
-            ->whereIn('type', ['order', 'account', 'system', 'client']); // Types de notifications pour admins
+            // Optimisation : ne sélectionner que les colonnes nécessaires pour éviter de charger trop de données
+            $query = Notification::select('id', 'user_id', 'title', 'message', 'type', 'is_read', 'data', 'created_at', 'updated_at')
+                ->where(function($q) use ($user) {
+                    // Notifications pour tous les admins (user_id = null) ou pour cet admin spécifique
+                    $q->whereNull('user_id')
+                      ->orWhere('user_id', $user->id);
+                })
+                ->whereIn('type', ['order', 'account', 'system', 'client']); // Types de notifications pour admins
             
             // Filtrer par non lues uniquement si demandé
             if ($request->has('unread_only') && $request->unread_only) {
@@ -51,8 +55,72 @@ class NotificationController extends Controller
             $notifications = $query->orderBy('created_at', 'desc')
                                   ->paginate($perPage);
             
-            // Formater les notifications
+            // Formater les notifications et déterminer le type de produit
+            // Optimisation : utiliser DB::table() pour éviter de charger tous les modèles
             $formattedNotifications = $notifications->map(function($notification) {
+                $data = $notification->data ?? [];
+                $productType = $data['product_type'] ?? null;
+                $hasTelephones = $data['has_telephones'] ?? false;
+                $hasAccessoires = $data['has_accessoires'] ?? false;
+                
+                // Si c'est une notification de commande et qu'on n'a pas le product_type, le déterminer avec DB::table()
+                if ($notification->type === 'order' && !$productType && isset($data['order_id'])) {
+                    try {
+                        $orderId = $data['order_id'];
+                        
+                        // Vérifier si la commande contient des téléphones
+                        $hasPhones = DB::table('orders')
+                            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                            ->join('products', 'order_items.product_id', '=', 'products.id')
+                            ->where('orders.id', $orderId)
+                            ->whereNull('products.deleted_at')
+                            ->where(function($q) {
+                                $q->where(function($subQ) {
+                                    $subQ->whereNotNull('products.brand')->where('products.brand', '!=', '')
+                                         ->orWhereNotNull('products.range')->where('products.range', '!=', '')
+                                         ->orWhereNotNull('products.format')->where('products.format', '!=', '');
+                                });
+                            })
+                            ->exists();
+                        
+                        // Vérifier si la commande contient des accessoires
+                        $hasAccessories = DB::table('orders')
+                            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                            ->join('products', 'order_items.product_id', '=', 'products.id')
+                            ->where('orders.id', $orderId)
+                            ->whereNull('products.deleted_at')
+                            ->where(function($q) {
+                                $q->where(function($subQ) {
+                                    $subQ->whereNotNull('products.type_accessory')->where('products.type_accessory', '!=', '')
+                                         ->orWhereNotNull('products.compatibility')->where('products.compatibility', '!=', '');
+                                });
+                            })
+                            ->exists();
+                        
+                        // Déterminer le type
+                        if ($hasPhones && $hasAccessories) {
+                            $productType = 'mixed';
+                        } elseif ($hasPhones) {
+                            $productType = 'telephone';
+                        } elseif ($hasAccessories) {
+                            $productType = 'accessoire';
+                        } else {
+                            $productType = 'other';
+                        }
+                        
+                        $hasTelephones = $hasPhones;
+                        $hasAccessoires = $hasAccessories;
+                        
+                        // Mettre à jour les données
+                        $data['product_type'] = $productType;
+                        $data['has_telephones'] = $hasTelephones;
+                        $data['has_accessoires'] = $hasAccessoires;
+                    } catch (\Exception $e) {
+                        \Log::warning('Erreur détermination type produit notification: ' . $e->getMessage());
+                        $productType = 'other';
+                    }
+                }
+                
                 return [
                     'id' => $notification->id,
                     'user_id' => $notification->user_id,
@@ -60,11 +128,60 @@ class NotificationController extends Controller
                     'message' => $notification->message ?? '',
                     'type' => $notification->type ?? 'system',
                     'is_read' => (bool)($notification->is_read ?? false),
-                    'data' => $notification->data ?? [],
+                    'data' => $data,
+                    'product_type' => $productType, // 'telephone', 'accessoire', 'mixed', 'other', ou null
+                    'has_telephones' => $hasTelephones,
+                    'has_accessoires' => $hasAccessoires,
                     'created_at' => $notification->created_at ? $notification->created_at->toIso8601String() : now()->toIso8601String(),
                     'updated_at' => $notification->updated_at ? $notification->updated_at->toIso8601String() : now()->toIso8601String(),
                 ];
             });
+            
+            // Compter les notifications par type (optimisé)
+            $telephonesCount = 0;
+            $accessoiresCount = 0;
+            $mixedCount = 0;
+            $otherCount = 0;
+            $telephonesUnread = 0;
+            $accessoiresUnread = 0;
+            $mixedUnread = 0;
+            
+            foreach ($formattedNotifications as $notif) {
+                $productType = $notif['product_type'] ?? null;
+                $isRead = $notif['is_read'] ?? false;
+                
+                if ($productType === 'telephone') {
+                    $telephonesCount++;
+                    if (!$isRead) $telephonesUnread++;
+                } elseif ($productType === 'accessoire') {
+                    $accessoiresCount++;
+                    if (!$isRead) $accessoiresUnread++;
+                } elseif ($productType === 'mixed') {
+                    $mixedCount++;
+                    $telephonesCount++; // Les mixed comptent dans les deux
+                    $accessoiresCount++;
+                    if (!$isRead) {
+                        $mixedUnread++;
+                        $telephonesUnread++;
+                        $accessoiresUnread++;
+                    }
+                } else {
+                    $otherCount++;
+                }
+            }
+            
+            $countsByType = [
+                'telephones' => $telephonesCount,
+                'accessoires' => $accessoiresCount,
+                'mixed' => $mixedCount,
+                'other' => $otherCount,
+            ];
+            
+            $unreadCountsByType = [
+                'telephones' => $telephonesUnread,
+                'accessoires' => $accessoiresUnread,
+                'mixed' => $mixedUnread,
+            ];
             
             return response()->json([
                 'success' => true,
@@ -75,7 +192,9 @@ class NotificationController extends Controller
                     'per_page' => $notifications->perPage(),
                     'total' => $notifications->total(),
                 ],
-                'unread_count' => $this->getUnreadCount()
+                'unread_count' => $this->getUnreadCount(),
+                'counts_by_type' => $countsByType,
+                'unread_counts_by_type' => $unreadCountsByType,
             ]);
         } catch (\Exception $e) {
             \Log::error('Erreur chargement notifications: ' . $e->getMessage(), [

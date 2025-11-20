@@ -9,14 +9,17 @@ use App\Models\OrderStatusHistory;
 use App\Notifications\OrderStatusChangedNotification;
 use App\Notifications\NewOrderNotification;
 use App\Helpers\OrderStatusHelper;
+use App\Helpers\ProductTypeHelper;
 use App\Enums\OrderStatus;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Order::with(['user', 'items']);
+        // Optimisation mémoire : charger seulement les relations nécessaires
+        $query = Order::with(['user:id,nom,prenom,email,numero_telephone']);
 
         // Recherche
         if ($request->filled('search')) {
@@ -38,6 +41,40 @@ class OrderController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Filtre par type de produit (téléphone ou accessoire) - Optimisé avec sous-requête
+        $productType = $request->get('product_type', 'all'); // 'all', 'telephone', 'accessoire'
+        if ($productType !== 'all') {
+            // Utiliser une sous-requête pour éviter de charger toutes les relations
+            $orderIds = DB::table('orders')
+                ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                ->join('products', 'order_items.product_id', '=', 'products.id')
+                ->whereNull('products.deleted_at')
+                ->where(function($q) use ($productType) {
+                    if ($productType === 'telephone') {
+                        $q->where(function($subQ) {
+                            $subQ->whereNotNull('products.brand')->where('products.brand', '!=', '')
+                                 ->orWhereNotNull('products.range')->where('products.range', '!=', '')
+                                 ->orWhereNotNull('products.format')->where('products.format', '!=', '');
+                        });
+                    } elseif ($productType === 'accessoire') {
+                        $q->where(function($subQ) {
+                            $subQ->whereNotNull('products.type_accessory')->where('products.type_accessory', '!=', '')
+                                 ->orWhereNotNull('products.compatibility')->where('products.compatibility', '!=', '');
+                        });
+                    }
+                })
+                ->distinct()
+                ->pluck('orders.id')
+                ->toArray();
+            
+            if (!empty($orderIds)) {
+                $query->whereIn('id', $orderIds);
+            } else {
+                // Aucune commande ne correspond, retourner un résultat vide
+                $query->whereRaw('1 = 0');
+            }
+        }
+
         // Filtre par date
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -51,9 +88,14 @@ class OrderController extends Controller
         $sortBy = $request->get('sort_by', 'id');
         $sortOrder = $request->get('sort_order', 'desc');
 
-        $allowedSortFields = ['id', 'created_at', 'total', 'status'];
+        $allowedSortFields = ['id', 'created_at', 'total_amount', 'status'];
         if (!in_array($sortBy, $allowedSortFields)) {
             $sortBy = 'id';
+        }
+        
+        // Mapper 'total' vers 'total_amount'
+        if ($sortBy === 'total') {
+            $sortBy = 'total_amount';
         }
 
         $query->orderBy($sortBy, $sortOrder);
@@ -62,17 +104,90 @@ class OrderController extends Controller
         $perPage = $request->get('per_page', 20);
         $orders = $query->paginate($perPage)->appends($request->query());
 
-        // Statistiques
+        // Statistiques générales - Utiliser DB::table() pour optimiser
         $stats = [
-            'total' => Order::count(),
-            'pending' => Order::where('status', 'pending')->count(),
-            'processing' => Order::where('status', 'processing')->count(),
-            'shipped' => Order::where('status', 'shipped')->count(),
-            'delivered' => Order::where('status', 'delivered')->count(),
-            'cancelled' => Order::where('status', 'cancelled')->count(),
+            'total' => DB::table('orders')->count(),
+            'pending' => DB::table('orders')->where('status', 'pending')->count(),
+            'processing' => DB::table('orders')->where('status', 'processing')->count(),
+            'shipped' => DB::table('orders')->where('status', 'shipped')->count(),
+            'delivered' => DB::table('orders')->where('status', 'delivered')->count(),
+            'cancelled' => DB::table('orders')->where('status', 'cancelled')->count(),
         ];
 
-        return view('admin.orders.index', compact('orders', 'stats'));
+        // Statistiques par type de produit - Utiliser DB::table() avec jointures pour optimiser
+        // Utiliser des sous-requêtes pour éviter les doublons
+        $statsByType = [
+            'telephones' => [
+                'total' => DB::table('orders')
+                    ->whereIn('id', function($query) {
+                        $query->select(DB::raw('DISTINCT orders.id'))
+                            ->from('orders')
+                            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                            ->join('products', 'order_items.product_id', '=', 'products.id')
+                            ->whereNull('products.deleted_at')
+                            ->where(function($q) {
+                                $q->where(function($subQ) {
+                                    $subQ->whereNotNull('products.brand')->where('products.brand', '!=', '')
+                                         ->orWhereNotNull('products.range')->where('products.range', '!=', '')
+                                         ->orWhereNotNull('products.format')->where('products.format', '!=', '');
+                                });
+                            });
+                    })
+                    ->count(),
+                'pending' => DB::table('orders')
+                    ->where('status', 'pending')
+                    ->whereIn('id', function($query) {
+                        $query->select(DB::raw('DISTINCT orders.id'))
+                            ->from('orders')
+                            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                            ->join('products', 'order_items.product_id', '=', 'products.id')
+                            ->whereNull('products.deleted_at')
+                            ->where(function($q) {
+                                $q->where(function($subQ) {
+                                    $subQ->whereNotNull('products.brand')->where('products.brand', '!=', '')
+                                         ->orWhereNotNull('products.range')->where('products.range', '!=', '')
+                                         ->orWhereNotNull('products.format')->where('products.format', '!=', '');
+                                });
+                            });
+                    })
+                    ->count(),
+            ],
+            'accessoires' => [
+                'total' => DB::table('orders')
+                    ->whereIn('id', function($query) {
+                        $query->select(DB::raw('DISTINCT orders.id'))
+                            ->from('orders')
+                            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                            ->join('products', 'order_items.product_id', '=', 'products.id')
+                            ->whereNull('products.deleted_at')
+                            ->where(function($q) {
+                                $q->where(function($subQ) {
+                                    $subQ->whereNotNull('products.type_accessory')->where('products.type_accessory', '!=', '')
+                                         ->orWhereNotNull('products.compatibility')->where('products.compatibility', '!=', '');
+                                });
+                            });
+                    })
+                    ->count(),
+                'pending' => DB::table('orders')
+                    ->where('status', 'pending')
+                    ->whereIn('id', function($query) {
+                        $query->select(DB::raw('DISTINCT orders.id'))
+                            ->from('orders')
+                            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                            ->join('products', 'order_items.product_id', '=', 'products.id')
+                            ->whereNull('products.deleted_at')
+                            ->where(function($q) {
+                                $q->where(function($subQ) {
+                                    $subQ->whereNotNull('products.type_accessory')->where('products.type_accessory', '!=', '')
+                                         ->orWhereNotNull('products.compatibility')->where('products.compatibility', '!=', '');
+                                });
+                            });
+                    })
+                    ->count(),
+            ],
+        ];
+
+        return view('admin.orders.index', compact('orders', 'stats', 'statsByType', 'productType'));
     }
 
     public function show(Order $order)

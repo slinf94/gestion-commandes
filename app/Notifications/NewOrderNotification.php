@@ -8,6 +8,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use App\Models\Order;
 use App\Helpers\OrderStatusHelper;
+use App\Helpers\ProductTypeHelper;
 
 class NewOrderNotification extends Notification
 {
@@ -67,8 +68,51 @@ class NewOrderNotification extends Notification
             ->line('🛍️ ARTICLES COMMANDÉS')
             ->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
+        // Séparer les articles par type
+        $telephones = [];
+        $accessoires = [];
+        $autres = [];
+
         foreach ($this->order->items as $item) {
-            $mailMessage->line('• ' . $item->product->name . ' × ' . $item->quantity . ' → ' . number_format($item->total_price, 0, ',', ' ') . ' FCFA');
+            if ($item->product) {
+                $productType = ProductTypeHelper::getProductType($item->product);
+                $itemLine = '• ' . $item->product->name . ' × ' . $item->quantity . ' → ' . number_format($item->total_price, 0, ',', ' ') . ' FCFA';
+                
+                if ($productType === 'telephone') {
+                    $telephones[] = $itemLine;
+                } elseif ($productType === 'accessoire') {
+                    $accessoires[] = $itemLine;
+                } else {
+                    $autres[] = $itemLine;
+                }
+            }
+        }
+
+        // Afficher les téléphones
+        if (!empty($telephones)) {
+            $mailMessage->line('📱 TÉLÉPHONES:');
+            foreach ($telephones as $line) {
+                $mailMessage->line($line);
+            }
+            $mailMessage->line('');
+        }
+
+        // Afficher les accessoires
+        if (!empty($accessoires)) {
+            $mailMessage->line('🔌 ACCESSOIRES:');
+            foreach ($accessoires as $line) {
+                $mailMessage->line($line);
+            }
+            $mailMessage->line('');
+        }
+
+        // Afficher les autres produits
+        if (!empty($autres)) {
+            $mailMessage->line('📦 AUTRES PRODUITS:');
+            foreach ($autres as $line) {
+                $mailMessage->line($line);
+            }
+            $mailMessage->line('');
         }
 
         $mailMessage
@@ -105,6 +149,9 @@ class NewOrderNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
+        // Déterminer le type de commande
+        $orderType = ProductTypeHelper::getOrderType($this->order);
+        
         return [
             'order_id' => $this->order->id,
             'order_number' => $this->order->order_number,
@@ -113,6 +160,9 @@ class NewOrderNotification extends Notification
             'total_amount' => $this->order->total_amount,
             'status' => $this->order->status,
             'created_at' => $this->order->created_at,
+            'product_type' => $orderType, // 'telephone', 'accessoire', 'mixed', ou 'other'
+            'has_telephones' => ProductTypeHelper::orderHasTelephones($this->order),
+            'has_accessoires' => ProductTypeHelper::orderHasAccessoires($this->order),
         ];
     }
 }

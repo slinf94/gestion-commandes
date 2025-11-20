@@ -6,19 +6,62 @@
 
 @section('content')
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #38B04A, #4CAF50); color: white;">
         <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Mes Notifications</h5>
         <div>
-            {{-- Bouton "Tout marquer comme lu" masqué - ne pas supprimer la logique, juste masquer l'UI --}}
-            {{-- <button class="btn btn-sm btn-primary" id="markAllReadBtn">
-                <i class="fas fa-check-double me-1"></i>Tout marquer comme lu
-            </button> --}}
-            <button class="btn btn-sm btn-outline-secondary" id="refreshBtn">
+            <button class="btn btn-sm btn-light" id="refreshBtn">
                 <i class="fas fa-sync-alt me-1"></i>Actualiser
             </button>
         </div>
     </div>
     <div class="card-body">
+        <!-- Badges de comptage par type -->
+        <div class="row mb-3" id="notificationBadges" style="display: none;">
+            <div class="col-md-4 mb-2">
+                <div class="card border-primary">
+                    <div class="card-body text-center p-2">
+                        <h6 class="mb-1 text-primary">
+                            <i class="fas fa-mobile-alt me-1"></i>Téléphones
+                        </h6>
+                        <div>
+                            <span class="badge bg-primary" id="telephonesBadge">0</span>
+                            <small class="text-muted ms-2">
+                                (<span id="telephonesUnreadBadge" class="text-warning">0</span> non lues)
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-2">
+                <div class="card border-info">
+                    <div class="card-body text-center p-2">
+                        <h6 class="mb-1 text-info">
+                            <i class="fas fa-headphones me-1"></i>Accessoires
+                        </h6>
+                        <div>
+                            <span class="badge bg-info" id="accessoiresBadge">0</span>
+                            <small class="text-muted ms-2">
+                                (<span id="accessoiresUnreadBadge" class="text-warning">0</span> non lues)
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-2">
+                <div class="card border-secondary">
+                    <div class="card-body text-center p-2">
+                        <h6 class="mb-1 text-secondary">
+                            <i class="fas fa-list me-1"></i>Autres
+                        </h6>
+                        <div>
+                            <span class="badge bg-secondary" id="otherBadge">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sections de notifications -->
         <div id="notificationsContainer">
             <div class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
@@ -79,6 +122,44 @@
         font-size: 64px;
         opacity: 0.3;
         margin-bottom: 20px;
+    }
+
+    .notification-section {
+        margin-bottom: 20px;
+    }
+
+    .notification-section .card-header {
+        font-weight: 600;
+    }
+
+    .notification-section .list-group-item {
+        border: none;
+        border-left: 3px solid;
+        transition: all 0.2s ease;
+    }
+
+    .notification-section .list-group-item:hover {
+        transform: translateX(5px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .notification-section .list-group-item.unread {
+        border-left-color: #2196F3;
+        background-color: #e7f3ff;
+    }
+
+    .notification-section .list-group-item.read {
+        border-left-color: #6c757d;
+        background-color: #f8f9fa;
+    }
+
+    #notificationBadges .card {
+        transition: transform 0.2s ease;
+    }
+
+    #notificationBadges .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
 </style>
 @endsection
@@ -145,6 +226,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 renderNotifications(data.data.data || [], append);
                 currentPage = data.data.current_page || 1;
+                
+                // Mettre à jour les badges avec les comptes globaux si disponibles
+                if (data.counts_by_type) {
+                    updateBadgesFromCounts(data.counts_by_type, data.unread_counts_by_type || {});
+                }
             } else {
                 showError(data.message || 'Erreur lors du chargement des notifications');
             }
@@ -170,55 +256,200 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p>Vous n'avez pas encore de notifications.</p>
                 </div>
             `;
-            // markAllReadBtn.style.display = 'none'; // Masqué
+            document.getElementById('notificationBadges').style.display = 'none';
             return;
         }
 
-        // Vérifier s'il y a des notifications non lues
-        const hasUnread = notifications.some(n => !n.is_read);
+        // Séparer les notifications par type
+        // Les notifications "mixed" apparaissent dans les deux sections
+        const telephonesNotifications = notifications.filter(n => 
+            n.product_type === 'telephone' || 
+            (n.product_type === 'mixed' && n.has_telephones) ||
+            (n.type === 'order' && n.has_telephones)
+        );
+        const accessoiresNotifications = notifications.filter(n => 
+            n.product_type === 'accessoire' || 
+            (n.product_type === 'mixed' && n.has_accessoires) ||
+            (n.type === 'order' && n.has_accessoires)
+        );
+        const otherNotifications = notifications.filter(n => 
+            (!n.product_type || n.product_type === 'other') && 
+            n.type !== 'order' &&
+            !n.has_telephones && 
+            !n.has_accessoires
+        );
 
+        // Mettre à jour les badges
+        updateBadges(notifications);
+
+        // Afficher les sections
+        if (!append) {
+            notificationsContainer.innerHTML = '';
+        }
+
+        // Section Téléphones
+        if (telephonesNotifications.length > 0) {
+            const section = createNotificationSection('Téléphones', 'telephones', telephonesNotifications);
+            notificationsContainer.appendChild(section);
+        }
+
+        // Section Accessoires
+        if (accessoiresNotifications.length > 0) {
+            const section = createNotificationSection('Accessoires', 'accessoires', accessoiresNotifications);
+            notificationsContainer.appendChild(section);
+        }
+
+        // Section Autres
+        if (otherNotifications.length > 0) {
+            const section = createNotificationSection('Autres Notifications', 'other', otherNotifications);
+            notificationsContainer.appendChild(section);
+        }
+    }
+
+    // Créer une section de notifications
+    function createNotificationSection(title, type, notifications) {
+        const section = document.createElement('div');
+        section.className = 'notification-section mb-4';
+        section.id = `section-${type}`;
+        
+        const icon = type === 'telephones' ? '<i class="fas fa-mobile-alt"></i>' : 
+                     type === 'accessoires' ? '<i class="fas fa-headphones"></i>' : 
+                     '<i class="fas fa-bell"></i>';
+        const colorClass = type === 'telephones' ? 'primary' : 
+                          type === 'accessoires' ? 'info' : 
+                          'secondary';
+        
+        const unreadCount = notifications.filter(n => !n.is_read).length;
+        
+        section.innerHTML = `
+            <div class="card border-${colorClass} mb-3">
+                <div class="card-header bg-${colorClass} bg-opacity-10">
+                    <h6 class="mb-0 text-${colorClass}">
+                        ${icon} ${title}
+                        <span class="badge bg-${colorClass} ms-2">${notifications.length}</span>
+                        ${unreadCount > 0 ? `<span class="badge bg-warning ms-2">${unreadCount} non lue(s)</span>` : ''}
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" id="notifications-${type}">
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const listContainer = section.querySelector(`#notifications-${type}`);
         notifications.forEach(notification => {
             const card = createNotificationCard(notification);
-            notificationsContainer.appendChild(card);
+            listContainer.appendChild(card);
         });
+        
+        return section;
+    }
 
-        // Bouton masqué - ne pas supprimer la logique
-        // markAllReadBtn.style.display = hasUnread ? 'block' : 'none';
+    // Mettre à jour les badges depuis les notifications affichées
+    function updateBadges(notifications) {
+        const telephonesCount = notifications.filter(n => 
+            n.product_type === 'telephone' || 
+            (n.product_type === 'mixed' && n.has_telephones) ||
+            (n.type === 'order' && n.has_telephones)
+        ).length;
+        const accessoiresCount = notifications.filter(n => 
+            n.product_type === 'accessoire' || 
+            (n.product_type === 'mixed' && n.has_accessoires) ||
+            (n.type === 'order' && n.has_accessoires)
+        ).length;
+        const otherCount = notifications.filter(n => 
+            (!n.product_type || n.product_type === 'other') && 
+            n.type !== 'order' &&
+            !n.has_telephones && 
+            !n.has_accessoires
+        ).length;
+        
+        const telephonesUnread = notifications.filter(n => 
+            (n.product_type === 'telephone' || 
+             (n.product_type === 'mixed' && n.has_telephones) ||
+             (n.type === 'order' && n.has_telephones)) && 
+            !n.is_read
+        ).length;
+        const accessoiresUnread = notifications.filter(n => 
+            (n.product_type === 'accessoire' || 
+             (n.product_type === 'mixed' && n.has_accessoires) ||
+             (n.type === 'order' && n.has_accessoires)) && 
+            !n.is_read
+        ).length;
+        
+        document.getElementById('telephonesBadge').textContent = telephonesCount;
+        document.getElementById('telephonesUnreadBadge').textContent = telephonesUnread;
+        document.getElementById('accessoiresBadge').textContent = accessoiresCount;
+        document.getElementById('accessoiresUnreadBadge').textContent = accessoiresUnread;
+        document.getElementById('otherBadge').textContent = otherCount;
+        
+        document.getElementById('notificationBadges').style.display = 'flex';
+    }
+
+    // Mettre à jour les badges depuis les comptes globaux (si disponibles)
+    function updateBadgesFromCounts(countsByType, unreadCountsByType) {
+        if (countsByType) {
+            document.getElementById('telephonesBadge').textContent = countsByType.telephones || 0;
+            document.getElementById('accessoiresBadge').textContent = countsByType.accessoires || 0;
+            document.getElementById('otherBadge').textContent = (countsByType.other || 0) + (countsByType.mixed || 0);
+            
+            if (unreadCountsByType) {
+                document.getElementById('telephonesUnreadBadge').textContent = unreadCountsByType.telephones || 0;
+                document.getElementById('accessoiresUnreadBadge').textContent = unreadCountsByType.accessoires || 0;
+            }
+            
+            document.getElementById('notificationBadges').style.display = 'flex';
+        }
     }
 
     // Créer une carte de notification
     function createNotificationCard(notification) {
         const card = document.createElement('div');
-        card.className = `card notification-card ${notification.is_read ? 'read' : 'unread'}`;
+        card.className = `list-group-item ${notification.is_read ? 'read' : 'unread'}`;
         card.dataset.id = notification.id;
+        card.style.borderLeft = notification.is_read ? '3px solid #6c757d' : '3px solid #2196F3';
+        card.style.backgroundColor = notification.is_read ? '#f8f9fa' : '#e7f3ff';
+        card.style.marginBottom = '5px';
+        card.style.borderRadius = '4px';
         
         const icon = getNotificationIcon(notification.type);
         const timeAgo = getTimeAgo(notification.created_at);
         
+        // Badge de type de produit
+        let productTypeBadge = '';
+        if (notification.product_type === 'telephone') {
+            productTypeBadge = '<span class="badge bg-primary me-1"><i class="fas fa-mobile-alt"></i> Téléphone</span>';
+        } else if (notification.product_type === 'accessoire') {
+            productTypeBadge = '<span class="badge bg-info me-1"><i class="fas fa-headphones"></i> Accessoire</span>';
+        } else if (notification.product_type === 'mixed') {
+            productTypeBadge = '<span class="badge bg-warning me-1"><i class="fas fa-layer-group"></i> Mixte</span>';
+        }
+        
         card.innerHTML = `
-            <div class="card-body">
-                <div class="d-flex align-items-start">
-                    <div class="me-3">
-                        <div class="notification-icon">${icon}</div>
-                    </div>
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="d-flex align-items-start p-2">
+                <div class="me-3">
+                    <div class="notification-icon">${icon}</div>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
                             <h6 class="mb-1 fw-bold">${escapeHtml(notification.title)}</h6>
-                            ${!notification.is_read ? '<span class="badge bg-primary">Nouveau</span>' : ''}
+                            ${productTypeBadge}
                         </div>
-                        <p class="mb-2 text-muted">${escapeHtml(notification.message)}</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="notification-time">
-                                <i class="fas fa-clock me-1"></i>${timeAgo}
-                            </span>
-                            <div class="notification-actions">
-                                ${!notification.is_read ? `
-                                    <button class="btn btn-sm btn-outline-primary" onclick="markAsRead(${notification.id})">
-                                        <i class="fas fa-check me-1"></i>Marquer lu
-                                    </button>
-                                ` : ''}
-                                <!-- Bouton "Supprimer" masqué - logique conservée dans deleteNotification() -->
-                            </div>
+                        ${!notification.is_read ? '<span class="badge bg-primary">Nouveau</span>' : ''}
+                    </div>
+                    <p class="mb-2 text-muted small">${escapeHtml(notification.message)}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="notification-time small text-muted">
+                            <i class="fas fa-clock me-1"></i>${timeAgo}
+                        </span>
+                        <div class="notification-actions">
+                            ${!notification.is_read ? `
+                                <button class="btn btn-sm btn-outline-primary" onclick="markAsRead(${notification.id})">
+                                    <i class="fas fa-check me-1"></i>Marquer lu
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 </div>

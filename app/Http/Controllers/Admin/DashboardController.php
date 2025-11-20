@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\OrderSimple as Order;
 use App\Models\Category;
 use App\Enums\OrderStatus;
+use App\Helpers\ProductTypeHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -166,6 +167,87 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
+        // Statistiques par type de produit (Téléphones vs Accessoires)
+        $orders_by_product_type = [
+            'telephones' => [
+                'total' => DB::table('orders')
+                    ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                    ->join('products', 'order_items.product_id', '=', 'products.id')
+                    ->whereNotIn('orders.status', [OrderStatus::CANCELLED->value])
+                    ->where(function($q) {
+                        $q->where(function($subQ) {
+                            $subQ->whereNotNull('products.brand')->where('products.brand', '!=', '')
+                                 ->orWhereNotNull('products.range')->where('products.range', '!=', '')
+                                 ->orWhereNotNull('products.format')->where('products.format', '!=', '');
+                        });
+                    })
+                    ->distinct('orders.id')
+                    ->count('orders.id'),
+                'revenue' => DB::table('orders')
+                    ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                    ->join('products', 'order_items.product_id', '=', 'products.id')
+                    ->whereNotIn('orders.status', [OrderStatus::CANCELLED->value])
+                    ->where(function($q) {
+                        $q->where(function($subQ) {
+                            $subQ->whereNotNull('products.brand')->where('products.brand', '!=', '')
+                                 ->orWhereNotNull('products.range')->where('products.range', '!=', '')
+                                 ->orWhereNotNull('products.format')->where('products.format', '!=', '');
+                        });
+                    })
+                    ->sum('order_items.total_price'),
+                'pending' => DB::table('orders')
+                    ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                    ->join('products', 'order_items.product_id', '=', 'products.id')
+                    ->where('orders.status', OrderStatus::PENDING->value)
+                    ->where(function($q) {
+                        $q->where(function($subQ) {
+                            $subQ->whereNotNull('products.brand')->where('products.brand', '!=', '')
+                                 ->orWhereNotNull('products.range')->where('products.range', '!=', '')
+                                 ->orWhereNotNull('products.format')->where('products.format', '!=', '');
+                        });
+                    })
+                    ->distinct('orders.id')
+                    ->count('orders.id'),
+            ],
+            'accessoires' => [
+                'total' => DB::table('orders')
+                    ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                    ->join('products', 'order_items.product_id', '=', 'products.id')
+                    ->whereNotIn('orders.status', [OrderStatus::CANCELLED->value])
+                    ->where(function($q) {
+                        $q->where(function($subQ) {
+                            $subQ->whereNotNull('products.type_accessory')->where('products.type_accessory', '!=', '')
+                                 ->orWhereNotNull('products.compatibility')->where('products.compatibility', '!=', '');
+                        });
+                    })
+                    ->distinct('orders.id')
+                    ->count('orders.id'),
+                'revenue' => DB::table('orders')
+                    ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                    ->join('products', 'order_items.product_id', '=', 'products.id')
+                    ->whereNotIn('orders.status', [OrderStatus::CANCELLED->value])
+                    ->where(function($q) {
+                        $q->where(function($subQ) {
+                            $subQ->whereNotNull('products.type_accessory')->where('products.type_accessory', '!=', '')
+                                 ->orWhereNotNull('products.compatibility')->where('products.compatibility', '!=', '');
+                        });
+                    })
+                    ->sum('order_items.total_price'),
+                'pending' => DB::table('orders')
+                    ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                    ->join('products', 'order_items.product_id', '=', 'products.id')
+                    ->where('orders.status', OrderStatus::PENDING->value)
+                    ->where(function($q) {
+                        $q->where(function($subQ) {
+                            $subQ->whereNotNull('products.type_accessory')->where('products.type_accessory', '!=', '')
+                                 ->orWhereNotNull('products.compatibility')->where('products.compatibility', '!=', '');
+                        });
+                    })
+                    ->distinct('orders.id')
+                    ->count('orders.id'),
+            ],
+        ];
+
         return view('admin.dashboard', compact(
             'stats',
             'daily_sales',
@@ -179,7 +261,8 @@ class DashboardController extends Controller
             'low_stock_products',
             'category_stats',
             'brand_stats',
-            'recent_users'
+            'recent_users',
+            'orders_by_product_type'
         ));
     }
 

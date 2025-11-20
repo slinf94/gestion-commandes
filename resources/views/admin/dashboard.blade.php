@@ -77,6 +77,12 @@
                     <div>
                         <h3 class="mb-0 text-warning fw-bold">{{ $stats['total_orders'] ?? 0 }}</h3>
                         <small class="text-muted">Commandes</small>
+                        @if(isset($orders_by_product_type))
+                            <small class="text-muted d-block">
+                                📱 {{ $orders_by_product_type['telephones']['total'] ?? 0 }} Tél. | 
+                                🔌 {{ $orders_by_product_type['accessoires']['total'] ?? 0 }} Acc.
+                            </small>
+                        @endif
                     </div>
                     <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
                         <i class="fas fa-shopping-bag fa-2x text-warning"></i>
@@ -94,6 +100,12 @@
                     <div>
                         <h3 class="mb-0 text-success fw-bold">{{ number_format($stats['total_revenue'] ?? 0, 0, ',', ' ') }} FCFA</h3>
                         <small class="text-muted">Chiffre d'affaires</small>
+                        @if(isset($orders_by_product_type))
+                            <small class="text-muted d-block">
+                                📱 {{ number_format($orders_by_product_type['telephones']['revenue'] ?? 0, 0, ',', ' ') }} FCFA Tél. | 
+                                🔌 {{ number_format($orders_by_product_type['accessoires']['revenue'] ?? 0, 0, ',', ' ') }} FCFA Acc.
+                            </small>
+                        @endif
                     </div>
                     <div class="bg-success bg-opacity-10 p-3 rounded-circle">
                         <i class="fas fa-chart-line fa-2x text-success"></i>
@@ -104,6 +116,71 @@
     </div>
     @endif
 </div>
+
+<!-- Statistiques par Type de Produit - Section 1.5 -->
+@if(isset($orders_by_product_type))
+<div class="row mb-4">
+    <div class="col-12 mb-3">
+        <h5 class="text-muted mb-3">
+            <i class="fas fa-mobile-alt me-2 text-primary"></i>Statistiques par Type de Produit
+        </h5>
+    </div>
+    
+    <!-- Téléphones -->
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm border-0" style="border-radius: 10px; border-left: 4px solid #0066cc;">
+            <div class="card-header bg-primary bg-opacity-10" style="border-bottom: 1px solid #dee2e6;">
+                <h6 class="mb-0 text-primary fw-bold">
+                    <i class="fas fa-mobile-alt me-2"></i>Téléphones
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <h4 class="mb-0 text-primary fw-bold">{{ $orders_by_product_type['telephones']['total'] ?? 0 }}</h4>
+                        <small class="text-muted">Commandes</small>
+                    </div>
+                    <div class="col-4">
+                        <h4 class="mb-0 text-warning fw-bold">{{ $orders_by_product_type['telephones']['pending'] ?? 0 }}</h4>
+                        <small class="text-muted">En attente</small>
+                    </div>
+                    <div class="col-4">
+                        <h4 class="mb-0 text-success fw-bold">{{ number_format($orders_by_product_type['telephones']['revenue'] ?? 0, 0, ',', ' ') }}</h4>
+                        <small class="text-muted">FCFA</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Accessoires -->
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm border-0" style="border-radius: 10px; border-left: 4px solid #0dcaf0;">
+            <div class="card-header bg-info bg-opacity-10" style="border-bottom: 1px solid #dee2e6;">
+                <h6 class="mb-0 text-info fw-bold">
+                    <i class="fas fa-headphones me-2"></i>Accessoires
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <h4 class="mb-0 text-info fw-bold">{{ $orders_by_product_type['accessoires']['total'] ?? 0 }}</h4>
+                        <small class="text-muted">Commandes</small>
+                    </div>
+                    <div class="col-4">
+                        <h4 class="mb-0 text-warning fw-bold">{{ $orders_by_product_type['accessoires']['pending'] ?? 0 }}</h4>
+                        <small class="text-muted">En attente</small>
+                    </div>
+                    <div class="col-4">
+                        <h4 class="mb-0 text-success fw-bold">{{ number_format($orders_by_product_type['accessoires']['revenue'] ?? 0, 0, ',', ' ') }}</h4>
+                        <small class="text-muted">FCFA</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
 <!-- Alertes et Actions - Section 2 -->
 <div class="row mb-4">
@@ -162,6 +239,12 @@
                     <div>
                         <h4 class="text-success mb-0 fw-bold">{{ $stats['pending_orders'] ?? 0 }}</h4>
                         <small class="text-muted">Commandes en attente</small>
+                        @if(isset($orders_by_product_type))
+                            <small class="text-muted d-block">
+                                📱 {{ $orders_by_product_type['telephones']['pending'] ?? 0 }} Tél. | 
+                                🔌 {{ $orders_by_product_type['accessoires']['pending'] ?? 0 }} Acc.
+                            </small>
+                        @endif
                     </div>
                     <i class="fas fa-clock fa-2x text-success"></i>
                 </div>
