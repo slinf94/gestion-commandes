@@ -373,6 +373,7 @@ class OrderController extends Controller
                         'quantity' => $item->quantity,
                         'unit_price' => $item->unit_price,
                         'total_price' => $item->total_price,
+                        'product_details' => $item->product_details,
                         'created_at' => $item->created_at->toIso8601String(),
                         'updated_at' => $item->updated_at->toIso8601String(),
                     ];
