@@ -44,6 +44,15 @@ Route::prefix('v1')->group(function () {
         ]);
     });
     
+    // Route de santé pour la détection automatique d'IP
+    Route::get('/health', function () {
+        return response()->json([
+            'success' => true,
+            'status' => 'ok',
+            'timestamp' => now()->toIso8601String(),
+        ]);
+    });
+    
     // Authentification
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
