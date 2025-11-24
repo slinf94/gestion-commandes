@@ -103,6 +103,11 @@ class OrderController extends Controller
         // Pagination
         $perPage = $request->get('per_page', 20);
         $orders = $query->paginate($perPage)->appends($request->query());
+        
+        // Charger les items avec product_details pour chaque commande (nécessaire pour la séparation par catégorie)
+        foreach ($orders as $order) {
+            $order->load('items');
+        }
 
         // Statistiques générales - Utiliser DB::table() pour optimiser
         $stats = [

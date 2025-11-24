@@ -270,12 +270,78 @@
                                     </td>
                                     <td>
                                         @php
-                                            $itemsCount = \DB::table('order_items')->where('order_id', $order->id)->count();
+                                            // Compter les articles selon le filtre actif
+                                            $productType = $productType ?? 'all';
+                                            
+                                            if ($productType === 'telephone') {
+                                                // Compter uniquement les téléphones
+                                                $itemsCount = $order->items->filter(function($item) {
+                                                    return $item->isPhone();
+                                                })->sum('quantity');
+                                                
+                                                $badgeColor = 'bg-primary';
+                                                $badgeIcon = 'fa-mobile-alt';
+                                                $badgeText = $itemsCount > 0 ? "$itemsCount téléphone" . ($itemsCount > 1 ? 's' : '') : 'Aucun téléphone';
+                                            } elseif ($productType === 'accessoire') {
+                                                // Compter uniquement les accessoires
+                                                $itemsCount = $order->items->filter(function($item) {
+                                                    return $item->isAccessory();
+                                                })->sum('quantity');
+                                                
+                                                $badgeColor = 'bg-info';
+                                                $badgeIcon = 'fa-headphones';
+                                                $badgeText = $itemsCount > 0 ? "$itemsCount accessoire" . ($itemsCount > 1 ? 's' : '') : 'Aucun accessoire';
+                                            } else {
+                                                // Compter tous les articles ou afficher un résumé par catégorie
+                                                $phoneCount = $order->items->filter(function($item) {
+                                                    return $item->isPhone();
+                                                })->sum('quantity');
+                                                
+                                                $accessoryCount = $order->items->filter(function($item) {
+                                                    return $item->isAccessory();
+                                                })->sum('quantity');
+                                                
+                                                $otherCount = $order->items->filter(function($item) {
+                                                    return !$item->isPhone() && !$item->isAccessory();
+                                                })->sum('quantity');
+                                                
+                                                $totalCount = $phoneCount + $accessoryCount + $otherCount;
+                                                $itemsCount = $totalCount;
+                                                
+                                                // Afficher un résumé si commande mixte
+                                                if ($phoneCount > 0 && $accessoryCount > 0) {
+                                                    $badgeColor = 'bg-info';
+                                                    $badgeIcon = 'fa-shopping-cart';
+                                                    $parts = [];
+                                                    if ($phoneCount > 0) {
+                                                        $parts[] = "$phoneCount téléphone" . ($phoneCount > 1 ? 's' : '');
+                                                    }
+                                                    if ($accessoryCount > 0) {
+                                                        $parts[] = "$accessoryCount accessoire" . ($accessoryCount > 1 ? 's' : '');
+                                                    }
+                                                    if ($otherCount > 0) {
+                                                        $parts[] = "$otherCount autre" . ($otherCount > 1 ? 's' : '');
+                                                    }
+                                                    $badgeText = implode(', ', $parts);
+                                                } elseif ($phoneCount > 0) {
+                                                    $badgeColor = 'bg-primary';
+                                                    $badgeIcon = 'fa-mobile-alt';
+                                                    $badgeText = "$phoneCount téléphone" . ($phoneCount > 1 ? 's' : '');
+                                                } elseif ($accessoryCount > 0) {
+                                                    $badgeColor = 'bg-info';
+                                                    $badgeIcon = 'fa-headphones';
+                                                    $badgeText = "$accessoryCount accessoire" . ($accessoryCount > 1 ? 's' : '');
+                                                } else {
+                                                    $badgeColor = 'bg-info';
+                                                    $badgeIcon = 'fa-shopping-cart';
+                                                    $badgeText = "$totalCount article" . ($totalCount > 1 ? 's' : '');
+                                                }
+                                            }
                                         @endphp
                                         @if($itemsCount > 0)
-                                            <span class="badge bg-info fs-6">
-                                                <i class="fas fa-shopping-cart me-1"></i>
-                                                {{ $itemsCount }} article(s)
+                                            <span class="badge {{ $badgeColor ?? 'bg-info' }} fs-6">
+                                                <i class="fas {{ $badgeIcon ?? 'fa-shopping-cart' }} me-1"></i>
+                                                {{ $badgeText ?? "$itemsCount article(s)" }}
                                             </span>
                                         @else
                                             <span class="text-muted">Aucun article</span>

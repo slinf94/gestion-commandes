@@ -143,6 +143,19 @@
             </div>
             <div class="card-body">
                 @if($order->items->count() > 0)
+                    @php
+                        // Séparer les articles par catégorie
+                        $phones = $order->items->filter(function($item) {
+                            return $item->isPhone();
+                        });
+                        $accessories = $order->items->filter(function($item) {
+                            return $item->isAccessory();
+                        });
+                        $others = $order->items->filter(function($item) {
+                            return !$item->isPhone() && !$item->isAccessory();
+                        });
+                    @endphp
+                    
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
@@ -155,42 +168,140 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($order->items as $item)
-                                <tr>
-                                    <td>
-                                        @if($item->product_image)
-                                            @php
-                                                // Gérer les URLs complètes et relatives
-                                                $imageUrl = $item->product_image;
-                                                if (!str_starts_with($imageUrl, 'http')) {
-                                                    $imageUrl = asset('storage/' . ltrim($imageUrl, '/'));
-                                                }
-                                            @endphp
-                                            <img src="{{ $imageUrl }}" alt="{{ $item->product_name }}"
-                                                 class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;"
-                                                 onerror="this.src='{{ asset('images/placeholder.svg') }}'">
-                                        @else
-                                            <div class="bg-light d-flex align-items-center justify-content-center"
-                                                 style="width: 60px; height: 60px; border-radius: 4px;">
-                                                <i class="fas fa-image text-muted"></i>
-                                            </div>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <strong>{{ $item->product_name }}</strong>
-                                            @if($item->product_sku)
-                                                <br><small class="text-muted">SKU: {{ $item->product_sku }}</small>
+                                {{-- Section Téléphones --}}
+                                @if($phones->count() > 0)
+                                    <tr class="table-light">
+                                        <td colspan="5" class="fw-bold text-primary">
+                                            <i class="fas fa-mobile-alt me-2"></i>
+                                            Téléphones ({{ $phones->sum('quantity') }} article{{ $phones->sum('quantity') > 1 ? 's' : '' }})
+                                        </td>
+                                    </tr>
+                                    @foreach($phones as $item)
+                                    <tr>
+                                        <td>
+                                            @if($item->product_image)
+                                                @php
+                                                    $imageUrl = $item->product_image;
+                                                    if (!str_starts_with($imageUrl, 'http')) {
+                                                        $imageUrl = asset('storage/' . ltrim($imageUrl, '/'));
+                                                    }
+                                                @endphp
+                                                <img src="{{ $imageUrl }}" alt="{{ $item->product_name }}"
+                                                     class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;"
+                                                     onerror="this.src='{{ asset('images/placeholder.svg') }}'">
+                                            @else
+                                                <div class="bg-light d-flex align-items-center justify-content-center"
+                                                     style="width: 60px; height: 60px; border-radius: 4px;">
+                                                    <i class="fas fa-image text-muted"></i>
+                                                </div>
                                             @endif
-                                        </div>
-                                    </td>
-                                    <td>{{ number_format($item->unit_price, 0, ',', ' ') }} FCFA</td>
-                                    <td>
-                                        <span class="badge badge-primary">{{ $item->quantity }}</span>
-                                    </td>
-                                    <td><strong class="text-primary">{{ number_format($item->total_price, 0, ',', ' ') }} FCFA</strong></td>
-                                </tr>
-                                @endforeach
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong>{{ $item->product_name }}</strong>
+                                                @if($item->product_sku)
+                                                    <br><small class="text-muted">SKU: {{ $item->product_sku }}</small>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td>{{ number_format($item->unit_price, 0, ',', ' ') }} FCFA</td>
+                                        <td>
+                                            <span class="badge badge-primary">{{ $item->quantity }}</span>
+                                        </td>
+                                        <td><strong class="text-primary">{{ number_format($item->total_price, 0, ',', ' ') }} FCFA</strong></td>
+                                    </tr>
+                                    @endforeach
+                                @endif
+                                
+                                {{-- Section Accessoires --}}
+                                @if($accessories->count() > 0)
+                                    <tr class="table-light">
+                                        <td colspan="5" class="fw-bold text-info">
+                                            <i class="fas fa-headphones me-2"></i>
+                                            Accessoires ({{ $accessories->sum('quantity') }} article{{ $accessories->sum('quantity') > 1 ? 's' : '' }})
+                                        </td>
+                                    </tr>
+                                    @foreach($accessories as $item)
+                                    <tr>
+                                        <td>
+                                            @if($item->product_image)
+                                                @php
+                                                    $imageUrl = $item->product_image;
+                                                    if (!str_starts_with($imageUrl, 'http')) {
+                                                        $imageUrl = asset('storage/' . ltrim($imageUrl, '/'));
+                                                    }
+                                                @endphp
+                                                <img src="{{ $imageUrl }}" alt="{{ $item->product_name }}"
+                                                     class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;"
+                                                     onerror="this.src='{{ asset('images/placeholder.svg') }}'">
+                                            @else
+                                                <div class="bg-light d-flex align-items-center justify-content-center"
+                                                     style="width: 60px; height: 60px; border-radius: 4px;">
+                                                    <i class="fas fa-image text-muted"></i>
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong>{{ $item->product_name }}</strong>
+                                                @if($item->product_sku)
+                                                    <br><small class="text-muted">SKU: {{ $item->product_sku }}</small>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td>{{ number_format($item->unit_price, 0, ',', ' ') }} FCFA</td>
+                                        <td>
+                                            <span class="badge badge-primary">{{ $item->quantity }}</span>
+                                        </td>
+                                        <td><strong class="text-primary">{{ number_format($item->total_price, 0, ',', ' ') }} FCFA</strong></td>
+                                    </tr>
+                                    @endforeach
+                                @endif
+                                
+                                {{-- Section Autres articles --}}
+                                @if($others->count() > 0)
+                                    <tr class="table-light">
+                                        <td colspan="5" class="fw-bold text-secondary">
+                                            <i class="fas fa-box me-2"></i>
+                                            Autres articles ({{ $others->sum('quantity') }} article{{ $others->sum('quantity') > 1 ? 's' : '' }})
+                                        </td>
+                                    </tr>
+                                    @foreach($others as $item)
+                                    <tr>
+                                        <td>
+                                            @if($item->product_image)
+                                                @php
+                                                    $imageUrl = $item->product_image;
+                                                    if (!str_starts_with($imageUrl, 'http')) {
+                                                        $imageUrl = asset('storage/' . ltrim($imageUrl, '/'));
+                                                    }
+                                                @endphp
+                                                <img src="{{ $imageUrl }}" alt="{{ $item->product_name }}"
+                                                     class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;"
+                                                     onerror="this.src='{{ asset('images/placeholder.svg') }}'">
+                                            @else
+                                                <div class="bg-light d-flex align-items-center justify-content-center"
+                                                     style="width: 60px; height: 60px; border-radius: 4px;">
+                                                    <i class="fas fa-image text-muted"></i>
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong>{{ $item->product_name }}</strong>
+                                                @if($item->product_sku)
+                                                    <br><small class="text-muted">SKU: {{ $item->product_sku }}</small>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td>{{ number_format($item->unit_price, 0, ',', ' ') }} FCFA</td>
+                                        <td>
+                                            <span class="badge badge-primary">{{ $item->quantity }}</span>
+                                        </td>
+                                        <td><strong class="text-primary">{{ number_format($item->total_price, 0, ',', ' ') }} FCFA</strong></td>
+                                    </tr>
+                                    @endforeach
+                                @endif
                             </tbody>
                         </table>
                     </div>
