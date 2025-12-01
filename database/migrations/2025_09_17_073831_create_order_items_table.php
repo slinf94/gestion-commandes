@@ -15,11 +15,16 @@ return new class extends Migration
             $table->id();
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
+            $table->string('product_name')->nullable();
+            $table->string('product_image')->nullable();
+            $table->string('product_sku')->nullable();
+            $table->integer('product_stock')->nullable();
             $table->integer('quantity');
             $table->decimal('unit_price', 15, 2);
             $table->decimal('total_price', 15, 2);
             $table->json('product_details')->nullable(); // Pour stocker les détails du produit au moment de la commande
             $table->timestamps();
+            $table->softDeletes();
 
             $table->index(['order_id', 'product_id']);
         });

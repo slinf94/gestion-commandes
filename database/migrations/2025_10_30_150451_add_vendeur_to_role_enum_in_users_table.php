@@ -12,9 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Modifier l'enum pour ajouter 'vendeur'
-        // Note: MySQL ne permet pas de modifier un ENUM directement, il faut recréer la colonne
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('client', 'admin', 'gestionnaire', 'vendeur') DEFAULT 'client'");
+        
     }
 
     /**
@@ -22,7 +20,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Retirer 'vendeur' de l'enum
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('client', 'admin', 'gestionnaire') DEFAULT 'client'");
+        
     }
 };

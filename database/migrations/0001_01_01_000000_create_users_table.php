@@ -17,14 +17,14 @@ return new class extends Migration
                 $table->string('nom', 100);
                 $table->string('prenom', 100);
                 $table->string('email', 255)->unique();
+                $table->string('photo')->nullable();
                 $table->timestamp('email_verified_at')->nullable();
                 $table->string('password');
                 $table->string('numero_telephone', 20)->unique();
                 $table->string('numero_whatsapp', 20)->nullable();
                 $table->text('localisation')->nullable();
                 $table->string('quartier', 100)->nullable();
-                $table->string('ville', 100);
-                $table->enum('role', ['client', 'admin', 'gestionnaire'])->default('client');
+                $table->enum('role', ['client', 'admin', 'gestionnaire', 'vendeur'])->default('client');
                 $table->enum('status', ['pending', 'active', 'suspended', 'inactive'])->default('pending');
                 $table->date('date_naissance')->nullable();
                 $table->string('avatar', 255)->nullable();
