@@ -20,10 +20,23 @@ class ProductSeeder extends Seeder
         // Supprimer tous les produits existants
         $this->command->info('🗑️  Suppression de tous les produits existants...');
         
-        // Désactiver temporairement les contraintes de clé étrangère
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        DB::table('products')->truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        // Désactiver temporairement les contraintes de clé étrangère (portabilité SQLite/MySQL)
+        $driver = DB::getDriverName();
+        if ($driver === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = OFF;');
+            DB::table('products')->delete();
+            // Réinitialiser l'autoincrement (sqlite)
+            try {
+                DB::statement("DELETE FROM sqlite_sequence WHERE name='products'");
+            } catch (\Throwable $e) {
+                // ignorer si non applicable
+            }
+            DB::statement('PRAGMA foreign_keys = ON;');
+        } else {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            DB::table('products')->truncate();
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
         
         $this->command->info('✅ Tous les produits ont été supprimés.');
 

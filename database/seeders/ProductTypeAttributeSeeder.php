@@ -59,35 +59,65 @@ class ProductTypeAttributeSeeder extends Seeder
         if ($productTypes['ordinateur-portable']) {
             foreach ($ordinateurAttributes as $attr) {
                 $attr['product_type_id'] = $productTypes['ordinateur-portable']->id;
-                \App\Models\ProductTypeAttribute::create($attr);
+                \App\Models\ProductTypeAttribute::firstOrCreate(
+                    [
+                        'product_type_id' => $attr['product_type_id'],
+                        'attribute_slug' => $attr['attribute_slug'],
+                    ],
+                    $attr
+                );
             }
         }
 
         if ($productTypes['t-shirt']) {
             foreach ($habitAttributes as $attr) {
                 $attr['product_type_id'] = $productTypes['t-shirt']->id;
-                \App\Models\ProductTypeAttribute::create($attr);
+                \App\Models\ProductTypeAttribute::firstOrCreate(
+                    [
+                        'product_type_id' => $attr['product_type_id'],
+                        'attribute_slug' => $attr['attribute_slug'],
+                    ],
+                    $attr
+                );
             }
         }
 
         if ($productTypes['jean']) {
             foreach ($habitAttributes as $attr) {
                 $attr['product_type_id'] = $productTypes['jean']->id;
-                \App\Models\ProductTypeAttribute::create($attr);
+                \App\Models\ProductTypeAttribute::firstOrCreate(
+                    [
+                        'product_type_id' => $attr['product_type_id'],
+                        'attribute_slug' => $attr['attribute_slug'],
+                    ],
+                    $attr
+                );
             }
         }
 
         if ($productTypes['chaise-bureau']) {
             foreach ($habitAttributes as $attr) {
                 $attr['product_type_id'] = $productTypes['chaise-bureau']->id;
-                \App\Models\ProductTypeAttribute::create($attr);
+                \App\Models\ProductTypeAttribute::firstOrCreate(
+                    [
+                        'product_type_id' => $attr['product_type_id'],
+                        'attribute_slug' => $attr['attribute_slug'],
+                    ],
+                    $attr
+                );
             }
         }
 
         if ($productTypes['table-bureau']) {
             foreach ($habitAttributes as $attr) {
                 $attr['product_type_id'] = $productTypes['table-bureau']->id;
-                \App\Models\ProductTypeAttribute::create($attr);
+                \App\Models\ProductTypeAttribute::firstOrCreate(
+                    [
+                        'product_type_id' => $attr['product_type_id'],
+                        'attribute_slug' => $attr['attribute_slug'],
+                    ],
+                    $attr
+                );
             }
         }
     }
