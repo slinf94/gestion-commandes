@@ -49,10 +49,12 @@ class DashboardController extends Controller
             ->get();
 
         // Ventes mensuelles (12 derniers mois)
+        $monthlyFormat = '%Y-%m';
+        $monthlyExpr = $this->getDateFormatExpression('created_at', $monthlyFormat);
         $monthly_sales = DB::table('orders')
             ->whereNotIn('status', [OrderStatus::CANCELLED->value])
             ->whereDate('created_at', '>=', now()->subMonths(12))
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as orders, SUM(total_amount) as revenue')
+            ->selectRaw("{$monthlyExpr} as month, COUNT(*) as orders, SUM(total_amount) as revenue")
             ->groupBy('month')
             ->orderBy('month', 'desc')
             ->get();
@@ -264,6 +266,15 @@ class DashboardController extends Controller
             'recent_users',
             'orders_by_product_type'
         ));
+    }
+
+    private function getDateFormatExpression($column, $format)
+    {
+        $driver = DB::getDriverName();
+        if ($driver === 'sqlite') {
+            return "strftime('{$format}', {$column})";
+        }
+        return "DATE_FORMAT({$column}, '{$format}')";
     }
 
     public function login()

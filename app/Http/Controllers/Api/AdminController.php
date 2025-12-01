@@ -418,7 +418,8 @@ class AdminController extends Controller
 
         // Statistiques par jour/semaine/mois
         $dateFormat = $this->getDateFormat($period);
-        $dailyStats = $query->selectRaw("DATE_FORMAT(created_at, '{$dateFormat}') as period, COUNT(*) as orders, SUM(total_amount) as revenue")
+        $dateExpr = $this->getDateFormatExpression('created_at', $dateFormat);
+        $dailyStats = $query->selectRaw("{$dateExpr} as period, COUNT(*) as orders, SUM(total_amount) as revenue")
             ->groupBy('period')
             ->orderBy('period')
             ->get();
@@ -504,8 +505,9 @@ class AdminController extends Controller
 
         // Inscriptions par période
         $dateFormat = $this->getDateFormat($period);
+        $dateExpr = $this->getDateFormatExpression('created_at', $dateFormat);
         $registrations = User::where('created_at', '>=', $startDate)
-            ->selectRaw("DATE_FORMAT(created_at, '{$dateFormat}') as period, COUNT(*) as count")
+            ->selectRaw("{$dateExpr} as period, COUNT(*) as count")
             ->groupBy('period')
             ->orderBy('period')
             ->get();
@@ -584,6 +586,15 @@ class AdminController extends Controller
             default:
                 return '%Y-%m';
         }
+    }
+
+    private function getDateFormatExpression($column, $format)
+    {
+        $driver = DB::getDriverName();
+        if ($driver === 'sqlite') {
+            return "strftime('{$format}', {$column})";
+        }
+        return "DATE_FORMAT({$column}, '{$format}')";
     }
 
     /**
