@@ -717,7 +717,7 @@ class ProductController extends Controller
                 $paths = [];
                 foreach ($request->file('images') as $file) {
                     if ($file->isValid()) {
-                        $path = $file->store('products', 'public');
+                        $path = $file->store('products', 's3');
                         $paths[] = $path;
                     }
                 }
@@ -1071,7 +1071,7 @@ class ProductController extends Controller
                 foreach ($request->file('images') as $image) {
                     if ($image->isValid()) {
                         $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-                        $imagePath = $image->storeAs('products', $imageName, 'public');
+                        $imagePath = $image->storeAs('products', $imageName, 's3');
                         $imagePaths[] = $imagePath;
                     }
                 }
@@ -1122,7 +1122,7 @@ class ProductController extends Controller
             $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
 
             // Déplacer l'image vers le dossier storage/app/public/products
-            $imagePath = $image->storeAs('products', $imageName, 'public');
+            $imagePath = $image->storeAs('products', $imageName, 's3');
 
             // Obtenir l'ordre suivant pour cette image
             $nextOrder = DB::table('product_images')

@@ -126,20 +126,20 @@ class ProductController extends Controller
         $formattedProducts = collect($products->items())->map(function ($product) {
             $productData = $product->toArray();
 
-            // Optimisation: construire l'URL de base une seule fois
-            $baseUrl = url('storage/');
+            // Construire les URLs d'images depuis S3
+            $disk = \Storage::disk('s3');
 
             // Formater les images avec URLs complètes (optimisé)
             if (isset($productData['images']) && is_array($productData['images'])) {
-                $productData['images'] = array_values(array_filter(array_map(function ($image) use ($baseUrl) {
+                $productData['images'] = array_values(array_filter(array_map(function ($image) use ($disk) {
                     if (empty($image)) return null;
                     if (str_starts_with($image, 'http')) return $image;
-                    return $baseUrl . ltrim($image, '/');
+                    return $disk->url($image);
                 }, $productData['images'])));
             }
 
             // Ajouter l'image principale (optimisé)
-            $productData['main_image'] = $product->main_image ?: $baseUrl . 'products/placeholder.jpg';
+            $productData['main_image'] = $product->main_image ?: $disk->url('products/placeholder.jpg');
 
             // Optimisation: ne pas charger all_images pour la liste
             unset($productData['all_images']);
@@ -265,7 +265,7 @@ class ProductController extends Controller
             $productData['images'] = array_map(function ($image) {
                 if (empty($image)) return null;
                 if (str_starts_with($image, 'http')) return $image;
-                return url('storage/' . ltrim($image, '/'));
+                return \Storage::disk('s3')->url($image);
             }, $productData['images']);
             $productData['images'] = array_filter($productData['images']);
         }
@@ -387,7 +387,7 @@ class ProductController extends Controller
                 $productData['images'] = array_map(function ($image) {
                     if (empty($image)) return null;
                     if (str_starts_with($image, 'http')) return $image;
-                    return url('storage/' . ltrim($image, '/'));
+                    return \Storage::disk('s3')->url($image);
                 }, $productData['images']);
                 $productData['images'] = array_filter($productData['images']);
             }
@@ -499,12 +499,12 @@ class ProductController extends Controller
                     if (str_starts_with($firstImage, 'http')) {
                         return $firstImage;
                     }
-                    // Sinon, ajouter le chemin storage
-                    return url('storage/' . ltrim($firstImage, '/'));
+                    // Sinon, générer l'URL S3
+                    return \Storage::disk('s3')->url($firstImage);
                 }
             }
             // Image par défaut
-            return url('storage/products/placeholder.svg');
+            return \Storage::disk('s3')->url('products/placeholder.svg');
         } catch (\Exception $e) {
             \Log::error('Erreur formatProductImage: ' . $e->getMessage());
             return url('storage/products/placeholder.svg');
@@ -525,8 +525,8 @@ class ProductController extends Controller
                         if (str_starts_with($image, 'http')) {
                             $formattedImages[] = $image;
                         } else {
-                            // Sinon, ajouter le chemin storage
-                            $formattedImages[] = url('storage/' . ltrim($image, '/'));
+                            // Sinon, générer l'URL S3
+                            $formattedImages[] = \Storage::disk('s3')->url($image);
                         }
                     }
                 }
@@ -634,7 +634,7 @@ class ProductController extends Controller
 
         $imagePaths = [];
         foreach ($request->file('images') as $image) {
-            $path = $image->store('products', 'public');
+            $path = $image->store('products', 's3');
             $imagePaths[] = $path;
         }
 

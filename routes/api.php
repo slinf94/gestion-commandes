@@ -43,7 +43,7 @@ Route::prefix('v1')->group(function () {
             'server_ip' => $_SERVER['SERVER_ADDR'] ?? 'unknown'
         ]);
     });
-    
+
     // Route de santé pour la détection automatique d'IP
     Route::get('/health', function () {
         return response()->json([
@@ -52,7 +52,7 @@ Route::prefix('v1')->group(function () {
             'timestamp' => now()->toIso8601String(),
         ]);
     });
-    
+
     // Authentification
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
@@ -72,7 +72,7 @@ Route::get('/products/type/{productType}', [ProductApiController::class, 'byType
     Route::get('/product-types', [ProductApiController::class, 'productTypes']);
     Route::get('/attributes', [ProductApiController::class, 'attributes']);
     Route::get('/attribute-values', [ProductApiController::class, 'attributeValues']);
-    
+
     // Valeurs distinctes pour les filtres
     Route::get('/products/filter-values', [ProductApiController::class, 'filterValues']);
 

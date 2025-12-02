@@ -168,7 +168,7 @@ class CategoryController extends Controller
 
             // Gérer l'upload d'image
             if ($request->hasFile('image')) {
-                $data['image'] = $request->file('image')->store('categories', 'public');
+                $data['image'] = $request->file('image')->store('categories', 's3');
             }
 
             DB::table('categories')->insert($data);
@@ -334,9 +334,9 @@ class CategoryController extends Controller
                 // Supprimer l'ancienne image
                 $oldCategory = DB::table('categories')->select('image')->where('id', $id)->first();
                 if ($oldCategory && $oldCategory->image) {
-                    \Storage::disk('public')->delete($oldCategory->image);
+                    \Storage::disk('s3')->delete($oldCategory->image);
                 }
-                $data['image'] = $request->file('image')->store('categories', 'public');
+                $data['image'] = $request->file('image')->store('categories', 's3');
             }
 
             DB::table('categories')->where('id', $id)->update($data);
@@ -372,7 +372,7 @@ class CategoryController extends Controller
             // Supprimer l'image
             $category = DB::table('categories')->select('image')->where('id', $id)->first();
             if ($category && $category->image) {
-                \Storage::disk('public')->delete($category->image);
+                \Storage::disk('s3')->delete($category->image);
             }
 
             // Soft delete

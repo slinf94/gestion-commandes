@@ -571,16 +571,13 @@ class AuthController extends Controller
 
             // Supprimer l'ancienne photo si elle existe
             if ($user->photo) {
-                $oldPhotoPath = public_path('storage/' . $user->photo);
-                if (file_exists($oldPhotoPath)) {
-                    unlink($oldPhotoPath);
-                }
+                \Storage::disk('s3')->delete($user->photo);
             }
 
             // Sauvegarder la nouvelle photo
             $photo = $request->file('photo');
             $filename = 'profile_' . $user->id . '_' . time() . '.' . $photo->getClientOriginalExtension();
-            $path = $photo->storeAs('profiles', $filename, 'public');
+            $path = $photo->storeAs('profiles', $filename, 's3');
 
             // Mettre à jour l'utilisateur
             $user->update(['photo' => $path]);
@@ -592,12 +589,12 @@ class AuthController extends Controller
                 'success' => true,
                 'message' => 'Photo de profil mise à jour avec succès',
                 'data' => [
-                    'photo_url' => url('storage/' . $path),
+                    'photo_url' => \Storage::disk('s3')->url($path),
                     'photo' => $path, // Ajouter aussi le chemin relatif
                     'user' => [
                         'id' => $user->id,
                         'photo' => $path,
-                        'photo_url' => url('storage/' . $path),
+                        'photo_url' => \Storage::disk('s3')->url($path),
                     ]
                 ]
             ]);
@@ -620,10 +617,7 @@ class AuthController extends Controller
 
             // Supprimer la photo de profil si elle existe
             if ($user->photo) {
-                $photoPath = public_path('storage/' . $user->photo);
-                if (file_exists($photoPath)) {
-                    unlink($photoPath);
-                }
+                \Storage::disk('s3')->delete($user->photo);
             }
 
             // Supprimer l'utilisateur (soft delete)

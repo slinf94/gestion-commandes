@@ -796,7 +796,7 @@ class ProductApiController extends Controller
                     if ($imageUrl && !empty(trim($imageUrl))) {
                         $images[] = str_starts_with($imageUrl, 'http') 
                             ? $imageUrl 
-                            : url('storage/' . ltrim($imageUrl, '/'));
+                            : \Storage::disk('s3')->url(ltrim($imageUrl, '/'));
                     }
                 }
             }
@@ -811,7 +811,7 @@ class ProductApiController extends Controller
                         if (is_string($image) && !empty($image)) {
                             $images[] = str_starts_with($image, 'http') 
                                 ? $image 
-                                : url('storage/' . ltrim($image, '/'));
+                                : \Storage::disk('s3')->url(ltrim($image, '/'));
                         }
                     }
                 }
@@ -895,7 +895,7 @@ class ProductApiController extends Controller
                         'id' => $img['id'] ?? null,
                         'url' => str_starts_with($img['url'], 'http') 
                             ? $img['url'] 
-                            : url('storage/' . ltrim($img['url'], '/')),
+                            : \Storage::disk('s3')->url(ltrim($img['url'], '/')),
                         'is_principale' => ($img['type'] ?? null) === 'principale',
                     ];
                 }, $productImagesRaw),
@@ -1016,7 +1016,7 @@ class ProductApiController extends Controller
                                 if (str_starts_with($imageUrl, 'http')) {
                                     $images[] = $imageUrl;
                                 } else {
-                                    $images[] = url('storage/' . ltrim($imageUrl, '/'));
+                                    $images[] = \Storage::disk('s3')->url(ltrim($imageUrl, '/'));
                                 }
                             }
                         } catch (\Exception $e) {
@@ -1042,7 +1042,7 @@ class ProductApiController extends Controller
                                 if (str_starts_with($image, 'http')) {
                                     $images[] = $image;
                                 } else {
-                                    $images[] = url('storage/' . ltrim($image, '/'));
+                                    $images[] = \Storage::disk('s3')->url(ltrim($image, '/'));
                                 }
                             }
                         }
@@ -1071,7 +1071,7 @@ class ProductApiController extends Controller
                             if ($imageUrl && !empty(trim($imageUrl))) {
                                 $fullUrl = str_starts_with($imageUrl, 'http') 
                                     ? $imageUrl 
-                                    : url('storage/' . ltrim($imageUrl, '/'));
+                                    : \Storage::disk('s3')->url(ltrim($imageUrl, '/'));
                                 
                                 $productImagesArray[] = [
                                     'id' => $imgData['id'] ?? null,
@@ -1133,7 +1133,7 @@ class ProductApiController extends Controller
                     if ($images && is_array($images)) {
                         foreach ($images as $img) {
                             if (is_string($img) && !empty($img)) {
-                                $productData['images'][] = str_starts_with($img, 'http') ? $img : url('storage/' . ltrim($img, '/'));
+                                $productData['images'][] = str_starts_with($img, 'http') ? $img : \Storage::disk('s3')->url(ltrim($img, '/'));
                             }
                         }
                         if (!empty($productData['images'])) {
@@ -1194,7 +1194,7 @@ class ProductApiController extends Controller
                     if (str_starts_with($imageUrl, 'http')) {
                         $images[] = $imageUrl;
                     } else {
-                        $images[] = url('storage/' . ltrim($imageUrl, '/'));
+                        $images[] = \Storage::disk('s3')->url(ltrim($imageUrl, '/'));
                     }
                 }
             }
@@ -1205,7 +1205,7 @@ class ProductApiController extends Controller
                     if (is_string($image) && str_starts_with($image, 'http')) {
                         $images[] = $image;
                     } elseif (!empty($image)) {
-                        $images[] = url('storage/' . ltrim($image, '/'));
+                        $images[] = \Storage::disk('s3')->url(ltrim($image, '/'));
                     }
                 }
             }
@@ -1244,7 +1244,7 @@ class ProductApiController extends Controller
                             if (str_starts_with($img, 'http')) {
                                 $variantImages[] = $img;
                             } else {
-                                $variantImages[] = url('storage/' . ltrim($img, '/'));
+                                $variantImages[] = \Storage::disk('s3')->url(ltrim($img, '/'));
                             }
                         }
                     }

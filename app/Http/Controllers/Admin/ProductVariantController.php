@@ -82,7 +82,7 @@ class ProductVariantController extends Controller
         if ($request->hasFile('images')) {
             $imagePaths = [];
             foreach ($request->file('images') as $image) {
-                $path = $image->store('product-variants', 'public');
+                $path = $image->store('product-variants', 's3');
                 $imagePaths[] = $path;
             }
             $data['images'] = $imagePaths;
@@ -159,13 +159,13 @@ class ProductVariantController extends Controller
             // Supprimer les anciennes images
             if ($variant->images) {
                 foreach ($variant->images as $imagePath) {
-                    Storage::disk('public')->delete($imagePath);
+                    Storage::disk('s3')->delete($imagePath);
                 }
             }
 
             $imagePaths = [];
             foreach ($request->file('images') as $image) {
-                $path = $image->store('product-variants', 'public');
+                $path = $image->store('product-variants', 's3');
                 $imagePaths[] = $path;
             }
             $data['images'] = $imagePaths;
@@ -188,7 +188,7 @@ class ProductVariantController extends Controller
         // Supprimer les images
         if ($variant->images) {
             foreach ($variant->images as $imagePath) {
-                Storage::disk('public')->delete($imagePath);
+                Storage::disk('s3')->delete($imagePath);
             }
         }
 
