@@ -11,7 +11,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h3 class="mb-1" style="font-weight: 600; font-size: 1.5rem;">
-                                <i class="fas fa-tags me-2"></i>Gestion des Catégories
+                                <i class="fas fa-tags me-2"></i>Gestion des Catégories (V2)
                             </h3>
                             <small class="opacity-75">Organisez et gérez vos catégories de produits</small>
                         </div>
