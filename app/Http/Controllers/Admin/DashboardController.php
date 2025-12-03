@@ -69,9 +69,9 @@ class DashboardController extends Controller
         // Commandes récentes - version optimisée avec DB::table pour éviter l'épuisement mémoire
         $recent_orders = DB::table('orders')
             ->leftJoin('users', 'orders.user_id', '=', 'users.id')
-            ->select('orders.id', 'orders.order_number', 'orders.status', 'orders.total_amount', 
-                     'orders.created_at', 
-                     DB::raw("CONCAT(COALESCE(users.nom, ''), ' ', COALESCE(users.prenom, '')) as user_name"),
+            ->select('orders.id', 'orders.order_number', 'orders.status', 'orders.total_amount',
+                     'orders.created_at',
+                     DB::raw("COALESCE(users.nom, ''), ' ', COALESCE(users.prenom, '') as user_name"),
                      'users.email as user_email')
             ->whereNull('users.deleted_at')
             ->orderBy('orders.created_at', 'desc')
@@ -83,7 +83,7 @@ class DashboardController extends Controller
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->whereNotIn('orders.status', [OrderStatus::CANCELLED->value])
-            ->select('products.id', 'products.name', 'products.price', 'products.brand', 
+            ->select('products.id', 'products.name', 'products.price', 'products.brand',
                      DB::raw('SUM(order_items.quantity) as total_sold'),
                      DB::raw('SUM(order_items.total_price) as total_revenue'))
             ->groupBy('products.id', 'products.name', 'products.price', 'products.brand')
@@ -139,7 +139,7 @@ class DashboardController extends Controller
         // Statistiques par catégorie
         $category_stats = DB::table('products')
             ->join('categories', 'products.category_id', '=', 'categories.id')
-            ->select('categories.id', 'categories.name', 
+            ->select('categories.id', 'categories.name',
                      DB::raw('COUNT(products.id) as product_count'),
                      DB::raw('SUM(CASE WHEN products.status = "active" THEN 1 ELSE 0 END) as active_count'))
             ->whereNull('products.deleted_at')
@@ -152,7 +152,7 @@ class DashboardController extends Controller
             ->whereNotNull('brand')
             ->where('brand', '!=', '')
             ->whereNull('deleted_at')
-            ->select('brand', 
+            ->select('brand',
                      DB::raw('COUNT(*) as product_count'),
                      DB::raw('SUM(CASE WHEN status = "active" THEN 1 ELSE 0 END) as active_count'))
             ->groupBy('brand')
