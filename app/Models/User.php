@@ -30,6 +30,7 @@ class User extends Authenticatable implements JWTSubject
         'numero_whatsapp',
         'localisation',
         'quartier',
+        'commercial_id',
         'role',
         'status',
         'date_naissance',
@@ -118,6 +119,22 @@ class User extends Authenticatable implements JWTSubject
     public function roles()
     {
         return $this->belongsToMany(Role::class, 'user_role');
+    }
+
+    /**
+     * Relation avec le commercial
+     */
+    public function commercial()
+    {
+        return $this->belongsTo(User::class, 'commercial_id');
+    }
+
+    /**
+     * Relation pour les clients d'un commercial
+     */
+    public function clients()
+    {
+        return $this->hasMany(User::class, 'commercial_id');
     }
 
     /**
@@ -261,6 +278,11 @@ class User extends Authenticatable implements JWTSubject
     // Helper methods
     public function isAdmin()
     {
+        // Vérifier via la colonne role directement (ancien système)
+        if ($this->role === 'super-admin' || $this->role === 'admin') {
+            return true;
+        }
+        
         // Vérifier via les rôles attachés (nouveau système)
         if ($this->hasRole('super-admin') || $this->hasRole('admin')) {
             return true;
@@ -271,6 +293,11 @@ class User extends Authenticatable implements JWTSubject
 
     public function isGestionnaire()
     {
+        // Vérifier via la colonne role directement (ancien système)
+        if ($this->role === 'gestionnaire') {
+            return true;
+        }
+        
         // Vérifier via les rôles attachés (nouveau système)
         if ($this->hasRole('gestionnaire')) {
             return true;

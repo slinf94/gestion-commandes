@@ -59,6 +59,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
     Route::get('/auth/quartiers', [AuthController::class, 'getQuartiers']); // Liste des quartiers
+    Route::post('/auth/search-commercial', [AuthController::class, 'searchCommercial']); // Rechercher un commercial par téléphone
 
 // Produits et catégories (lecture seule) - API simplifiée
 Route::get('/products', [ProductApiController::class, 'index']);
@@ -163,4 +164,23 @@ Route::prefix('v1/admin')->middleware(['jwt.auth', 'admin'])->group(function () 
     // Notifications
     Route::get('/notifications', [AdminController::class, 'notifications']);
     Route::post('/notifications/send', [AdminController::class, 'sendNotification']);
+});
+
+
+// Routes pour les commerciaux
+Route::middleware(['auth:api', 'role:commercial'])->group(function () {
+    Route::get('commercial/orders', [\App\Http\Controllers\Api\CommercialOrderController::class, 'index']);
+    Route::get('commercial/orders/{id}', [\App\Http\Controllers\Api\CommercialOrderController::class, 'show']);
+
+    Route::middleware('permission:invoices.edit')->group(function () {
+        Route::put('invoices/{id}', [\App\Http\Controllers\Api\InvoiceController::class, 'update']);
+    });
+});
+
+// Routes pour les factures
+Route::middleware(['auth:api'])->group(function () {
+    Route::get('invoices', [\App\Http\Controllers\Api\InvoiceController::class, 'index']);
+    Route::get('invoices/{id}', [\App\Http\Controllers\Api\InvoiceController::class, 'show']);
+
+    Route::middleware('role:admin')->delete('invoices/{id}', [\App\Http\Controllers\Api\InvoiceController::class, 'destroy']);
 });

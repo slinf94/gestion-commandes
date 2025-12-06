@@ -1,0 +1,30 @@
+═══════════════════════════════════════════════════════════
+  IDENTIFIANTS SUPER ADMIN - COPIER-COLLER
+═══════════════════════════════════════════════════════════
+
+📧 EMAIL (à copier-coller exactement) :
+superadmin@allomobile.com
+
+🔑 MOT DE PASSE (à copier-coller exactement) :
+admin123
+
+🌐 URL :
+http://127.0.0.1:8000/admin/login
+
+═══════════════════════════════════════════════════════════
+
+⚠️  IMPORTANT :
+
+1. COPIEZ-COLLEZ l'email (ne le tapez pas à la main)
+2. COPIEZ-COLLEZ le mot de passe (ne le tapez pas à la main)
+3. Pas d'espaces avant ou après
+4. Tout en minuscules
+
+═══════════════════════════════════════════════════════════
+
+POUR REINITIALISER LE COMPTE :
+
+cd C:\Users\ASUS\Desktop\ProjetSlimat\gestion-commandes
+php reset_superadmin.php
+
+═══════════════════════════════════════════════════════════

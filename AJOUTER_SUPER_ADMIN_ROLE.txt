@@ -1,0 +1,32 @@
+═══════════════════════════════════════════════════════════
+  AJOUT DU RÔLE SUPER-ADMIN À LA BASE DE DONNÉES
+═══════════════════════════════════════════════════════════
+
+PROBLÈME :
+La colonne 'role' n'accepte pas 'super-admin'
+
+SOLUTION :
+Modifier la colonne directement dans MySQL
+
+═══════════════════════════════════════════════════════════
+
+COMMANDE UNIQUE À COPIER-COLLER :
+
+php artisan tinker --execute="DB::statement(\"ALTER TABLE users MODIFY COLUMN role ENUM('client', 'admin', 'gestionnaire', 'vendeur', 'commercial', 'super-admin') DEFAULT 'client'\"); echo 'ROLE SUPER-ADMIN AJOUTE !'; exit;"
+
+═══════════════════════════════════════════════════════════
+
+PUIS CRÉER LE SUPER ADMIN :
+
+php artisan tinker --execute="use App\Models\User; use Illuminate\Support\Facades\Hash; User::updateOrCreate(['email' => 'superadmin@allomobile.com'], ['nom' => 'Super', 'prenom' => 'Admin', 'email' => 'superadmin@allomobile.com', 'password' => Hash::make('SuperAdmin123!'), 'role' => 'super-admin', 'status' => 'active', 'email_verified_at' => now(), 'numero_telephone' => '+226 70 00 00 01', 'localisation' => 'Ouagadougou', 'quartier' => 'Secteur 1']); echo 'SUPER ADMIN CREE !'; exit;"
+
+═══════════════════════════════════════════════════════════
+
+INFORMATIONS DE CONNEXION :
+
+📧 Email       : superadmin@allomobile.com
+🔑 Mot de passe : SuperAdmin123!
+🌐 URL         : http://127.0.0.1:8000/admin/login
+👤 Rôle        : super-admin
+
+═══════════════════════════════════════════════════════════

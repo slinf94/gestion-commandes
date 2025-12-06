@@ -11,11 +11,13 @@ use Carbon\Carbon;
 /**
  * UserSeeder
  *
- * Ce seeder crée automatiquement un compte administrateur principal
- * lors de l'exécution de php artisan db:seed.
+ * Ce seeder crée automatiquement les comptes utilisateurs du système :
+ * - Un compte administrateur principal
+ * - Des comptes commerciaux de test
+ * - Des comptes clients de test associés aux commerciaux
  *
  * @author Allo Mobile Team
- * @version 1.0
+ * @version 2.0
  * @since Laravel 10+
  */
 class UserSeeder extends Seeder
@@ -23,12 +25,34 @@ class UserSeeder extends Seeder
     /**
      * Configuration du compte administrateur
      */
-    private const ADMIN_EMAIL = 'admin@monprojet.com';
-    private const ADMIN_PASSWORD = 'admin123';
-    private const ADMIN_NOM = 'Admin';
-    private const ADMIN_PRENOM = 'Principal';
-    private const ADMIN_ROLE = 'admin';
+    private const ADMIN_EMAIL = 'superadmin@monprojet.com';
+    private const ADMIN_PASSWORD = 'SuperAdmin123!';
+    private const ADMIN_NOM = 'Super';
+    private const ADMIN_PRENOM = 'Admin';
+    private const ADMIN_ROLE = 'super-admin';
     private const ADMIN_STATUS = 'active';
+
+    /**
+     * Configuration des commerciaux de test
+     */
+    private const COMMERCIAUX = [
+        [
+            'email' => 'commercial1@example.com',
+            'nom' => 'Doe',
+            'prenom' => 'John',
+            'telephone' => '+226 70 11 11 11',
+            'quartier' => 'Secteur 2',
+            'nombre_clients' => 3
+        ],
+        [
+            'email' => 'commercial2@example.com',
+            'nom' => 'Smith',
+            'prenom' => 'Jane',
+            'telephone' => '+226 70 22 22 22',
+            'quartier' => 'Secteur 3',
+            'nombre_clients' => 2
+        ]
+    ];
 
     /**
      * Exécute le seeder
@@ -38,27 +62,52 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $this->command->info('');
-        $this->command->info('=== CRÉATION DES COMPTES ADMIN - PROJET MONPROJET ===');
+        $this->command->info('=== CRÉATION DES COMPTES UTILISATEURS - PROJET MONPROJET ===');
         $this->command->info('');
 
         try {
-            // Vérifier si l'utilisateur admin existe déjà
-            $existingAdmin = User::where('email', self::ADMIN_EMAIL)->first();
-
-            if ($existingAdmin) {
-                $this->handleExistingAdmin($existingAdmin);
-            } else {
-                $this->createNewAdmin();
+            // Vérifier la connexion à la base de données
+            if (!$this->checkDatabaseConnection()) {
+                return;
             }
 
+            // Créer l'administrateur principal
+            $this->createOrUpdateAdmin();
+
+            // Créer les commerciaux de test
+            $this->createCommerciaux();
+
+            // Afficher les statistiques finales
+            $this->displayUserStatistics();
+
         } catch (\Exception $e) {
-            $this->command->error('❌ Erreur lors de la création du compte administrateur :');
+            $this->command->error('❌ Erreur lors de la création des comptes utilisateurs :');
             $this->command->error($e->getMessage());
             $this->command->error('');
         }
 
-        $this->command->info('=== FIN DE LA CRÉATION DES COMPTES ADMIN ===');
+        $this->command->info('=== FIN DE LA CRÉATION DES UTILISATEURS ===');
         $this->command->info('');
+    }
+
+    /**
+     * Crée ou met à jour le compte administrateur
+     *
+     * @return void
+     */
+    private function createOrUpdateAdmin(): void
+    {
+        $this->command->info('🔧 Traitement du compte administrateur principal...');
+        $this->command->info('');
+
+        // Vérifier si l'utilisateur admin existe déjà
+        $existingAdmin = User::where('email', self::ADMIN_EMAIL)->first();
+
+        if ($existingAdmin) {
+            $this->handleExistingAdmin($existingAdmin);
+        } else {
+            $this->createNewAdmin();
+        }
     }
 
     /**
@@ -86,8 +135,6 @@ class UserSeeder extends Seeder
      */
     private function createNewAdmin(): void
     {
-        $this->command->info('🔧 Création du compte administrateur principal...');
-
         // Démarrer une transaction pour assurer l'intégrité des données
         DB::beginTransaction();
 
@@ -123,6 +170,100 @@ class UserSeeder extends Seeder
     }
 
     /**
+     * Crée les commerciaux de test et leurs clients
+     *
+     * @return void
+     */
+    private function createCommerciaux(): void
+    {
+        $this->command->info('');
+        $this->command->info('👥 Création des comptes commerciaux de test...');
+        $this->command->info('');
+
+        foreach (self::COMMERCIAUX as $commercialData) {
+            $commercial = $this->createCommercial(
+                $commercialData['email'],
+                $commercialData['nom'],
+                $commercialData['prenom'],
+                $commercialData['telephone'],
+                $commercialData['quartier']
+            );
+
+            // Créer les clients pour ce commercial
+            $this->createClientsForCommercial($commercial, $commercialData['nombre_clients']);
+        }
+    }
+
+    /**
+     * Crée ou met à jour un compte commercial
+     *
+     * @param string $email
+     * @param string $nom
+     * @param string $prenom
+     * @param string $telephone
+     * @param string $quartier
+     * @return User
+     */
+    private function createCommercial(
+        string $email,
+        string $nom,
+        string $prenom,
+        string $telephone,
+        string $quartier
+    ): User {
+        $commercial = User::firstOrCreate(
+            ['email' => $email],
+            [
+                'nom' => $nom,
+                'prenom' => $prenom,
+                'password' => Hash::make('password'),
+                'role' => 'commercial',
+                'status' => 'active',
+                'email_verified_at' => now(),
+                'numero_telephone' => $telephone,
+                'localisation' => 'Ouagadougou',
+                'quartier' => $quartier,
+            ]
+        );
+
+        $action = $commercial->wasRecentlyCreated ? 'créé' : 'mis à jour';
+        $this->command->info("   ✅ Compte commercial {$prenom} {$nom} {$action}");
+        
+        return $commercial;
+    }
+
+    /**
+     * Crée les clients de test pour un commercial
+     *
+     * @param User $commercial
+     * @param int $count
+     * @return void
+     */
+    private function createClientsForCommercial(User $commercial, int $count): void
+    {
+        for ($i = 1; $i <= $count; $i++) {
+            $client = User::firstOrCreate(
+                ['email' => "client{$i}_com{$commercial->id}@example.com"],
+                [
+                    'nom' => "Client{$i}",
+                    'prenom' => "De {$commercial->prenom}",
+                    'password' => Hash::make('password'),
+                    'role' => 'client',
+                    'status' => 'active',
+                    'commercial_id' => $commercial->id,
+                    'email_verified_at' => now(),
+                    'numero_telephone' => '+226 60 ' . rand(10, 99) . ' ' . rand(10, 99) . ' ' . rand(10, 99),
+                    'localisation' => 'Ouagadougou',
+                    'quartier' => 'Secteur ' . rand(1, 10),
+                ]
+            );
+            
+            $action = $client->wasRecentlyCreated ? 'créé' : 'mis à jour';
+            $this->command->info("      → Client {$client->prenom} {$client->nom} {$action} pour {$commercial->prenom} {$commercial->nom}");
+        }
+    }
+
+    /**
      * Affiche les informations de l'administrateur
      *
      * @param User $admin
@@ -134,7 +275,7 @@ class UserSeeder extends Seeder
         $this->command->info("📋 INFORMATIONS DU COMPTE ADMINISTRATEUR ({$type}) :");
         $this->command->info('┌─────────────────────────────────────────────────────────┐');
         $this->command->info('│                                                         │');
-        $this->command->info('│  👤 Nom complet : ' . str_pad($admin->full_name, 35) . ' │');
+        $this->command->info('│  👤 Nom complet : ' . str_pad($admin->full_name ?? "{$admin->prenom} {$admin->nom}", 35) . ' │');
         $this->command->info('│  📧 Email       : ' . str_pad($admin->email, 35) . ' │');
         $this->command->info('│  🔑 Rôle        : ' . str_pad(ucfirst($admin->role), 35) . ' │');
         $this->command->info('│  📊 Statut      : ' . str_pad(ucfirst($admin->status), 35) . ' │');
@@ -148,8 +289,8 @@ class UserSeeder extends Seeder
             $this->command->info('🔐 INFORMATIONS DE CONNEXION :');
             $this->command->info('┌─────────────────────────────────────────────────────────┐');
             $this->command->info('│                                                         │');
-            $this->command->info('│  📧 Email    : ' . str_pad(self::ADMIN_EMAIL, 35) . ' │');
-            $this->command->info('│  🔑 Mot de passe : ' . str_pad(self::ADMIN_PASSWORD, 30) . ' │');
+            $this->command->info('│  📧 Email        : ' . str_pad(self::ADMIN_EMAIL, 35) . ' │');
+            $this->command->info('│  🔑 Mot de passe : ' . str_pad(self::ADMIN_PASSWORD, 35) . ' │');
             $this->command->info('│                                                         │');
             $this->command->info('└─────────────────────────────────────────────────────────┘');
             $this->command->info('');
@@ -187,19 +328,27 @@ class UserSeeder extends Seeder
     private function displayUserStatistics(): void
     {
         try {
+            $this->command->info('');
+            $this->command->info('📊 STATISTIQUES DES UTILISATEURS :');
+            $this->command->info('┌─────────────────────────────────────────────────────────┐');
+            $this->command->info('│                                                         │');
+            
             $totalUsers = User::count();
             $adminUsers = User::where('role', 'admin')->count();
+            $commercialUsers = User::where('role', 'commercial')->count();
+            $clientUsers = User::where('role', 'client')->count();
             $activeUsers = User::where('status', 'active')->count();
 
-            $this->command->info('📊 STATISTIQUES DES UTILISATEURS :');
-            $this->command->info("   • Total d'utilisateurs : {$totalUsers}");
-            $this->command->info("   • Administrateurs : {$adminUsers}");
-            $this->command->info("   • Utilisateurs actifs : {$activeUsers}");
+            $this->command->info('│  📈 Total utilisateurs  : ' . str_pad($totalUsers, 29) . ' │');
+            $this->command->info('│  👨‍💼 Administrateurs    : ' . str_pad($adminUsers, 29) . ' │');
+            $this->command->info('│  💼 Commerciaux         : ' . str_pad($commercialUsers, 29) . ' │');
+            $this->command->info('│  👥 Clients             : ' . str_pad($clientUsers, 29) . ' │');
+            $this->command->info('│  ✅ Utilisateurs actifs : ' . str_pad($activeUsers, 29) . ' │');
+            $this->command->info('│                                                         │');
+            $this->command->info('└─────────────────────────────────────────────────────────┘');
             $this->command->info('');
         } catch (\Exception $e) {
             $this->command->warn('⚠️  Impossible de récupérer les statistiques des utilisateurs.');
         }
     }
 }
-
-

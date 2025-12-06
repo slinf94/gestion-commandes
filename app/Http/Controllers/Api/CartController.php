@@ -36,22 +36,30 @@ class CartController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Calculer les totaux
+        // Calculer les totaux avec prix par quantité
         $subtotal = $cartItems->sum(function($item) {
-            return $item->quantity * ($item->product ? $item->product->price : 0);
+            if (!$item->product) return 0;
+            // Utiliser le prix en fonction de la quantité (comme Alibaba)
+            $priceForQuantity = $item->product->getPriceForQuantity($item->quantity);
+            return $item->quantity * $priceForQuantity;
         });
 
         $totalItems = $cartItems->sum('quantity');
 
         // Formater les items pour la réponse JSON
         $formattedItems = $cartItems->map(function($item) {
+            // Calculer le prix unitaire en fonction de la quantité
+            $unitPrice = $item->product ? $item->product->getPriceForQuantity($item->quantity) : $item->unit_price;
+            
             return [
                 'id' => $item->id,
                 'session_id' => $item->session_id,
                 'user_id' => $item->user_id,
                 'product_id' => $item->product_id,
                 'quantity' => $item->quantity,
-                'unit_price' => $item->unit_price,
+                'unit_price' => $unitPrice, // Prix calculé selon la quantité
+                'original_price' => $item->product ? $item->product->price : 0, // Prix de base
+                'total_price' => $unitPrice * $item->quantity,
                 'created_at' => $item->created_at ? $item->created_at->toIso8601String() : now()->toIso8601String(),
                 'updated_at' => $item->updated_at ? $item->updated_at->toIso8601String() : now()->toIso8601String(),
                 'expires_at' => $item->expires_at->toIso8601String(),
@@ -143,20 +151,26 @@ class CartController extends Controller
                 ], 400);
             }
 
+            // Calculer le prix en fonction de la nouvelle quantité
+            $unitPrice = $product->getPriceForQuantity($newQuantity);
+            
             $existingItem->update([
                 'quantity' => $newQuantity,
-                'unit_price' => $product->price,
+                'unit_price' => $unitPrice, // Prix selon la quantité (Alibaba style)
                 'expires_at' => now()->addDays(7) // Expire dans 7 jours
             ]);
 
             $cartItem = $existingItem;
         } else {
+            // Calculer le prix en fonction de la quantité
+            $unitPrice = $product->getPriceForQuantity($request->quantity);
+            
             // Créer un nouvel article
             $cartItem = TemporaryCart::create([
                 'session_id' => $sessionId,
                 'product_id' => $request->product_id,
                 'quantity' => $request->quantity,
-                'unit_price' => $product->price,
+                'unit_price' => $unitPrice, // Prix selon la quantité (Alibaba style)
                 'expires_at' => now()->addDays(7) // Expire dans 7 jours
             ]);
         }
@@ -209,9 +223,14 @@ class CartController extends Controller
             ], 400);
         }
 
+        // Calculer le prix en fonction de la quantité mise à jour
+        $unitPrice = $cartItem->product 
+            ? $cartItem->product->getPriceForQuantity($request->quantity)
+            : $cartItem->unit_price;
+        
         $cartItem->update([
             'quantity' => $request->quantity,
-            'unit_price' => $cartItem->product ? $cartItem->product->price : $cartItem->unit_price,
+            'unit_price' => $unitPrice, // Prix selon la quantité (Alibaba style)
             'expires_at' => now()->addDays(7) // Renouveler l'expiration
         ]);
 

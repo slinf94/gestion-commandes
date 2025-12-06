@@ -304,7 +304,7 @@ class DashboardController extends Controller
             }
 
             // Fallback: vérifier le champ role (ancien système)
-            if (!$hasAllowedRole && in_array($user->role, ['admin', 'gestionnaire', 'vendeur'])) {
+            if (!$hasAllowedRole && in_array($user->role, ['super-admin', 'admin', 'gestionnaire', 'vendeur'])) {
                 $hasAllowedRole = true;
             }
 

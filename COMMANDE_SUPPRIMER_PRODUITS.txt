@@ -1,0 +1,16 @@
+COMMANDE UNIQUE POUR SUPPRIMER TOUS LES PRODUITS
+==================================================
+
+Copier-coller cette commande dans le terminal PowerShell :
+
+php artisan tinker --execute="DB::table('product_images')->delete(); DB::table('favorites')->delete(); DB::table('product_attribute_values')->delete(); if (Schema::hasTable('product_prices')) { DB::table('product_prices')->delete(); } if (Schema::hasTable('product_variants')) { DB::table('product_variants')->delete(); } DB::table('products')->delete(); echo 'TOUS LES PRODUITS ONT ETE SUPPRIMES !'; echo PHP_EOL; exit;"
+
+
+OU VERSION COURTE (sans images) :
+
+php artisan tinker --execute="DB::table('products')->delete(); echo 'PRODUITS SUPPRIMES'; exit;"
+
+
+VERIFICATION :
+
+php artisan tinker --execute="echo 'Produits restants : ' . DB::table('products')->count(); exit;"

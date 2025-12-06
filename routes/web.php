@@ -107,6 +107,14 @@ Route::prefix('admin')->group(function () {
         Route::delete('/products/{slug}/images/{image}', [ProductController::class, 'deleteImage'])->name('admin.products.delete-image');
     });
 
+    // Gestion des prix par quantité (réservé Admin/SuperAdmin) - Style Alibaba
+    Route::middleware(['role:super-admin,admin'])->group(function () {
+        Route::get('/products/{id}/quantity-prices', [ProductController::class, 'quantityPrices'])->name('admin.products.quantity-prices');
+        Route::post('/products/{id}/quantity-prices', [ProductController::class, 'storeQuantityPrice'])->name('admin.products.quantity-prices.store');
+        Route::patch('/products/{productId}/quantity-prices/{priceId}/toggle', [ProductController::class, 'toggleQuantityPrice'])->name('admin.products.quantity-prices.toggle');
+        Route::delete('/products/{productId}/quantity-prices/{priceId}', [ProductController::class, 'destroyQuantityPrice'])->name('admin.products.quantity-prices.destroy');
+    });
+
     // Gestion des variantes de produits (réservé Admin/SuperAdmin)
     Route::middleware(['role:super-admin,admin'])->group(function () {
         Route::get('/products/{product}/variants', [ProductVariantController::class, 'index'])->name('admin.products.variants.index');

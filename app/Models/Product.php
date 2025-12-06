@@ -92,6 +92,58 @@ class Product extends Model
         return $this->hasMany(ProductImage::class);
     }
 
+    /**
+     * Relation avec les prix par quantité
+     */
+    public function prices(): HasMany
+    {
+        return $this->hasMany(ProductPrice::class)->where('is_active', true);
+    }
+
+    /**
+     * Obtenir le prix en fonction de la quantité
+     */
+    public function getPriceForQuantity($quantity)
+    {
+        $price = $this->prices()
+            ->where('min_quantity', '<=', $quantity)
+            ->where(function ($query) use ($quantity) {
+                $query->whereNull('max_quantity')
+                    ->orWhere('max_quantity', '>=', $quantity);
+            })
+            ->orderBy('min_quantity', 'desc')
+            ->first();
+
+        if ($price) {
+            return $price->discounted_price;
+        }
+
+        // Retourner le prix par défaut si aucun prix par quantité trouvé
+        return $this->price;
+    }
+
+    /**
+     * Obtenir tous les prix par quantité avec les plages
+     */
+    public function getQuantityPrices()
+    {
+        return $this->prices()
+            ->orderBy('min_quantity')
+            ->get()
+            ->map(function ($price) {
+                return [
+                    'min_quantity' => $price->min_quantity,
+                    'max_quantity' => $price->max_quantity,
+                    'price' => $price->price,
+                    'discount_percentage' => $price->discount_percentage,
+                    'discounted_price' => $price->discounted_price,
+                    'range_label' => $price->max_quantity 
+                        ? "{$price->min_quantity} - {$price->max_quantity}" 
+                        : "≥ {$price->min_quantity}"
+                ];
+            });
+    }
+
     // Récupérer l'image principale (temporairement désactivé)
     /*
     public function getMainImageAttribute()

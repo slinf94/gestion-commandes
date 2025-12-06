@@ -25,7 +25,7 @@ class ProductController extends Controller
             if (!$request->has('error_redirect')) {
                 // Ne pas nettoyer automatiquement, laisser Laravel gérer
             }
-            
+
             // Construction de la requête avec filtres dynamiques
             // Utiliser DB::table pour éviter l'épuisement de mémoire
             // Ne charger que les colonnes essentielles pour la liste (exclure description, images, tags qui sont volumineux)
@@ -115,14 +115,14 @@ class ProductController extends Controller
 
             // Pagination configurable - Limiter strictement pour éviter l'épuisement mémoire
             $perPage = min($request->get('per_page', 15), 30); // Maximum 30 produits par page, 15 par défaut
-            
+
             // Utiliser simplePaginate() qui ne compte pas le total (évite COUNT(*) lourd)
             // et retourne directement des objets stdClass sans relations
             $products = $query->simplePaginate($perPage)->appends($request->query());
-            
+
             // Préparer les slugs et images pour chaque produit
             $productIds = collect($products->items())->pluck('id')->toArray();
-            
+
             // Charger toutes les images principales en une seule requête
             $mainImages = DB::table('product_images')
                 ->select('product_id', 'url')
@@ -133,21 +133,21 @@ class ProductController extends Controller
                 ->map(function($images) {
                     return $images->first()->url ?? null;
                 });
-            
+
             // Charger aussi les images depuis le champ JSON images
             $productsWithImages = DB::table('products')
                 ->select('id', 'images')
                 ->whereIn('id', $productIds)
                 ->get()
                 ->keyBy('id');
-            
+
             foreach ($products->items() as $product) {
                 // S'assurer que le slug est une chaîne valide
                 $product->slug = trim($product->slug ?? '') ?: ('no-slug-' . ($product->id ?? 0));
-                
+
                 // Charger l'image principale depuis product_images
                 $mainImageUrl = $mainImages->get($product->id);
-                
+
                 // Si pas d'image dans product_images, essayer depuis le champ images JSON
                 if (!$mainImageUrl && isset($productsWithImages[$product->id])) {
                     $imagesJson = $productsWithImages[$product->id]->images;
@@ -158,7 +158,7 @@ class ProductController extends Controller
                         }
                     }
                 }
-                
+
                 $product->main_image = $mainImageUrl;
             }
 
@@ -214,7 +214,7 @@ class ProductController extends Controller
                     ->pluck('brand')
                     ->filter()
                     ->values();
-                
+
                 // Si aucune marque trouvée, utiliser les valeurs par défaut
                 if ($brands->isEmpty()) {
                     $brands = collect($defaultBrands);
@@ -236,7 +236,7 @@ class ProductController extends Controller
                     ->pluck('range')
                     ->filter()
                     ->values();
-                
+
                 // Si aucune gamme trouvée, utiliser les valeurs par défaut
                 if ($ranges->isEmpty()) {
                     $ranges = collect($defaultRanges);
@@ -258,7 +258,7 @@ class ProductController extends Controller
                     ->pluck('format')
                     ->filter()
                     ->values();
-                
+
                 // Si aucun format trouvé, utiliser les valeurs par défaut
                 if ($formats->isEmpty()) {
                     $formats = collect($defaultFormats);
@@ -280,7 +280,7 @@ class ProductController extends Controller
                     ->pluck('type_accessory')
                     ->filter()
                     ->values();
-                
+
                 // Si aucun type d'accessoire trouvé, utiliser les valeurs par défaut
                 if ($accessoryTypes->isEmpty()) {
                     $accessoryTypes = collect($defaultAccessoryTypes);
@@ -302,7 +302,7 @@ class ProductController extends Controller
                     ->pluck('compatibility')
                     ->filter()
                     ->values();
-                
+
                 // Si aucune compatibilité trouvée, utiliser les valeurs par défaut
                 if ($compatibilities->isEmpty()) {
                     $compatibilities = collect($defaultCompatibilities);
@@ -327,7 +327,7 @@ class ProductController extends Controller
                         SUM(CASE WHEN stock_quantity <= 0 THEN 1 ELSE 0 END) as out_of_stock
                     ')
                     ->first();
-                
+
                 $stats = [
                     'total' => $statsQuery->total ?? 0,
                     'active' => $statsQuery->active ?? 0,
@@ -350,9 +350,9 @@ class ProductController extends Controller
             }
 
             return view('admin.products.index', compact(
-                'products', 
-                'categories', 
-                'productTypes', 
+                'products',
+                'categories',
+                'productTypes',
                 'brands',
                 'ranges',
                 'formats',
@@ -379,20 +379,20 @@ class ProductController extends Controller
         try {
             // Augmenter la mémoire pour cette méthode
             ini_set('memory_limit', '2G');
-            
+
             // Version ULTRA-SIMPLE - Pas de modèle Eloquent du tout, récupération directe par slug
             $productData = DB::table('products')
                 ->select('id', 'name', 'slug', 'description', 'price', 'cost_price', 'wholesale_price', 'retail_price', 'min_wholesale_quantity', 'stock_quantity', 'min_stock_alert', 'status', 'sku', 'barcode', 'category_id', 'product_type_id', 'meta_title', 'meta_description', 'tags', 'images', 'created_at', 'updated_at')
                 ->where('slug', $slug)
                 ->whereNull('deleted_at')
                 ->first();
-            
+
             // Si on ne trouve pas le produit, rediriger
             if (!$productData) {
                 return redirect()->route('admin.products.index')
                     ->with('error', 'Produit non trouvé.');
             }
-            
+
             $productId = $productData->id;
 
             // Chargement séparé des relations si nécessaire (avec limite)
@@ -528,8 +528,8 @@ class ProductController extends Controller
                 ->values();
 
             return view('admin.products.create', compact(
-                'categories', 
-                'productTypes', 
+                'categories',
+                'productTypes',
                 'attributes',
                 'brands',
                 'ranges',
@@ -605,7 +605,7 @@ class ProductController extends Controller
 
             // Générer le SKU automatiquement si non fourni
             $sku = $request->sku ?? Product::generateSku();
-            
+
             // Générer le slug seulement si name n'est pas vide
             $slug = !empty($validated['name']) ? Product::generateSlug($validated['name']) : null;
 
@@ -721,13 +721,13 @@ class ProductController extends Controller
                         $paths[] = $path;
                     }
                 }
-                
+
                 if (!empty($paths)) {
                     // Mettre à jour avec DB::table() pour éviter les relations
                     DB::table('products')
                         ->where('id', $productId)
                         ->update(['images' => json_encode($paths)]);
-                    
+
                     // Enregistrer aussi dans product_images pour compatibilité
                     $this->handleImageUpload($request->file('images'), $productId);
                 }
@@ -742,7 +742,7 @@ class ProductController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             \Log::error('Erreur de validation lors de la création du produit: ' . json_encode($e->errors()));
-            
+
             return back()
                 ->withErrors($e->errors())
                 ->withInput()
@@ -838,7 +838,7 @@ class ProductController extends Controller
                 ->where('slug', $slug)
                 ->whereNull('deleted_at')
                 ->first();
-            
+
             // Si pas trouvé par slug, essayer de trouver par ID si le slug contient un ID (format: nom-produit-id)
             if (!$productData && preg_match('/-(\d+)$/', $slug, $matches)) {
                 $productId = (int)$matches[1];
@@ -847,7 +847,7 @@ class ProductController extends Controller
                     ->where('id', $productId)
                     ->whereNull('deleted_at')
                     ->first();
-                
+
                 // Si trouvé par ID mais pas de slug, générer le slug et le mettre à jour
                 if ($productData && (empty($productData->slug) || is_null($productData->slug))) {
                     $newSlug = Product::generateSlug($productData->name, $productData->id);
@@ -855,7 +855,7 @@ class ProductController extends Controller
                     $productData->slug = $newSlug;
                 }
             }
-            
+
             // Si toujours pas trouvé, essayer de trouver par ID directement si le slug est juste un nombre
             if (!$productData && is_numeric($slug)) {
                 $productData = DB::table('products')
@@ -900,10 +900,10 @@ class ProductController extends Controller
             $product->productImages = $productImages;
 
             return view('admin.products.edit', compact(
-                'product', 
-                'categories', 
-                'productTypes', 
-                'attributes', 
+                'product',
+                'categories',
+                'productTypes',
+                'attributes',
                 'productAttributeValues',
                 'brands',
                 'ranges',
@@ -926,7 +926,7 @@ class ProductController extends Controller
             ->where('slug', $slug)
             ->whereNull('deleted_at')
             ->first();
-        
+
         // Si pas trouvé par slug, essayer par ID si le slug contient un ID
         if (!$productData && preg_match('/-(\d+)$/', $slug, $matches)) {
             $productId = (int)$matches[1];
@@ -935,7 +935,7 @@ class ProductController extends Controller
                 ->whereNull('deleted_at')
                 ->first();
         }
-        
+
         // Si toujours pas trouvé, essayer par ID directement si le slug est juste un nombre
         if (!$productData && is_numeric($slug)) {
             $productData = DB::table('products')
@@ -943,7 +943,7 @@ class ProductController extends Controller
                 ->whereNull('deleted_at')
                 ->first();
         }
-        
+
         if (!$productData) {
             \Log::error('Produit non trouvé dans update()', [
                 'slug_recherche' => $slug,
@@ -952,10 +952,10 @@ class ProductController extends Controller
             return redirect()->route('admin.products.index')
                 ->with('error', 'Produit non trouvé. Slug: ' . htmlspecialchars($slug));
         }
-        
+
         $productId = $productData->id;
         $currentName = $productData->name;
-        
+
         // Log pour debug
         \Log::info('=== UPDATE PRODUCT ===', [
             'slug' => $slug,
@@ -1065,7 +1065,7 @@ class ProductController extends Controller
             // Gestion des images
             if ($request->hasFile('images')) {
                 $this->handleImageUpload($request->file('images'), $productId);
-                
+
                 // Mettre à jour aussi le champ images dans la table products pour compatibilité
                 $imagePaths = [];
                 foreach ($request->file('images') as $image) {
@@ -1075,17 +1075,17 @@ class ProductController extends Controller
                         $imagePaths[] = $imagePath;
                     }
                 }
-                
+
                 // Récupérer les images existantes depuis product_images
                 $existingImages = DB::table('product_images')
                     ->where('product_id', $productId)
                     ->orderBy('order')
                     ->pluck('url')
                     ->toArray();
-                
+
                 // Fusionner avec les nouvelles images
                 $allImages = array_merge($existingImages, $imagePaths);
-                
+
                 // Mettre à jour le champ images dans products
                 DB::table('products')
                     ->where('id', $productId)
@@ -1148,7 +1148,7 @@ class ProductController extends Controller
                 ->where('slug', $slug)
                 ->whereNull('deleted_at')
                 ->first();
-            
+
             // Si pas trouvé par slug, essayer par ID si le slug contient un ID
             if (!$productData && preg_match('/-(\d+)$/', $slug, $matches)) {
                 $productId = (int)$matches[1];
@@ -1157,7 +1157,7 @@ class ProductController extends Controller
                     ->whereNull('deleted_at')
                     ->first();
             }
-            
+
             // Si toujours pas trouvé, essayer par ID directement si le slug est juste un nombre
             if (!$productData && is_numeric($slug)) {
                 $productData = DB::table('products')
@@ -1165,12 +1165,12 @@ class ProductController extends Controller
                     ->whereNull('deleted_at')
                     ->first();
             }
-            
+
             if (!$productData) {
                 return redirect()->route('admin.products.index')
                     ->with('error', 'Produit non trouvé. Slug: ' . $slug);
             }
-            
+
             $productId = $productData->id;
 
             // Supprimer les images associées
@@ -1205,7 +1205,7 @@ class ProductController extends Controller
                 ->where('slug', $slug)
                 ->whereNull('deleted_at')
                 ->first();
-            
+
             // Si pas trouvé par slug, essayer par ID si le slug contient un ID
             if (!$productData && preg_match('/-(\d+)$/', $slug, $matches)) {
                 $productId = (int)$matches[1];
@@ -1215,7 +1215,7 @@ class ProductController extends Controller
                     ->whereNull('deleted_at')
                     ->first();
             }
-            
+
             // Si toujours pas trouvé, essayer par ID directement si le slug est juste un nombre
             if (!$productData && is_numeric($slug)) {
                 $productData = DB::table('products')
@@ -1278,5 +1278,89 @@ class ProductController extends Controller
                 'message' => 'Erreur lors de la mise à jour du statut'
             ], 500);
         }
+    }
+
+    /**
+     * Afficher la page de gestion des prix par quantité
+     */
+    public function quantityPrices($id)
+    {
+        $product = Product::with('prices')->findOrFail($id);
+
+        return view('admin.products.quantity_prices', compact('product'));
+    }
+
+    /**
+     * Ajouter un palier de prix par quantité
+     */
+    public function storeQuantityPrice(Request $request, $id)
+    {
+        $product = Product::findOrFail($id);
+
+        $validated = $request->validate([
+            'min_quantity' => 'required|integer|min:1',
+            'max_quantity' => 'nullable|integer|min:1|gt:min_quantity',
+            'price' => 'required|numeric|min:0',
+            'discount_percentage' => 'nullable|numeric|min:0|max:100',
+        ]);
+
+        // Vérifier qu'il n'y a pas de chevauchement de plages
+        $overlapping = $product->prices()
+            ->where(function($query) use ($validated) {
+                $query->where(function($q) use ($validated) {
+                    // Cas 1: min_quantity dans une plage existante
+                    $q->where('min_quantity', '<=', $validated['min_quantity'])
+                      ->where(function($subQ) use ($validated) {
+                          $subQ->whereNull('max_quantity')
+                               ->orWhere('max_quantity', '>=', $validated['min_quantity']);
+                      });
+                })
+                ->orWhere(function($q) use ($validated) {
+                    // Cas 2: max_quantity dans une plage existante (si défini)
+                    if (isset($validated['max_quantity'])) {
+                        $q->where('min_quantity', '<=', $validated['max_quantity'])
+                          ->where(function($subQ) use ($validated) {
+                              $subQ->whereNull('max_quantity')
+                                   ->orWhere('max_quantity', '>=', $validated['max_quantity']);
+                          });
+                    }
+                });
+            })
+            ->exists();
+
+        if ($overlapping) {
+            return back()->with('error', 'Cette plage de quantité chevauche un palier existant.');
+        }
+
+        $product->prices()->create($validated);
+
+        return back()->with('success', 'Palier de prix ajouté avec succès !');
+    }
+
+    /**
+     * Activer/Désactiver un palier de prix
+     */
+    public function toggleQuantityPrice($productId, $priceId)
+    {
+        $product = Product::findOrFail($productId);
+        $price = $product->prices()->findOrFail($priceId);
+
+        $price->update(['is_active' => !$price->is_active]);
+
+        $status = $price->is_active ? 'activé' : 'désactivé';
+        return back()->with('success', "Palier de prix {$status} avec succès !");
+    }
+
+    /**
+     * Supprimer un palier de prix
+     */
+    public function destroyQuantityPrice($productId, $priceId)
+    {
+        $product = Product::findOrFail($productId);
+        $price = $product->prices()->findOrFail($priceId);
+
+        $price->delete();
+
+        return back()->with('success', 'Palier de prix supprimé avec succès !');
     }
 }

@@ -1,0 +1,41 @@
+═══════════════════════════════════════════════════════════
+  CRÉATION DU COMPTE SUPER ADMIN
+═══════════════════════════════════════════════════════════
+
+OPTION 1 : COMMANDE RAPIDE (RECOMMANDÉE)
+─────────────────────────────────────────────────────────
+
+Copier-coller cette commande dans le terminal :
+
+php artisan tinker --execute="use App\Models\User; use Illuminate\Support\Facades\Hash; User::updateOrCreate(['email' => 'superadmin@allomobile.com'], ['nom' => 'Super', 'prenom' => 'Admin', 'email' => 'superadmin@allomobile.com', 'password' => Hash::make('SuperAdmin123!'), 'role' => 'super-admin', 'status' => 'active', 'email_verified_at' => now(), 'numero_telephone' => '+226 70 00 00 01', 'localisation' => 'Ouagadougou', 'quartier' => 'Secteur 1']); echo 'SUPER ADMIN CREE !'; exit;"
+
+
+OPTION 2 : UTILISER LE SEEDER
+─────────────────────────────────────────────────────────
+
+1. Le seeder a été modifié pour créer un super-admin
+
+2. Lancez la commande :
+   php artisan db:seed --class=UserSeeder
+
+
+═══════════════════════════════════════════════════════════
+  INFORMATIONS DE CONNEXION SUPER ADMIN
+═══════════════════════════════════════════════════════════
+
+📧 Email       : superadmin@allomobile.com
+🔑 Mot de passe : SuperAdmin123!
+🌐 URL         : http://127.0.0.1:8000/admin/login
+👤 Rôle        : super-admin
+
+═══════════════════════════════════════════════════════════
+
+APRÈS CRÉATION :
+
+1. Connectez-vous sur : http://127.0.0.1:8000/admin/login
+
+2. Utilisez les identifiants ci-dessus
+
+3. Vous aurez TOUS LES DROITS !
+
+═══════════════════════════════════════════════════════════

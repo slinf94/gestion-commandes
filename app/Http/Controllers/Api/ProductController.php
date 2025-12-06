@@ -16,7 +16,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'attributeValues.productTypeAttribute', 'productImages']);
+        $query = Product::with(['category', 'attributeValues.productTypeAttribute', 'productImages', 'prices']);
 
         // Filtrage par statut (par défaut: active, mais peut être changé)
         if ($request->has('status') && $request->status) {
@@ -141,6 +141,17 @@ class ProductController extends Controller
             // Ajouter l'image principale (optimisé)
             $productData['main_image'] = $product->main_image ?: $disk->url('products/placeholder.jpg');
 
+            // Ajouter les prix par quantité (style Alibaba)
+            $productData['quantity_prices'] = $product->prices->map(function ($price) {
+                return [
+                    'min_quantity' => $price->min_quantity,
+                    'max_quantity' => $price->max_quantity,
+                    'price' => (float) $price->price,
+                    'discount_percentage' => (float) $price->discount_percentage,
+                    'discounted_price' => (float) $price->discounted_price,
+                ];
+            })->sortBy('min_quantity')->values();
+
             // Optimisation: ne pas charger all_images pour la liste
             unset($productData['all_images']);
 
@@ -255,7 +266,7 @@ class ProductController extends Controller
      */
     public function show($id)
     {
-        $product = Product::with(['category', 'attributeValues.productTypeAttribute', 'variants'])
+        $product = Product::with(['category', 'attributeValues.productTypeAttribute', 'variants', 'prices'])
             ->findOrFail($id);
 
         $productData = $product->toArray();
@@ -273,6 +284,25 @@ class ProductController extends Controller
         // Ajouter l'image principale
         $productData['main_image'] = $product->main_image;
         $productData['all_images'] = $product->all_images;
+
+        // Ajouter les prix par quantité (style Alibaba) avec formatage complet
+        $productData['quantity_prices'] = $product->prices->map(function ($price) {
+            $quantityRange = $price->min_quantity;
+            if ($price->max_quantity) {
+                $quantityRange .= ' - ' . $price->max_quantity;
+            } else {
+                $quantityRange .= '+';
+            }
+            
+            return [
+                'min_quantity' => $price->min_quantity,
+                'max_quantity' => $price->max_quantity,
+                'price' => (float) $price->price,
+                'discount_percentage' => (float) $price->discount_percentage,
+                'discounted_price' => (float) $price->discounted_price,
+                'quantity_range' => $quantityRange,
+            ];
+        })->sortBy('min_quantity')->values();
 
         return response()->json([
             'success' => true,

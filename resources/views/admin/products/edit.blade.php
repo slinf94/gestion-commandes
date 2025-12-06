@@ -43,6 +43,9 @@
                 <small class="opacity-75">Mettez à jour les informations du produit</small>
             </div>
             <div>
+                <a href="{{ route('admin.products.quantity-prices', $product->id) }}" class="btn btn-warning me-2" style="border-radius: 8px;" title="Gérer les prix par quantité (style Alibaba)">
+                    <i class="fas fa-tags me-2"></i>Prix par Quantité
+                </a>
                 <a href="{{ route('admin.products.index') }}" class="btn btn-outline-light" style="border-radius: 8px;">
                     <i class="fas fa-arrow-left me-2"></i>Retour
                 </a>

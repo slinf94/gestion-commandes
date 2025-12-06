@@ -67,7 +67,7 @@
                                     <input type="text" class="form-control @error('numero_telephone') is-invalid @enderror"
                                            id="numero_telephone" name="numero_telephone"
                                            value="{{ old('numero_telephone', $user->numero_telephone) }}"
-                                           placeholder="+225 XX XX XX XX XX">
+                                           placeholder="+226 XX XX XX XX">
                                     @error('numero_telephone')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -79,7 +79,7 @@
                                     <input type="text" class="form-control @error('numero_whatsapp') is-invalid @enderror"
                                            id="numero_whatsapp" name="numero_whatsapp"
                                            value="{{ old('numero_whatsapp', $user->numero_whatsapp) }}"
-                                           placeholder="+225 XX XX XX XX XX">
+                                           placeholder="+226 XX XX XX XX">
                                     @error('numero_whatsapp')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror

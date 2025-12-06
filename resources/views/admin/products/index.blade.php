@@ -338,24 +338,32 @@ use Illuminate\Support\Facades\DB;
                         <tr>
                             <td>
                                 @php
-                                    // Utiliser les images préchargées
-                                    // Utiliser main_image si disponible (optimisé), sinon essayer images
-                                    $mainImage = null;
+                                    // Récupérer l'URL de l'image principale
+                                    $imageUrl = null;
+                                    
+                                    // 1. Essayer main_image (chargée par le contrôleur)
                                     if (isset($product->main_image) && !empty($product->main_image)) {
-                                        $mainImage = (object)['url' => $product->main_image];
-                                    } elseif (isset($product->images) && is_iterable($product->images)) {
-                                        $productImages = is_array($product->images) ? collect($product->images) : $product->images;
-                                        $mainImage = $productImages->where('type', 'principale')->first()
-                                            ?? $productImages->sortBy('order')->first();
+                                        $imageUrl = $product->main_image;
+                                    }
+                                    
+                                    // 2. Essayer de charger depuis product_images si main_image est vide
+                                    if (empty($imageUrl)) {
+                                        $firstImage = DB::table('product_images')
+                                            ->where('product_id', $product->id)
+                                            ->orderBy('order')
+                                            ->value('url');
+                                        if ($firstImage) {
+                                            $imageUrl = $firstImage;
+                                        }
                                     }
                                 @endphp
-                                @if($mainImage && isset($mainImage->url))
-                                    <img src="{{ Storage::url($mainImage->url) }}"
+                                @if($imageUrl)
+                                    <img src="{{ asset('storage/' . $imageUrl) }}"
                                          alt="{{ $product->name }}"
                                          class="img-thumbnail"
                                          style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #dee2e6;"
                                          loading="lazy"
-                                         onerror="this.parentElement.innerHTML='<div class=\'bg-light d-flex align-items-center justify-content-center\' style=\'width: 60px; height: 60px; border-radius: 6px;\'><i class=\'fas fa-image text-muted\'></i></div>';">
+                                         onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23f8f9fa%22 width=%22100%22 height=%22100%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%236c757d%22 font-size=%2230%22>📷</text></svg>'; console.error('Image error:', '{{ $imageUrl }}');">
                                 @else
                                     <div class="bg-light d-flex align-items-center justify-content-center"
                                          style="width: 60px; height: 60px; border-radius: 6px; border: 1px solid #dee2e6;">

@@ -21,7 +21,7 @@ class RolePermissionController extends Controller
         if (!$user) {
             abort(403);
         }
-        
+
         if (!AdminMenuHelper::canSee($user, 'super-admin')) {
             abort(403, 'Accès réservé au Super Administrateur');
         }
@@ -33,7 +33,7 @@ class RolePermissionController extends Controller
     public function index(Request $request)
     {
         $this->enforceSuperAdmin();
-        
+
         $query = User::with(['roles.permissions'])
             ->where(function($q) {
                 $q->whereIn('role', ['super-admin', 'admin', 'gestionnaire', 'vendeur'])
@@ -77,7 +77,7 @@ class RolePermissionController extends Controller
     public function show(User $user)
     {
         $this->enforceSuperAdmin();
-        
+
         $user->load(['roles.permissions']);
         $allRoles = Role::with('permissions')->orderBy('name')->get();
         $allPermissions = Permission::orderBy('name')->get();
@@ -91,7 +91,7 @@ class RolePermissionController extends Controller
     public function assignRole(Request $request, User $user)
     {
         $this->enforceSuperAdmin();
-        
+
         $request->validate([
             'role_id' => 'required|exists:roles,id',
         ]);
@@ -101,7 +101,7 @@ class RolePermissionController extends Controller
         // Vérifier si l'utilisateur n'a pas déjà ce rôle
         if (!$user->hasRole($role->slug)) {
             $user->attachRole($role->slug);
-            
+
             return redirect()->back()->with('success', "Le rôle '{$role->name}' a été assigné avec succès.");
         }
 
@@ -114,7 +114,7 @@ class RolePermissionController extends Controller
     public function removeRole(Request $request, User $user)
     {
         $this->enforceSuperAdmin();
-        
+
         $request->validate([
             'role_id' => 'required|exists:roles,id',
         ]);
@@ -132,8 +132,49 @@ class RolePermissionController extends Controller
         }
 
         $user->detachRole($role->slug);
-        
+
         return redirect()->back()->with('success', "Le rôle '{$role->name}' a été retiré avec succès.");
+    }
+
+    /**
+     * Assigner une permission à un rôle
+     */
+    public function assignPermissionToRole(Request $request, Role $role)
+    {
+        $this->enforceSuperAdmin();
+
+        $request->validate([
+            'permission_id' => 'required|exists:permissions,id',
+        ]);
+
+        $permission = Permission::findOrFail($request->permission_id);
+
+        // Vérifier si le rôle n'a pas déjà cette permission
+        if (!$role->hasPermission($permission->slug)) {
+            $role->attachPermission($permission);
+
+            return redirect()->back()->with('success', "La permission '{$permission->name}' a été assignée au rôle '{$role->name}' avec succès.");
+        }
+
+        return redirect()->back()->with('warning', "Le rôle '{$role->name}' a déjà la permission '{$permission->name}'.");
+    }
+
+    /**
+     * Retirer une permission d'un rôle
+     */
+    public function removePermissionFromRole(Request $request, Role $role)
+    {
+        $this->enforceSuperAdmin();
+
+        $request->validate([
+            'permission_id' => 'required|exists:permissions,id',
+        ]);
+
+        $permission = Permission::findOrFail($request->permission_id);
+
+        $role->detachPermission($permission);
+
+        return redirect()->back()->with('success', "La permission '{$permission->name}' a été retirée du rôle '{$role->name}' avec succès.");
     }
 
     /**
@@ -144,7 +185,7 @@ class RolePermissionController extends Controller
     public function assignPermission(Request $request, User $user)
     {
         $this->enforceSuperAdmin();
-        
+
         return redirect()->back()->with('info', 'Les permissions directes ne sont pas encore implémentées. Les permissions sont gérées via les rôles.');
     }
 
@@ -156,7 +197,7 @@ class RolePermissionController extends Controller
     public function removePermission(Request $request, User $user)
     {
         $this->enforceSuperAdmin();
-        
+
         return redirect()->back()->with('info', 'Les permissions directes ne sont pas encore implémentées. Les permissions sont gérées via les rôles.');
     }
 
@@ -166,13 +207,13 @@ class RolePermissionController extends Controller
     public function updateLegacyRole(Request $request, User $user)
     {
         $this->enforceSuperAdmin();
-        
+
         $request->validate([
             'role' => 'required|in:super-admin,admin,gestionnaire,vendeur,client',
         ]);
 
         $user->update(['role' => $request->role]);
-        
+
         return redirect()->back()->with('success', "Le rôle legacy a été mis à jour avec succès.");
     }
 }

@@ -68,8 +68,9 @@ class RolePermissionSeeder extends Seeder
         // Permissions pour les commandes
         $orderPermissions = [
             ['name' => 'Voir les commandes', 'slug' => 'orders.view', 'module' => 'orders', 'description' => 'Peut voir la liste des commandes'],
-            ['name' => 'Modifier les commandes', 'slug' => 'orders.edit', 'module' => 'orders', 'description' => 'Peut modifier des commandes'],
-            ['name' => 'Supprimer les commandes', 'slug' => 'orders.delete', 'module' => 'orders', 'description' => 'Peut supprimer des commandes'],
+            ['name' => 'Modifier les commandes', 'slug' => 'orders.edit', 'module' => 'orders', 'description' => 'Peut modifier les commandes'],
+            ['name' => 'Supprimer les commandes', 'slug' => 'orders.delete', 'module' => 'orders', 'description' => 'Peut supprimer les commandes'],
+            ['name' => 'Modifier les factures', 'slug' => 'invoices.edit', 'module' => 'orders', 'description' => 'Peut modifier les factures'],
         ];
 
         // Permissions pour les catégories
@@ -107,7 +108,7 @@ class RolePermissionSeeder extends Seeder
             'users.view', 'users.create', 'users.edit', 'users.delete',
             'clients.view', 'clients.edit', 'clients.delete',
             'products.view', 'products.create', 'products.edit', 'products.delete',
-            'orders.view', 'orders.edit', 'orders.delete',
+            'orders.view', 'orders.edit', 'orders.delete', 'invoices.edit',
             'categories.view', 'categories.create', 'categories.edit', 'categories.delete',
         ])->get();
         $admin->permissions()->attach($adminPerms);
@@ -126,7 +127,7 @@ class RolePermissionSeeder extends Seeder
         // Peut voir produits et gérer commandes
         $vendeurPerms = Permission::whereIn('slug', [
             'products.view',
-            'orders.view', 'orders.edit',
+            'orders.view', 'orders.edit', 'invoices.edit',
         ])->get();
         $vendeur->permissions()->attach($vendeurPerms);
 

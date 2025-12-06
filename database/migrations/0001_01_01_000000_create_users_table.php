@@ -24,8 +24,10 @@ return new class extends Migration
                 $table->string('numero_whatsapp', 20)->nullable();
                 $table->text('localisation')->nullable();
                 $table->string('quartier', 100)->nullable();
-                $table->enum('role', ['client', 'admin', 'gestionnaire', 'vendeur'])->default('client');
+                $table->enum('role', ['client', 'admin', 'gestionnaire', 'vendeur', 'commercial', 'super-admin'])->default('client');
                 $table->enum('status', ['pending', 'active', 'suspended', 'inactive'])->default('pending');
+                $table->unsignedBigInteger('commercial_id')->nullable();
+                $table->foreign('commercial_id')->references('id')->on('users')->onDelete('set null');
                 $table->date('date_naissance')->nullable();
                 $table->string('avatar', 255)->nullable();
                 $table->boolean('two_factor_enabled')->default(false);
