@@ -70,7 +70,14 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'Voir les commandes', 'slug' => 'orders.view', 'module' => 'orders', 'description' => 'Peut voir la liste des commandes'],
             ['name' => 'Modifier les commandes', 'slug' => 'orders.edit', 'module' => 'orders', 'description' => 'Peut modifier les commandes'],
             ['name' => 'Supprimer les commandes', 'slug' => 'orders.delete', 'module' => 'orders', 'description' => 'Peut supprimer les commandes'],
-            ['name' => 'Modifier les factures', 'slug' => 'invoices.edit', 'module' => 'orders', 'description' => 'Peut modifier les factures'],
+        ];
+
+        // Permissions pour les factures
+        $invoicePermissions = [
+            ['name' => 'Voir les factures', 'slug' => 'invoices.view', 'module' => 'invoices', 'description' => 'Peut voir la liste des factures'],
+            ['name' => 'Créer des factures', 'slug' => 'invoices.create', 'module' => 'invoices', 'description' => 'Peut créer des factures'],
+            ['name' => 'Modifier les factures', 'slug' => 'invoices.edit', 'module' => 'invoices', 'description' => 'Peut modifier les factures'],
+            ['name' => 'Supprimer les factures', 'slug' => 'invoices.delete', 'module' => 'invoices', 'description' => 'Peut supprimer les factures'],
         ];
 
         // Permissions pour les catégories
@@ -91,6 +98,7 @@ class RolePermissionSeeder extends Seeder
             $clientPermissions,
             $productPermissions,
             $orderPermissions,
+            $invoicePermissions,
             $categoryPermissions,
             $settingsPermissions
         );
@@ -103,31 +111,34 @@ class RolePermissionSeeder extends Seeder
         $superAdmin->permissions()->attach(Permission::all());
 
         // Attacher certaines permissions à l'Administrateur
-        // Peut gérer utilisateurs, produits, commandes, catégories, clients
+        // Peut gérer utilisateurs, produits, commandes, factures, catégories, clients
         $adminPerms = Permission::whereIn('slug', [
             'users.view', 'users.create', 'users.edit', 'users.delete',
             'clients.view', 'clients.edit', 'clients.delete',
             'products.view', 'products.create', 'products.edit', 'products.delete',
-            'orders.view', 'orders.edit', 'orders.delete', 'invoices.edit',
+            'orders.view', 'orders.edit', 'orders.delete',
+            'invoices.view', 'invoices.create', 'invoices.edit', 'invoices.delete',
             'categories.view', 'categories.create', 'categories.edit', 'categories.delete',
         ])->get();
         $admin->permissions()->attach($adminPerms);
 
         // Attacher certaines permissions au Gestionnaire
-        // Peut gérer produits, commandes, catégories, clients (vue uniquement)
+        // Peut gérer produits, commandes, factures, catégories, clients (vue uniquement)
         $gestionnairePerms = Permission::whereIn('slug', [
             'clients.view',
             'products.view', 'products.create', 'products.edit', 'products.delete',
             'orders.view', 'orders.edit',
+            'invoices.view', 'invoices.create', 'invoices.edit',
             'categories.view', 'categories.create', 'categories.edit', 'categories.delete',
         ])->get();
         $gestionnaire->permissions()->attach($gestionnairePerms);
 
         // Attacher certaines permissions au Vendeur
-        // Peut voir produits et gérer commandes
+        // Peut voir produits, gérer commandes et modifier les factures
         $vendeurPerms = Permission::whereIn('slug', [
             'products.view',
-            'orders.view', 'orders.edit', 'invoices.edit',
+            'orders.view', 'orders.edit',
+            'invoices.view', 'invoices.edit',
         ])->get();
         $vendeur->permissions()->attach($vendeurPerms);
 

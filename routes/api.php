@@ -130,6 +130,24 @@ Route::prefix('v1')->middleware('jwt.auth')->group(function () {
     Route::delete('/notifications', [NotificationController::class, 'clear']);
 });
 
+// Routes pour la gestion des permissions (admin uniquement)
+Route::prefix('v1/admin')->middleware(['jwt.auth', 'admin'])->group(function () {
+    // Rôles et Permissions
+    Route::get('/roles', [\App\Http\Controllers\Api\PermissionController::class, 'roles']);
+    Route::get('/roles/{id}', [\App\Http\Controllers\Api\PermissionController::class, 'showRole']);
+    Route::post('/roles', [\App\Http\Controllers\Api\PermissionController::class, 'createRole']);
+    Route::put('/roles/{id}/permissions', [\App\Http\Controllers\Api\PermissionController::class, 'updateRolePermissions']);
+    Route::delete('/roles/{id}', [\App\Http\Controllers\Api\PermissionController::class, 'deleteRole']);
+
+    Route::get('/permissions', [\App\Http\Controllers\Api\PermissionController::class, 'permissions']);
+
+    // Gestion des rôles/permissions des utilisateurs
+    Route::get('/users/{id}/permissions', [\App\Http\Controllers\Api\PermissionController::class, 'getUserPermissions']);
+    Route::put('/users/{id}/roles', [\App\Http\Controllers\Api\PermissionController::class, 'updateUserRoles']);
+    Route::post('/users/{id}/permissions', [\App\Http\Controllers\Api\PermissionController::class, 'addPermissionToUser']);
+    Route::delete('/users/{id}/permissions', [\App\Http\Controllers\Api\PermissionController::class, 'removePermissionFromUser']);
+});
+
 // Routes d'administration (admin uniquement)
 Route::prefix('v1/admin')->middleware(['jwt.auth', 'admin'])->group(function () {
     // Gestion des utilisateurs
@@ -178,9 +196,11 @@ Route::middleware(['auth:api', 'role:commercial'])->group(function () {
 });
 
 // Routes pour les factures
-Route::middleware(['auth:api'])->group(function () {
-    Route::get('invoices', [\App\Http\Controllers\Api\InvoiceController::class, 'index']);
-    Route::get('invoices/{id}', [\App\Http\Controllers\Api\InvoiceController::class, 'show']);
-
-    Route::middleware('role:admin')->delete('invoices/{id}', [\App\Http\Controllers\Api\InvoiceController::class, 'destroy']);
+Route::prefix('v1')->middleware(['jwt.auth'])->group(function () {
+    Route::get('/invoices', [\App\Http\Controllers\Api\InvoiceController::class, 'index']);
+    Route::get('/invoices/{id}', [\App\Http\Controllers\Api\InvoiceController::class, 'show']);
+    Route::post('/invoices', [\App\Http\Controllers\Api\InvoiceController::class, 'store']);
+    Route::put('/invoices/{id}', [\App\Http\Controllers\Api\InvoiceController::class, 'update']);
+    Route::post('/invoices/{id}/payment', [\App\Http\Controllers\Api\InvoiceController::class, 'addPayment']);
+    Route::delete('/invoices/{id}', [\App\Http\Controllers\Api\InvoiceController::class, 'destroy']);
 });
