@@ -82,7 +82,7 @@ class ProductVariantController extends Controller
         if ($request->hasFile('images')) {
             $imagePaths = [];
             foreach ($request->file('images') as $image) {
-                $path = $image->store('product-variants', 's3');
+                $path = $image->store('product-variants', 'public');
                 $imagePaths[] = $path;
             }
             $data['images'] = $imagePaths;
@@ -165,7 +165,7 @@ class ProductVariantController extends Controller
 
             $imagePaths = [];
             foreach ($request->file('images') as $image) {
-                $path = $image->store('product-variants', 's3');
+                $path = $image->store('product-variants', 'public');
                 $imagePaths[] = $path;
             }
             $data['images'] = $imagePaths;

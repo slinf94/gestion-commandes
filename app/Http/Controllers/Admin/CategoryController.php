@@ -168,7 +168,7 @@ class CategoryController extends Controller
 
             // Gérer l'upload d'image
             if ($request->hasFile('image')) {
-                $data['image'] = $request->file('image')->store('categories', 's3');
+                $data['image'] = $request->file('image')->store('categories', 'public');
             }
 
             DB::table('categories')->insert($data);
@@ -336,7 +336,7 @@ class CategoryController extends Controller
                 if ($oldCategory && $oldCategory->image) {
                     \Storage::disk('s3')->delete($oldCategory->image);
                 }
-                $data['image'] = $request->file('image')->store('categories', 's3');
+                $data['image'] = $request->file('image')->store('categories', 'public');
             }
 
             DB::table('categories')->where('id', $id)->update($data);

@@ -664,7 +664,7 @@ class ProductController extends Controller
 
         $imagePaths = [];
         foreach ($request->file('images') as $image) {
-            $path = $image->store('products', 's3');
+            $path = $image->store('products', 'public');
             $imagePaths[] = $path;
         }
 

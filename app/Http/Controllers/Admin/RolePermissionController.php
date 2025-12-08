@@ -87,6 +87,7 @@ class RolePermissionController extends Controller
 
     /**
      * Assigner un rôle à un utilisateur
+     * Synchronise automatiquement avec le rôle Legacy
      */
     public function assignRole(Request $request, User $user)
     {
@@ -102,7 +103,11 @@ class RolePermissionController extends Controller
         if (!$user->hasRole($role->slug)) {
             $user->attachRole($role->slug);
 
-            return redirect()->back()->with('success', "Le rôle '{$role->name}' a été assigné avec succès.");
+            // Synchroniser avec le rôle Legacy
+            // On utilise le rôle RBAC le plus élevé comme rôle Legacy
+            $this->syncLegacyRole($user);
+
+            return redirect()->back()->with('success', "Le rôle '{$role->name}' a été assigné avec succès. Le rôle Legacy a été synchronisé automatiquement.");
         }
 
         return redirect()->back()->with('warning', "L'utilisateur a déjà le rôle '{$role->name}'.");
@@ -110,6 +115,7 @@ class RolePermissionController extends Controller
 
     /**
      * Retirer un rôle d'un utilisateur
+     * Synchronise automatiquement avec le rôle Legacy
      */
     public function removeRole(Request $request, User $user)
     {
@@ -133,7 +139,10 @@ class RolePermissionController extends Controller
 
         $user->detachRole($role->slug);
 
-        return redirect()->back()->with('success', "Le rôle '{$role->name}' a été retiré avec succès.");
+        // Synchroniser avec le rôle Legacy
+        $this->syncLegacyRole($user);
+
+        return redirect()->back()->with('success', "Le rôle '{$role->name}' a été retiré avec succès. Le rôle Legacy a été synchronisé automatiquement.");
     }
 
     /**
@@ -203,18 +212,83 @@ class RolePermissionController extends Controller
 
     /**
      * Mettre à jour le rôle legacy (champ role dans la table users)
+     * Synchronise automatiquement avec les rôles RBAC
      */
     public function updateLegacyRole(Request $request, User $user)
     {
         $this->enforceSuperAdmin();
 
         $request->validate([
-            'role' => 'required|in:super-admin,admin,gestionnaire,vendeur,client',
+            'role' => 'required|in:super-admin,admin,gestionnaire,vendeur,client,commercial',
         ]);
 
-        $user->update(['role' => $request->role]);
+        $newRole = $request->role;
+        $user->update(['role' => $newRole]);
 
-        return redirect()->back()->with('success', "Le rôle legacy a été mis à jour avec succès.");
+        // Synchroniser avec les rôles RBAC
+        $this->syncRbacFromLegacy($user, $newRole);
+
+        return redirect()->back()->with('success', "Le rôle legacy a été mis à jour avec succès. Les rôles RBAC ont été synchronisés automatiquement.");
+    }
+
+    /**
+     * Synchronise le rôle Legacy depuis les rôles RBAC
+     * Utilise le rôle RBAC le plus élevé comme rôle Legacy
+     */
+    private function syncLegacyRole(User $user): void
+    {
+        // Recharger les rôles de l'utilisateur
+        $user->load('roles');
+
+        // Hiérarchie des rôles (du plus élevé au plus bas)
+        $roleHierarchy = ['super-admin', 'admin', 'gestionnaire', 'vendeur'];
+
+        $highestRole = null;
+        foreach ($roleHierarchy as $roleSlug) {
+            if ($user->hasRole($roleSlug)) {
+                $highestRole = $roleSlug;
+                break;
+            }
+        }
+
+        // Si l'utilisateur a un rôle RBAC, mettre à jour le Legacy
+        if ($highestRole) {
+            $user->update(['role' => $highestRole]);
+        }
+        // Si aucun rôle RBAC, garder le rôle actuel (client ou commercial)
+    }
+
+    /**
+     * Synchronise les rôles RBAC depuis le rôle Legacy
+     * Retire tous les rôles admin et assigne le rôle correspondant
+     */
+    private function syncRbacFromLegacy(User $user, string $legacyRole): void
+    {
+        // Rôles admin à synchroniser
+        $adminRoles = ['super-admin', 'admin', 'gestionnaire', 'vendeur'];
+
+        // Si le nouveau rôle est un rôle admin
+        if (in_array($legacyRole, $adminRoles)) {
+            // Retirer tous les anciens rôles admin RBAC
+            foreach ($adminRoles as $roleSlug) {
+                if ($user->hasRole($roleSlug)) {
+                    $user->detachRole($roleSlug);
+                }
+            }
+
+            // Assigner le nouveau rôle RBAC correspondant
+            $rbacRole = Role::where('slug', $legacyRole)->first();
+            if ($rbacRole && !$user->hasRole($legacyRole)) {
+                $user->attachRole($legacyRole);
+            }
+        } else {
+            // Si c'est client ou commercial, retirer tous les rôles admin RBAC
+            foreach ($adminRoles as $roleSlug) {
+                if ($user->hasRole($roleSlug)) {
+                    $user->detachRole($roleSlug);
+                }
+            }
+        }
     }
 }
 

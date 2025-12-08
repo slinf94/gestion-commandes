@@ -132,7 +132,7 @@ class User extends Authenticatable implements JWTSubject
     /**
      * Relation pour les clients d'un commercial
      */
-    public function clients()
+    public function commercialClients()
     {
         return $this->hasMany(User::class, 'commercial_id');
     }

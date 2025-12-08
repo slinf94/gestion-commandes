@@ -607,7 +607,7 @@ class AuthController extends Controller
             // Sauvegarder la nouvelle photo
             $photo = $request->file('photo');
             $filename = 'profile_' . $user->id . '_' . time() . '.' . $photo->getClientOriginalExtension();
-            $path = $photo->storeAs('profiles', $filename, 's3');
+            $path = $photo->storeAs('profiles', $filename, 'public');
 
             // Mettre à jour l'utilisateur
             $user->update(['photo' => $path]);

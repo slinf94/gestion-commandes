@@ -72,7 +72,7 @@
                                                     </small>
                                                 @endif
                                             </div>
-                                            @if($role->slug !== 'super-admin' || User::role('super-admin')->count() > 1)
+                                            @if($role->slug !== 'super-admin' || \App\Models\User::where('role', 'super-admin')->count() > 1)
                                                 <form method="POST" action="{{ route('admin.role-permissions.remove-role', $user) }}" class="d-inline">
                                                     @csrf
                                                     <input type="hidden" name="role_id" value="{{ $role->id }}">
