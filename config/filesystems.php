@@ -60,7 +60,18 @@ return [
             'report' => false,
         ],
 
+        // TEMPORAIRE: Utiliser le stockage local au lieu de S3/Cloudflare pour le développement
+        // Remettre la config S3 pour la production
         's3' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public'),
+            'url' => env('APP_URL').'/storage',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        's3-cloudflare' => [
             'driver' => 's3',
             'key' => env('CLOUDFLARE_R2_ACCESS_KEY_ID'),
             'secret' => env('CLOUDFLARE_R2_SECRET_ACCESS_KEY'),

@@ -788,30 +788,33 @@ class ProductApiController extends Controller
     private function formatProductFromRaw($product, $productImagesRaw = [])
     {
         try {
+            // URL de base pour le stockage local
+            $storageBaseUrl = url('/storage');
+
             // Extraire les images
             $images = [];
             if (!empty($productImagesRaw)) {
                 foreach ($productImagesRaw as $imgData) {
                     $imageUrl = $imgData['url'] ?? null;
                     if ($imageUrl && !empty(trim($imageUrl))) {
-                        $images[] = str_starts_with($imageUrl, 'http') 
-                            ? $imageUrl 
-                            : \Storage::disk('s3')->url(ltrim($imageUrl, '/'));
+                        $images[] = str_starts_with($imageUrl, 'http')
+                            ? $imageUrl
+                            : $storageBaseUrl . '/' . ltrim($imageUrl, '/');
                     }
                 }
             }
-            
+
             // Images depuis le champ JSON
             if (empty($images) && !empty($product->images)) {
-                $productImages = is_string($product->images) 
-                    ? json_decode($product->images, true) 
+                $productImages = is_string($product->images)
+                    ? json_decode($product->images, true)
                     : $product->images;
                 if (is_array($productImages)) {
                     foreach ($productImages as $image) {
                         if (is_string($image) && !empty($image)) {
-                            $images[] = str_starts_with($image, 'http') 
-                                ? $image 
-                                : \Storage::disk('s3')->url(ltrim($image, '/'));
+                            $images[] = str_starts_with($image, 'http')
+                                ? $image
+                                : $storageBaseUrl . '/' . ltrim($image, '/');
                         }
                     }
                 }

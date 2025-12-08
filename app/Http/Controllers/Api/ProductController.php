@@ -126,20 +126,20 @@ class ProductController extends Controller
         $formattedProducts = collect($products->items())->map(function ($product) {
             $productData = $product->toArray();
 
-            // Construire les URLs d'images depuis S3
-            $disk = \Storage::disk('s3');
+            // Construire les URLs d'images depuis le stockage public local
+            $baseUrl = url('/storage');
 
             // Formater les images avec URLs complètes (optimisé)
             if (isset($productData['images']) && is_array($productData['images'])) {
-                $productData['images'] = array_values(array_filter(array_map(function ($image) use ($disk) {
+                $productData['images'] = array_values(array_filter(array_map(function ($image) use ($baseUrl) {
                     if (empty($image)) return null;
                     if (str_starts_with($image, 'http')) return $image;
-                    return $disk->url($image);
+                    return $baseUrl . '/' . ltrim($image, '/');
                 }, $productData['images'])));
             }
 
             // Ajouter l'image principale (optimisé)
-            $productData['main_image'] = $product->main_image ?: $disk->url('products/placeholder.jpg');
+            $productData['main_image'] = $product->main_image ?: $baseUrl . '/products/placeholder.jpg';
 
             // Ajouter les prix par quantité (style Alibaba)
             $productData['quantity_prices'] = $product->prices->map(function ($price) {
